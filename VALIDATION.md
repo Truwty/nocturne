@@ -6,7 +6,7 @@ Tested on Windows 11 x64, JDK 25.0.5, Minecraft 26.1.2, Fabric Loader 0.20.1, Fa
 
 - Java build against the actual Minecraft 26.1.2 client libraries.
 - Five Java tests: time formatting, idle capability reset, partial snapshots, progress clamping, source naming.
-- Five Python tests: protocol validation, accepted commands, missing selected app isolation, rejected command feedback, connected idle state.
+- Six Python tests: protocol validation, accepted commands, Unicode source identifiers, missing selected app isolation, rejected command feedback, connected idle state.
 - Frozen executable starts, reads real Windows sessions including Spotify metadata/artwork, and exits cleanly via the pipe protocol.
 - Minecraft launches with the client initializer and title-screen mixin; Nocturne's cockpit renders in the running client.
 - Live Spotify title, artist, album artwork, playback state, and progress are visible in Minecraft.

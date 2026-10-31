@@ -17,6 +17,9 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(parse_command('{"action":"seek","seconds":42.5}')["seconds"], 42.5)
         self.assertEqual(parse_command('{"action":"toggle"}')["action"], "toggle")
 
+    def test_preserves_unicode_source_identifiers(self) -> None:
+        self.assertEqual(parse_command('{"action":"select","source":"音楽.exe"}')["source"], "音楽.exe")
+
     def test_missing_selected_session_does_not_control_another_app(self) -> None:
         manager = Mock()
         manager.get_sessions.return_value = []

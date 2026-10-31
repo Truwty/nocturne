@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 
 public final class MediaBridge implements AutoCloseable {
     private final AtomicBoolean running = new AtomicBoolean();
@@ -47,6 +48,7 @@ public final class MediaBridge implements AutoCloseable {
                 synchronized (this) {
                     writer = new BufferedWriter(new OutputStreamWriter(child.getOutputStream(), StandardCharsets.UTF_8));
                 }
+                if (restart.get()) command("quit");
                 Thread.ofPlatform().daemon().name("nocturne-media-log").start(() -> {
                     try (var errors = new BufferedReader(new InputStreamReader(child.getErrorStream(), StandardCharsets.UTF_8))) {
                         String line;
@@ -66,7 +68,7 @@ public final class MediaBridge implements AutoCloseable {
                 state = TrackState.idle("Cannot start media bridge. Check logs/latest.log, then Reconnect.");
             } finally {
                 Process child = process;
-                if (child != null) child.destroy();
+                if (child != null) stopProcess(child);
                 synchronized (this) { writer = null; }
                 process = null;
                 running.set(false);
@@ -125,8 +127,9 @@ public final class MediaBridge implements AutoCloseable {
         if (closed.get()) return;
         if (!running.get()) { start(); return; }
         restart.set(true);
+        command("quit");
         Process child = process;
-        if (child != null) child.destroy();
+        if (child != null) Thread.ofPlatform().daemon().name("nocturne-reconnect").start(() -> stopProcess(child));
     }
 
     public void select(String source) {
@@ -157,6 +160,15 @@ public final class MediaBridge implements AutoCloseable {
         closed.set(true);
         command("quit");
         Process child = process;
-        if (child != null) child.destroy();
+        if (child != null) Thread.ofPlatform().daemon().name("nocturne-shutdown").start(() -> stopProcess(child));
+    }
+
+    private static void stopProcess(Process child) {
+        try {
+            if (child.waitFor(2, TimeUnit.SECONDS)) return;
+        } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+        // A one-file bridge has a bootloader and child; bound shutdown of both.
+        child.descendants().forEach(handle -> handle.destroy());
+        child.destroy();
     }
 }
