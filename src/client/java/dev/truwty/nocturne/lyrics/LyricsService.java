@@ -79,10 +79,15 @@ public final class LyricsService {
       Studio.library().clearLyrics(track.key());
       if (demoPlaying()) demoLyrics = Lyrics.parse(DEMO_LRC); else refetch();
    }
-   private synchronized void applyLocal(NowPlaying track, Lyrics local) {
-      if (now() != null && now().key().equals(track.key())) {
+   synchronized void applyLocal(NowPlaying track, Lyrics local) {
+      NowPlaying demo = this.demoNow;
+      if (demo != null && demo.key().equals(track.key())) {
+         this.demoLyrics = local;
+         return;
+      }
+      NowPlaying current = this.now;
+      if (current != null && current.key().equals(track.key())) {
          loadingKey = "local:" + (++revision); lyrics = local; lyricsStatus = "Local / selected lyrics";
-         if (demoPlaying()) demoLyrics = local;
       }
    }
    private ScheduledFuture<?> task;

@@ -200,16 +200,16 @@ public final class StudioScreen extends Screen {
         NowPlaying track = service().now();
         if (page == 0) {
             text(g, track == null ? "Start music in your desktop player" : track.title(), body);
-            text(g, track == null ? service().system.status() : track.artist() + " Â· " + track.source(), body + 18);
+            text(g, track == null ? service().system.status() : track.artist() + " · " + track.source(), body + 18);
             text(g, service().system.commandStatus(), body + 169);
         } else if (page == 1) {
-            text(g, track == null ? "No current song" : "Song offset: " + Math.round(Studio.songOffset(track)) + " ms Â· " + service().lyricsStatus(), body + 209);
+            text(g, track == null ? "No current song" : "Song offset: " + Math.round(Studio.songOffset(track)) + " ms · " + service().lyricsStatus(), body + 209);
             text(g, service().searchStatus(), body + 223);
         } else if (page == 3) {
             Draw.text(g, font, "Background", x + 16, body, s().uiText.argb(), false);
             Draw.text(g, font, "Accent", x + 16 + (w - 40) / 3 + 4, body, s().uiText.argb(), false);
             Draw.text(g, font, "Text", x + 16 + 2 * ((w - 40) / 3 + 4), body, s().uiText.argb(), false);
-        } else if (page == 5) text(g, service().system.audioStatus() + " Â· Audio is local; no recording", body + 157);
+        } else if (page == 5) text(g, service().system.audioStatus() + " · Audio is local; no recording", body + 157);
         else if (page == 6) {
             int line = body;
             for (String value : List.of("Minecraft 26.1.2 / Fabric / client only", service().system.status(), service().lyricsStatus(),
