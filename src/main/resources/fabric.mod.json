@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "nocturne",
+  "version": "${version}",
+  "name": "Nocturne",
+  "description": "Your soundtrack. Your world. A client-only desktop music cockpit.",
+  "authors": ["Truwty"],
+  "contact": { "sources": "https://github.com/Truwty/nocturne" },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": { "client": ["dev.truwty.nocturne.NocturneClient"] },
+  "mixins": ["nocturne.client.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.20.1",
+    "minecraft": "26.1.2",
+    "java": ">=25",
+    "fabric-api": ">=0.155.3+26.1.2"
+  }
+}

@@ -1,0 +1,11 @@
+.gradle/
+build/
+run/
+.idea/
+*.iml
+__pycache__/
+.venv/
+bridge/dist/
+bridge/build/
+*.spec
+src/main/resources/native/*.exe

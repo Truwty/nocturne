@@ -1,0 +1,31 @@
+name: Build and test
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+          architecture: x64
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build native bridge, test, and package mod
+        shell: pwsh
+        run: ./scripts/build-windows.ps1
+      - name: Verify frozen bridge
+        shell: pwsh
+        run: python bridge/smoke_frozen.py bridge/dist/nocturne-bridge.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nocturne-windows-mc26.1.2
+          path: build/libs/*.jar
+          if-no-files-found: error
