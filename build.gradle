@@ -37,10 +37,21 @@ java {
 }
 tasks.named('sourcesJar') { exclude('native/**') }
 test { useJUnitPlatform() }
+fabricApi {
+    configureTests {
+        createSourceSet = true
+        modId = 'nocturne-port-test'
+        enableGameTests = false
+        enableClientGameTests = true
+        eula = true
+    }
+}
+sourceSets.gametest.compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
+sourceSets.gametest.runtimeClasspath += sourceSets.client.output + sourceSets.client.runtimeClasspath
 sourceSets.test.compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
 sourceSets.test.runtimeClasspath += sourceSets.client.output + sourceSets.client.runtimeClasspath
 jar {
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
-    from('third-party-licenses') { into 'META-INF/licenses' }
+    from('PORTING-NOTICE.md')
 }

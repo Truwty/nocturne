@@ -13,19 +13,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-      - uses: actions/setup-python@v7.1.0
-        with:
-          python-version: '3.14'
-          architecture: x64
       - uses: gradle/actions/setup-gradle@v6.4.1
-      - name: Build native bridge, test, and package mod
+      - name: Test and package mod
         shell: pwsh
-        run: ./scripts/build-windows.ps1
-      - name: Verify frozen bridge
-        shell: pwsh
-        run: python bridge/smoke_frozen.py bridge/dist/nocturne-bridge.exe
+        run: ./gradlew.bat build --console=plain
       - uses: actions/upload-artifact@v7.0.2
         with:
-          name: nocturne-windows-mc26.1.2
+          name: nocturne-mc26.1.2
           path: build/libs/*.jar
           if-no-files-found: error

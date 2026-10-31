@@ -1,21 +1,34 @@
-MIT License
+Copyright (c) 2026 Kangetsu. All Rights Reserved.
 
-Copyright (c) 2026 Truwty
+観月 Lyrics ("the Mod") and all of its source code, assets and files are the
+property of Kangetsu.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+You MAY:
+  - Download the Mod from its official pages and use it in your own game.
+  - Include the Mod in modpacks, as long as the pack downloads it from its
+    official Modrinth page and does not bundle or reupload the file.
+  - Show the Mod in videos, streams and screenshots.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+You may NOT, without written permission from Kangetsu:
+  - Reupload, redistribute, mirror or sell the Mod or any part of it.
+  - Copy, modify, decompile for reuse, or publish code or assets from the Mod
+    in other projects.
+  - Claim the Mod or any part of it as your own work.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+The Mod is provided "as is", without warranty of any kind. Kangetsu is not
+liable for any damage or loss arising from its use.
+
+The Mod is not affiliated with, endorsed by, or connected to Spotify AB,
+Mojang Studios or Microsoft.
+
+Third-party material:
+  The included fonts are licensed separately under the SIL Open Font License 1.1,
+  and that license, not this one, applies to the font files:
+  - Hanken Grotesk (smooth.ttf, smooth_bold.ttf),
+    see META-INF/licenses/OFL-HankenGrotesk.txt
+  - Inter, Cyrillic subset (smooth_cyrillic.ttf, smooth_cyrillic_bold.ttf),
+    see META-INF/licenses/OFL-Inter.txt
+  - Lora Italic, instanced and renamed "Kangetsu Elegant" (elegant.ttf),
+    see META-INF/licenses/OFL-Lora.txt
+  - Poppins Bold Italic (impact.ttf),
+    see META-INF/licenses/OFL-Poppins.txt

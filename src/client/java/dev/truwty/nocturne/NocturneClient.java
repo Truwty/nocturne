@@ -1,54 +1,73 @@
 package dev.truwty.nocturne;
 
-import com.mojang.blaze3d.platform.InputConstants;
+import dev.truwty.nocturne.gui.GlassLyricsScreen;
+import dev.truwty.nocturne.gui.LyricsScreen;
+import dev.truwty.nocturne.lyrics.HudLyrics;
+import dev.truwty.nocturne.lyrics.LyricsHud;
+import dev.truwty.nocturne.lyrics.LyricsRenderer;
+import dev.truwty.nocturne.lyrics.LyricsService;
+import com.mojang.blaze3d.platform.InputConstants.Type;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.ClientStopping;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping.Category;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class NocturneClient implements ClientModInitializer {
-    public static final Logger LOG = LoggerFactory.getLogger("nocturne");
-    public static final MediaBridge MEDIA = new MediaBridge();
-    public static Preferences preferences;
-    public static LyricsService LYRICS;
+@Environment(EnvType.CLIENT)
+public class NocturneClient implements ClientModInitializer {
+   public static final String ID = "nocturne";
+   public static final String NAME = "Nocturne";
+   public static final String ASCII_NAME = "Nocturne Lyrics";
+   public static final Logger LOG = LoggerFactory.getLogger("Nocturne Lyrics");
+   public static LyricsSettings SETTINGS;
+   public static KeyMapping OPEN_KEY;
 
-    @Override public void onInitializeClient() {
-        preferences = Preferences.load();
-        LYRICS = new LyricsService(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("nocturne/lyrics"));
-        var category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("nocturne", "music"));
-        var open = key("open", GLFW.GLFW_KEY_N, category);
-        var toggle = key("toggle", GLFW.GLFW_KEY_UNKNOWN, category);
-        var next = key("next", GLFW.GLFW_KEY_UNKNOWN, category);
-        var previous = key("previous", GLFW.GLFW_KEY_UNKNOWN, category);
-        var hud = key("hud", GLFW.GLFW_KEY_UNKNOWN, category);
-        var lyrics = key("lyrics", GLFW.GLFW_KEY_UNKNOWN, category);
-        var pin = key("pin", GLFW.GLFW_KEY_UNKNOWN, category);
-        ClientTickEvents.END_CLIENT_TICK.register(client -> {
-            while (open.consumeClick()) client.setScreen(new MusicScreen(client.screen));
-            while (toggle.consumeClick()) if (MEDIA.state().canToggle()) MEDIA.command("toggle");
-            while (next.consumeClick()) if (MEDIA.state().canNext()) MEDIA.command("next");
-            while (previous.consumeClick()) if (MEDIA.state().canPrevious()) MEDIA.command("previous");
-            while (hud.consumeClick()) { preferences.hud = !preferences.hud; preferences.save(); }
-            while (lyrics.consumeClick()) { preferences.lyricsHud = !preferences.lyricsHud; preferences.save(); }
-            while (pin.consumeClick()) LyricOverlay.pin();
-            Artwork.update(MEDIA.state().art());
-            LYRICS.update(MEDIA.state(), preferences.onlineLyrics);
-        });
-        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
-                Identifier.fromNamespaceAndPath("nocturne", "player"), MusicVisuals::hud);
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { MEDIA.close(); Artwork.close(); LYRICS.close(); });
-        MEDIA.start();
-    }
+   public void onInitializeClient() {
+      SETTINGS = new LyricsSettings();
+      SETTINGS.load();
+      Category category = Category.register(Identifier.fromNamespaceAndPath("nocturne", "main"));
+      OPEN_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.open", Type.KEYSYM, 78, category));
+      ClientTickEvents.END_CLIENT_TICK.register(NocturneClient::tick);
+      LevelRenderEvents.COLLECT_SUBMITS.register(LyricsRenderer::render);
+      HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath("nocturne", "cinema"), LyricsHud::render);
+      HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath("nocturne", "world_lyrics"), HudLyrics::render);
+      if (SETTINGS.isEnabled()) {
+         LyricsService.INSTANCE.start();
+      }
 
-    private static KeyMapping key(String name, int code, KeyMapping.Category category) {
-        return KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne." + name,
-                InputConstants.Type.KEYSYM, code, category));
-    }
+      ClientLifecycleEvents.CLIENT_STOPPING.register((ClientStopping)client -> {
+         LyricsService.INSTANCE.stop();
+         SETTINGS.save();
+      });
+      LOG.info("{} loaded", "Nocturne Lyrics");
+   }
+
+   public static Screen settingsScreen(Screen parent) {
+      return (Screen)(SETTINGS.guiStyle.get() == 1 ? new GlassLyricsScreen(parent) : new LyricsScreen(parent));
+   }
+
+   private static void tick(Minecraft mc) {
+      while (OPEN_KEY.consumeClick()) {
+         if (mc.screen == null) {
+            mc.setScreen(settingsScreen(null));
+         }
+      }
+
+      SETTINGS.tickPreset();
+      if (SETTINGS.isEnabled()) {
+         SETTINGS.onTick(mc);
+         LyricsRenderer.tick(mc);
+      }
+   }
 }

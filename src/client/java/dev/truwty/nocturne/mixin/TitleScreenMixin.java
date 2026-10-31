@@ -1,7 +1,7 @@
 package dev.truwty.nocturne.mixin;
 
-import dev.truwty.nocturne.MusicButton;
-import dev.truwty.nocturne.MusicScreen;
+import dev.truwty.nocturne.NocturneClient;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.network.chat.Component;
@@ -16,7 +16,8 @@ abstract class TitleScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("TAIL"))
     private void nocturne$addButton(CallbackInfo ci) {
-        addRenderableWidget(new MusicButton(width - 94, 10, 84, 20, "Nocturne", false,
-                button -> minecraft.setScreen(new MusicScreen(this))));
+        addRenderableWidget(Button.builder(Component.literal("Nocturne"),
+            button -> minecraft.setScreen(NocturneClient.settingsScreen(this)))
+            .bounds(width - 94, 10, 84, 20).build());
     }
 }

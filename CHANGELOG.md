@@ -1,23 +1,13 @@
 # Changelog
 
-## 0.2.0-beta.1
+## 0.4.0-beta.1
 
-- Synced LRCLIB lyrics with bounded asynchronous lookup, caching, strict recording matching, cancellation, and provider backoff.
-- Local/enhanced LRC, smooth lyric scrolling, real word timings where present, lyric seeking, timing adjustment, and drag scrubbing.
-- Subtitle, side-panel, and local world-pinned lyric overlays.
-- Redesigned Player/Lyrics/Settings navigation and six saved themes, including an album-derived palette.
-- Motion, opacity, scale, visibility, and HUD controls.
-- Auto source selection ignores speech/call sessions and retains the paused player.
-- Expanded automated tests, updated CI actions, and smaller source JARs.
+- Replace the previous implementation with the permitted Kangetsu-derived Minecraft 26.1.2 port, preserving its world lyrics, effects, presets, fonts and settings interfaces.
+- Rebrand mod identity, Java packages, resource paths, settings, key category, icon and menus as Nocturne; retain original attribution and license notices.
+- Remove Spotify OAuth, developer Client ID setup, credential storage and the callback HTTP server. Automatically detect desktop music instead.
+- Prefer playing Spotify on Windows, then another playing media session; retain paused-player fallback.
+- Default to Glass settings; open with N or the title-screen Nocturne button.
+- Add desktop rescan, detection diagnostics, bounded timestamps, reconnect fixes and current Fabric rendering/mixin integration.
+- Update build/CI and add eight unit tests plus an automated Minecraft client test.
 
-## 0.1.0-beta.1
-
-Initial independent implementation for Minecraft 26.1.2 / Fabric / Windows x64.
-
-- Dark music cockpit, live desktop metadata and album art.
-- Compact HUD with configurable corner, idle visibility, and motion.
-- Playback controls, seeking, app selection, and rebindable hotkeys.
-- Bundled Windows media bridge using private process pipes.
-- MIT source, pinned build tools, automated tests, and Windows CI build.
-
-See VALIDATION.md for tested behavior and outstanding checks.
+This replaces the previous player UI and transport controls. Historical 0.1/0.2 releases remain available under their existing tags and licenses.

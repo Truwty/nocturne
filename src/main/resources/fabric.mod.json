@@ -3,17 +3,34 @@
   "id": "nocturne",
   "version": "${version}",
   "name": "Nocturne",
-  "description": "Client-only music controls and synced lyrics, with six themes and local world-pinned lyric displays.",
-  "authors": ["Truwty"],
-  "contact": { "sources": "https://github.com/Truwty/nocturne" },
-  "license": "MIT",
+  "description": "Cinematic lyrics in your Minecraft world, with automatic desktop music detection. No login required.",
+  "authors": [
+    "Truwty",
+    "Kangetsu (original mod)"
+  ],
+  "license": "ARR",
+  "icon": "assets/nocturne/icon.png",
   "environment": "client",
-  "entrypoints": { "client": ["dev.truwty.nocturne.NocturneClient"] },
-  "mixins": ["nocturne.client.mixins.json"],
+  "entrypoints": {
+    "client": [
+      "dev.truwty.nocturne.NocturneClient"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "nocturne.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=0.20.1",
     "minecraft": "26.1.2",
     "java": ">=25",
-    "fabric-api": ">=0.155.3+26.1.2"
+    "fabric-api": ">=0.155.3"
+  },
+  "contact": {
+    "homepage": "https://github.com/Truwty/nocturne",
+    "sources": "https://github.com/Truwty/nocturne",
+    "issues": "https://github.com/Truwty/nocturne/issues"
   }
 }

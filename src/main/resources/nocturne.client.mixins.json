@@ -2,6 +2,12 @@
   "required": true,
   "package": "dev.truwty.nocturne.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["TitleScreenMixin"],
-  "injectors": { "defaultRequire": 1 }
+  "client": [
+    "AbstractClientPlayerMixin",
+    "WeatherRenderingMixin",
+    "TitleScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }

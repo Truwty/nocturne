@@ -1,10 +1,4 @@
 {
-  "key.category.nocturne.music": "Nocturne",
-  "key.nocturne.open": "Open music cockpit",
-  "key.nocturne.toggle": "Play / pause",
-  "key.nocturne.next": "Next track",
-  "key.nocturne.previous": "Previous track",
-  "key.nocturne.hud": "Toggle music HUD",
-  "key.nocturne.lyrics": "Toggle lyrics overlay",
-  "key.nocturne.pin": "Pin lyrics in world"
+	"key.category.nocturne.main": "Nocturne",
+	"key.nocturne.open": "Lyrics settings"
 }
