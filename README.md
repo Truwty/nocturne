@@ -95,7 +95,3 @@ python scripts/windows_media_smoke.py
 ```
 
 Those Python dependencies are for developer tests only. See [validation](VALIDATION.md) for the tested behavior and limits.
-
-## Attribution
-
-Nocturne is derived from the Kangetsu Lyrics port, distributed with permission confirmed by the repository owner. Original copyright and font licenses remain intact. This version is **not wholly MIT licensed**; see [porting and licensing](PORTING-NOTICE.md). Historical independently written Nocturne releases retain their own original licenses.
