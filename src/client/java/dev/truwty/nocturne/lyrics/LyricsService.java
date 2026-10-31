@@ -4,6 +4,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.Studio;
+import java.util.List;
+import java.io.IOException;
+import java.nio.file.Path;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
@@ -32,12 +36,55 @@ public final class LyricsService {
    public static final LyricsService INSTANCE = new LyricsService();
    private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6L)).followRedirects(Redirect.NORMAL).build();
    public final SystemMediaSource system = new SystemMediaSource();
-   private final ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor(r -> {
+   private final ScheduledExecutorService exec = Executors.newScheduledThreadPool(3, r -> {
       Thread t = new Thread(r, "Nocturne lyrics");
       t.setDaemon(true);
       return t;
    });
-   private final Map<String, LyricsFinder.Result> cache = new HashMap<>();
+   private final ScheduledExecutorService polling = Executors.newSingleThreadScheduledExecutor(r -> {
+      Thread thread = new Thread(r, "nocturne-playback-poll"); thread.setDaemon(true); return thread;
+   });
+   private final Map<String, LyricsFinder.Result> cache = new java.util.concurrent.ConcurrentHashMap<>();
+   private volatile List<LyricSearch.Candidate> candidates = List.of();
+   private volatile String searchStatus = "Search for a title and artist";
+   private volatile String searchTrack = "";
+   private volatile long searchRevision;
+   private long revision;
+   public List<LyricSearch.Candidate> candidates() { return candidates; }
+   public String searchStatus() { return searchStatus; }
+   public void search(String query) {
+      NowPlaying track = now();
+      if (track == null) { searchStatus = "Play a song first"; return; }
+      long request = ++searchRevision;
+      searchTrack = track.key(); candidates = List.of(); searchStatus = "Searching LRCLIB...";
+      exec.execute(() -> {
+         try { var result = LyricSearch.search(query); if (request == searchRevision) { candidates = result; searchStatus = candidates.isEmpty() ? "No synchronized matches" : "Choose a match to save for this song"; } }
+         catch (InterruptedException ex) { Thread.currentThread().interrupt(); searchStatus = "Search cancelled"; }
+         catch (Exception ex) { searchStatus = "Search failed: " + ex.getMessage(); NocturneClient.LOG.debug("Manual lyric search failed", ex); }
+      });
+   }
+   public void choose(LyricSearch.Candidate candidate) throws IOException {
+      NowPlaying track = now();
+      if (track == null || !track.key().equals(searchTrack)) throw new IOException("Song changed; search again for the current song");
+      Studio.library().chooseLyrics(track.key(), candidate.lrc());
+      applyLocal(track, Lyrics.parse(candidate.lrc()));
+   }
+   public void importLocal(Path path) throws IOException {
+      NowPlaying track = now(); if (track == null) throw new IOException("Play a song first");
+      Studio.library().importLyrics(track.key(), path);
+      applyLocal(track, Studio.library().local(track.key()));
+   }
+   public void clearLocal() throws IOException {
+      NowPlaying track = now(); if (track == null) throw new IOException("Play a song first");
+      Studio.library().clearLyrics(track.key());
+      if (demoPlaying()) demoLyrics = Lyrics.parse(DEMO_LRC); else refetch();
+   }
+   private synchronized void applyLocal(NowPlaying track, Lyrics local) {
+      if (now() != null && now().key().equals(track.key())) {
+         loadingKey = "local:" + (++revision); lyrics = local; lyricsStatus = "Local / selected lyrics";
+         if (demoPlaying()) demoLyrics = local;
+      }
+   }
    private ScheduledFuture<?> task;
    private volatile NowPlaying now;
    private volatile Lyrics lyrics;
@@ -95,7 +142,7 @@ public final class LyricsService {
 
    public synchronized void start() {
       if (this.task == null) {
-         this.task = this.exec.scheduleWithFixedDelay(this::poll, 0L, 1200L, TimeUnit.MILLISECONDS);
+         this.task = this.polling.scheduleWithFixedDelay(this::poll, 0L, 500L, TimeUnit.MILLISECONDS);
       }
    }
 
@@ -143,12 +190,17 @@ public final class LyricsService {
       this.exec.execute(() -> {
          NowPlaying n = this.now;
          if (n != null) {
+            this.cache.remove(n.key() + (NocturneClient.SETTINGS.plainLyrics.on() ? "|plain" : ""));
             this.fetchLyrics(n);
          }
       });
    }
 
    private void fetchLyrics(NowPlaying np) {
+      try {
+         Lyrics local = Studio.library().local(np.key());
+         if (local != null && !local.lines.isEmpty()) { applyLocal(np, local); return; }
+      } catch (IOException ex) { NocturneClient.LOG.warn("Local lyrics could not be read", ex); }
       boolean plain = NocturneClient.SETTINGS == null || NocturneClient.SETTINGS.plainLyrics.on();
       String key = np.key() + (plain ? "|plain" : "");
       this.loadingKey = key;
@@ -187,6 +239,7 @@ public final class LyricsService {
                found = new LyricsFinder.Result(null, "No lyrics found for this song");
             }
 
+            if (!key.equals(this.loadingKey)) return;
             this.cache.put(key, found);
             if (key.equals(this.loadingKey)) {
                this.lyrics = found.lyrics();

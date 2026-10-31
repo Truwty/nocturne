@@ -1,0 +1,75 @@
+package dev.truwty.nocturne;
+
+import com.google.gson.JsonObject;
+import dev.truwty.nocturne.gui.StudioScreen;
+import dev.truwty.nocturne.lyrics.NowPlaying;
+import dev.truwty.nocturne.setting.Setting;
+import java.io.IOException;
+import java.nio.file.Path;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.Minecraft;
+
+public final class Studio {
+    private static StudioLibrary library;
+    private static int placement = -1;
+    private Studio() {}
+    public static synchronized StudioLibrary library() {
+        if (library == null) {
+            try { library = new StudioLibrary(directory()); }
+            catch (IOException ex) { throw new IllegalStateException("Cannot load Nocturne library", ex); }
+        }
+        return library;
+    }
+    public static Path directory() { return FabricLoader.getInstance().getConfigDir().resolve("nocturne"); }
+    public static void open() { Minecraft mc = Minecraft.getInstance(); mc.setScreen(new StudioScreen(mc.screen)); }
+    public static double songOffset(NowPlaying track) { return track == null ? 0 : library().offset(track.key()); }
+
+    public static void tick() {
+        int next = NocturneClient.SETTINGS.follow.get();
+        if (next == placement) return;
+        try {
+            if (placement >= 0) library().preset("placement:" + placement, "Active", snapshot("placement"));
+            JsonObject profile = library().preset("placement:" + next, "Active");
+            if (profile != null) apply("placement", profile);
+            else if (placement >= 0) {
+                var settings = NocturneClient.SETTINGS;
+                settings.editorX.set(0.0); settings.editorY.set(0.0); settings.editorYaw.set(0.0); settings.editorPitch.set(0.0); settings.editorRoll.set(0.0);
+            }
+            placement = next;
+        } catch (IOException ex) { placement = next; NocturneClient.LOG.warn("Placement profile could not be saved", ex); }
+    }
+    public static void savePlacement() throws IOException {
+        library().preset("placement:" + NocturneClient.SETTINGS.follow.get(), "Active", snapshot("placement"));
+    }
+
+    public static JsonObject snapshot(String group) {
+        JsonObject result = new JsonObject();
+        for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
+            if (included(group, setting.name)) result.add(setting.name, setting.save());
+        }
+        return result;
+    }
+
+    public static void apply(String group, JsonObject values) {
+        if (values == null) throw new IllegalArgumentException("Preset not found");
+        for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
+            if (!included(group, setting.name) || !values.has(setting.name)) continue;
+            var value = values.get(setting.name);
+            if (!value.isJsonPrimitive()) throw new IllegalArgumentException("Invalid preset value: " + setting.name);
+            if (setting instanceof dev.truwty.nocturne.setting.NumberSetting number) {
+                double n = value.getAsDouble();
+                if (!Double.isFinite(n) || n < number.min || n > number.max) throw new IllegalArgumentException("Out of range: " + setting.name);
+            } else if (setting instanceof dev.truwty.nocturne.setting.ColorSetting && !value.getAsString().matches("#[0-9a-fA-F]{8}")) throw new IllegalArgumentException("Invalid colour: " + setting.name);
+            else if (setting instanceof dev.truwty.nocturne.setting.ModeSetting mode && !mode.options.contains(value.getAsString())) throw new IllegalArgumentException("Unknown mode: " + setting.name);
+        }
+        for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
+            if (included(group, setting.name) && values.has(setting.name)) setting.load(values.get(setting.name));
+        }
+        NocturneClient.SETTINGS.save();
+    }
+
+    private static boolean included(String group, String name) {
+        return group.equals("themes") ? name.startsWith("UI ") :
+            name.startsWith("Editor ") || name.equals("Distance") || name.equals("Size");
+    }
+}

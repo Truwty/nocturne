@@ -51,7 +51,9 @@ public class NumberSetting extends Setting<Double> {
    @Override
    public void load(JsonElement e) {
       if (e != null && e.isJsonPrimitive()) {
-         this.value = Math.max(this.min, Math.min(this.max, e.getAsDouble()));
+         double candidate = e.getAsDouble();
+         if (!Double.isFinite(candidate)) throw new IllegalArgumentException("Non-finite setting: " + this.name);
+         this.value = Math.max(this.min, Math.min(this.max, candidate));
       }
    }
 }

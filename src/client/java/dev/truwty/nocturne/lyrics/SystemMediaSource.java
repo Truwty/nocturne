@@ -4,6 +4,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.truwty.nocturne.NocturneClient;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.util.Base64;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -18,6 +23,52 @@ import net.fabricmc.api.Environment;
 @Environment(EnvType.CLIENT)
 public final class SystemMediaSource {
    private volatile Process process;
+   public record Player(String id, String label) {}
+   private volatile List<Player> players = List.of();
+   private volatile Set<String> capabilities = Set.of();
+   private volatile String activeId = "";
+   private volatile String selectedId = "";
+   private volatile String commandStatus = "";
+   private volatile float peak;
+   private volatile boolean audioAvailable;
+   private volatile boolean audioEnabled;
+   private volatile String audioError = "";
+   private volatile long audioSample;
+   private volatile ArrayBlockingQueue<JsonObject> commands;
+
+   public List<Player> players() { return players; }
+   public String selected() { return selectedId; }
+   public String commandStatus() { return commandStatus; }
+   public boolean can(String action) { return capabilities.contains(action); }
+   public float peak() { return System.nanoTime() - audioSample < 1_000_000_000L ? peak : 0; }
+   public boolean audioAvailable() { return audioAvailable && System.nanoTime() - audioSample < 1_000_000_000L; }
+   public String audioStatus() { return !WINDOWS ? "Audio meter requires Windows" : !audioEnabled ? "Audio meter off" : audioAvailable() ? "Desktop output (all sounds)" : audioError; }
+   public void select(String id) { selectedId = id; JsonObject cmd = new JsonObject(); cmd.addProperty("action", "select"); cmd.addProperty("app", id); send(cmd); }
+   public void audio(boolean enabled) { if (enabled == audioEnabled) return; audioEnabled = enabled; JsonObject cmd = new JsonObject(); cmd.addProperty("action", "audio"); cmd.addProperty("enabled", enabled); send(cmd); }
+   public void command(String action, long millis) {
+      if (!Set.of("toggle", "next", "previous", "seek").contains(action)) throw new IllegalArgumentException("Unknown transport command");
+      if (!can(action)) { commandStatus = "This player does not support " + action; return; }
+      JsonObject cmd = new JsonObject(); cmd.addProperty("action", action); cmd.addProperty("target", activeId); cmd.addProperty("millis", Math.max(0, millis));
+      String targetId = activeId;
+      if (WINDOWS) send(cmd);
+      else Thread.ofPlatform().daemon().name("nocturne-command").start(() -> {
+         try {
+            String result;
+            if (LINUX) result = action.equals("seek") ? run("playerctl", "-p", targetId, "position", Double.toString(millis / 1000.0)) : run("playerctl", "-p", targetId, action.equals("toggle") ? "play-pause" : action);
+            else {
+               String app = targetId.equals("Music") ? "Music" : "Spotify";
+               String operation = switch (action) { case "toggle" -> "playpause"; case "next" -> "next track"; case "previous" -> "previous track"; default -> "set player position to " + millis / 1000.0; };
+               result = run("osascript", "-e", "tell application \"" + app + "\" to " + operation);
+            }
+            commandStatus = result == null ? "Player rejected command" : "Command accepted";
+         } catch (IOException ex) { commandStatus = ex.getMessage(); NocturneClient.LOG.debug("Transport failed", ex); }
+      });
+   }
+   private void send(JsonObject command) {
+      ArrayBlockingQueue<JsonObject> queue = commands;
+      if (queue != null && !queue.offer(command)) commandStatus = "Player command queue is full";
+   }
+
    private Thread reader;
    private volatile NowPlaying latest;
    private volatile String status = "Not started";
@@ -112,7 +163,10 @@ public final class SystemMediaSource {
       String[][] apps = new String[][]{{"Spotify", MAC_SPOTIFY, "Spotify app"}, {"Music", MAC_MUSIC, "Apple Music"}};
       NowPlaying paused = null;
 
+      players = List.of(new Player("Spotify", "Spotify"), new Player("Music", "Apple Music"));
+      capabilities = Set.of("toggle", "next", "previous", "seek");
       for (String[] app : apps) {
+         if (!selectedId.isEmpty() && !selectedId.equals(app[0])) continue;
          if (run("pgrep", "-x", app[0]) != null) {
             String out = run("osascript", "-e", app[1]);
             if (out != null && !out.isEmpty()) {
@@ -121,6 +175,7 @@ public final class SystemMediaSource {
                   boolean playing = f[5].trim().equalsIgnoreCase("playing");
                   NowPlaying np = new NowPlaying(f[0], f[1], f[2], num(f[3]), num(f[4]), playing, System.nanoTime(), app[2], f.length > 6 ? f[6].trim() : "");
                   if (playing) {
+                     activeId = app[0];
                      return np;
                   }
 
@@ -132,16 +187,20 @@ public final class SystemMediaSource {
          }
       }
 
+      if (paused != null) activeId = paused.source().startsWith("Spotify") ? "Spotify" : "Music";
       return paused;
    }
 
    private NowPlaying pollLinux() {
       String out;
       try {
+         String listing = run("playerctl", "-l");
+         players = listing == null ? List.of() : listing.lines().map(id -> new Player(id, id)).toList();
+         capabilities = Set.of("toggle", "next", "previous", "seek");
          out = run(
             "playerctl",
             "-p",
-            "spotify,%any",
+            selectedId.isEmpty() ? "spotify,%any" : selectedId,
             "metadata",
             "--format",
             "{{status}}\t{{xesam:title}}\t{{xesam:artist}}\t{{xesam:album}}\t{{mpris:length}}\t{{position}}\t{{playerName}}\t{{mpris:artUrl}}"
@@ -159,6 +218,7 @@ public final class SystemMediaSource {
          String[] f = out.split("\t", -1);
          if (f.length >= 7 && !f[1].isBlank() && !f[0].equalsIgnoreCase("Stopped")) {
             boolean playing = f[0].equalsIgnoreCase("Playing");
+            activeId = f[6];
             String app = f[6].toLowerCase(Locale.ROOT).contains("spotify") ? "Spotify app" : "System";
             return new NowPlaying(f[1], f[2], f[3], num(f[4]) / 1000L, num(f[5]) / 1000L, playing, System.nanoTime(), app, f.length > 7 ? f[7].trim() : "");
          } else {
@@ -190,9 +250,9 @@ public final class SystemMediaSource {
 
                this.process = null;
                if (this.quickDeaths >= 3) {
-                  this.gaveUp = true;
-                  this.status = "System media helper keeps getting stopped (antivirus?). Check security software, then Rescan desktop players";
-                  NocturneClient.LOG.warn("System media helper was stopped 3 times in a row; not starting it again this session");
+                  this.retryAt = now + 60000L;
+                  this.status = "System media helper stopped repeatedly; retrying in 60 seconds";
+                  NocturneClient.LOG.warn("System media helper was stopped 3 times in a row; retrying after a 60-second backoff");
                   return;
                }
 
@@ -200,21 +260,28 @@ public final class SystemMediaSource {
             }
 
             if (now >= this.retryAt) {
-               try (InputStream in = SystemMediaSource.class.getResourceAsStream("/nocturne/media.ps1")) {
+               try (InputStream in = SystemMediaSource.class.getResourceAsStream("/nocturne/media-v2.ps1")) {
                   if (in != null) {
                      String script = new String(in.readAllBytes(), StandardCharsets.UTF_8).replace("\r\n", "\n").replace("\n}\n", "\n}\n\n");
-                     Process p = new ProcessBuilder("powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", "-")
-                        .redirectErrorStream(true)
-                        .start();
-
-                     try (Writer w = new OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8)) {
-                        w.write(script);
-                        w.write("\n\n");
-                     }
-
+                     String encoded = Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
+                     Process p = new ProcessBuilder("powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded)
+                        .redirectErrorStream(true).start();
+                     ArrayBlockingQueue<JsonObject> queue = new ArrayBlockingQueue<>(32);
+                     this.commands = queue;
                      this.process = p;
                      this.startedAt = now;
                      this.status = "Listening to system media";
+                     Thread.ofPlatform().daemon().name("nocturne-command-writer").start(() -> {
+                        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8))) {
+                           while (this.process == p && p.isAlive()) {
+                              JsonObject cmd = queue.poll(200, TimeUnit.MILLISECONDS);
+                              if (cmd != null) { writer.write(cmd.toString()); writer.newLine(); writer.flush(); }
+                           }
+                        } catch (InterruptedException ex) { Thread.currentThread().interrupt(); }
+                        catch (IOException ex) { NocturneClient.LOG.debug("Media command pipe closed", ex); }
+                     });
+                     select(selectedId);
+                     JsonObject audio = new JsonObject(); audio.addProperty("action", "audio"); audio.addProperty("enabled", audioEnabled); send(audio);
                      this.reader = new Thread(() -> this.readLoop(p), "Nocturne system media");
                      this.reader.setDaemon(true);
                      this.reader.start();
@@ -249,6 +316,9 @@ public final class SystemMediaSource {
       this.quickDeaths = 0;
       this.process = null;
       this.latest = null;
+      this.commands = null;
+      this.capabilities = Set.of();
+      this.players = List.of();
    }
 
    private void readLoop(Process p) {
@@ -260,6 +330,22 @@ public final class SystemMediaSource {
                if (line.startsWith("{")) {
                   try {
                      JsonObject o = JsonParser.parseString(line).getAsJsonObject();
+                     if (o.has("error")) { this.status = o.get("error").getAsString(); this.latest = null; continue; }
+                     if (o.has("apps")) {
+                        var list = new java.util.ArrayList<Player>();
+                        for (var app : o.getAsJsonArray("apps")) list.add(new Player(app.getAsString(), app.getAsString()));
+                        players = List.copyOf(list);
+                     }
+                     var controls = new java.util.HashSet<String>();
+                     for (String action : List.of("toggle", "next", "previous", "seek")) if (o.has(action) && o.get(action).getAsBoolean()) controls.add(action);
+                     capabilities = Set.copyOf(controls);
+                     activeId = o.has("app") ? o.get("app").getAsString() : "";
+                     commandStatus = o.has("commandStatus") ? o.get("commandStatus").getAsString() : "";
+                     float rawPeak = o.has("peak") ? o.get("peak").getAsFloat() : 0;
+                     peak = Float.isFinite(rawPeak) ? Math.clamp(rawPeak, 0, 1) : 0;
+                     audioAvailable = o.has("audioAvailable") && o.get("audioAvailable").getAsBoolean();
+                     audioError = o.has("audioError") ? o.get("audioError").getAsString() : "";
+                     audioSample = System.nanoTime();
                      NowPlaying detected = decodeSession(o);
                      if (this.process == p) {
                         this.latest = detected;

@@ -74,7 +74,7 @@ public class LyricsScreen extends Screen {
             s.cloudTint
          );
          case EFFECTS -> List.of(
-            s.colorMode, s.color, s.color2, s.glow, s.chroma, s.sparkles, s.impact, s.beatZoom, s.readable, s.albumRain, s.topBar, s.cinematic, s.shaderMode
+            s.colorMode, s.color, s.color2, s.glow, s.chroma, s.sparkles, s.flashEffects, s.shakeEffects, s.beatZoom, s.readable, s.albumRain, s.topBar, s.cinematic, s.shaderMode
          );
          case PLAYER -> List.of(this.action("Detection"), this.action("Reconnect"));
       };

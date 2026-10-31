@@ -71,6 +71,27 @@ public class LyricsSettings {
    public final BoolSetting debug;
    public final ColorSetting color;
    public final ColorSetting color2;
+   public final BoolSetting reducedMotion = add(new BoolSetting("Reduced motion", false));
+   public final BoolSetting flashEffects = add(new BoolSetting("Flash effects", false));
+   public final BoolSetting shakeEffects = add(new BoolSetting("Shake effects", false));
+   public final BoolSetting highContrast = add(new BoolSetting("High contrast lyrics", false));
+   public final BoolSetting audioReactive = add(new BoolSetting("Desktop audio reactive", false));
+   public final NumberSetting audioGain = add(new NumberSetting("Audio sensitivity", 1.5, 0.2, 5, 0.1, "x"));
+   public final ModeSetting quality = add(new ModeSetting("Effect quality", 1, "Lightweight", "Balanced", "Ultra"));
+   public final NumberSetting particleLimit = add(new NumberSetting("Particle limit", 90, 0, 180, 10, ""));
+   public final NumberSetting renderDistance = add(new NumberSetting("Lyric render distance", 64, 8, 256, 8, " blocks"));
+   public final NumberSetting transition = add(new NumberSetting("Transition duration", 0.45, 0.1, 2, 0.05, "s"));
+   public final NumberSetting editorX = add(new NumberSetting("Editor horizontal", 0, -10, 10, 0.1, " blocks"));
+   public final NumberSetting editorY = add(new NumberSetting("Editor vertical", 0, -10, 10, 0.1, " blocks"));
+   public final NumberSetting editorYaw = add(new NumberSetting("Editor yaw", 0, -180, 180, 1, "°"));
+   public final NumberSetting editorPitch = add(new NumberSetting("Editor pitch", 0, -90, 90, 1, "°"));
+   public final NumberSetting editorRoll = add(new NumberSetting("Editor roll", 0, -180, 180, 1, "°"));
+   public final ColorSetting uiBackground = add(new ColorSetting("UI background", 0xFF100E18));
+   public final ColorSetting uiAccent = add(new ColorSetting("UI accent", 0xFFB77FFF));
+   public final ColorSetting uiText = add(new ColorSetting("UI text", 0xFFF0EEF5));
+   public final NumberSetting uiOpacity = add(new NumberSetting("UI opacity", 92, 30, 100, 1, "%"));
+   public final NumberSetting uiSpacing = add(new NumberSetting("UI row spacing", 22, 22, 32, 1, "px"));
+   public final ModeSetting uiFont = add(new ModeSetting("UI font", 0, "Smooth", "Elegant", "Impact", "Pixel"));
    public static final int SCATTER = 0;
    public static final int AHEAD = 1;
    public static final int FOLLOW = 2;
@@ -140,13 +161,14 @@ public class LyricsSettings {
 
          root.add("settings", s);
          Files.createDirectories(FILE.getParent());
-         Files.writeString(FILE, GSON.toJson(root));
+         StudioLibrary.write(FILE, GSON.toJson(root));
       } catch (Exception e) {
          NocturneClient.LOG.warn("Couldn't save {}", FILE, e);
       }
    }
 
    public LyricsSettings() {
+      this.add(new ActionSetting("Studio", () -> "Open Nocturne Studio", Studio::open));
       this.add(new ActionSetting("Demo", () -> LyricsService.INSTANCE.demoPlaying() ? "Stop demo song" : "Play demo song", () -> {
          LyricsService svc = LyricsService.INSTANCE;
          if (svc.demoPlaying()) {

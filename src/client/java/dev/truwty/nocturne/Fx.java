@@ -9,7 +9,7 @@ public final class Fx {
    }
 
    public static boolean animations() {
-      return true;
+      return NocturneClient.SETTINGS == null || !NocturneClient.SETTINGS.reducedMotion.on();
    }
 
    public static float animationSpeed() {

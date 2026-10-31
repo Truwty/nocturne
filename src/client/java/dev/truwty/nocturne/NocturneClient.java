@@ -36,6 +36,7 @@ public class NocturneClient implements ClientModInitializer {
    public void onInitializeClient() {
       SETTINGS = new LyricsSettings();
       SETTINGS.load();
+      LyricsService.INSTANCE.system.select(Studio.library().player());
       Category category = Category.register(Identifier.fromNamespaceAndPath("nocturne", "main"));
       OPEN_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.open", Type.KEYSYM, 78, category));
       ClientTickEvents.END_CLIENT_TICK.register(NocturneClient::tick);
@@ -49,12 +50,13 @@ public class NocturneClient implements ClientModInitializer {
       ClientLifecycleEvents.CLIENT_STOPPING.register((ClientStopping)client -> {
          LyricsService.INSTANCE.stop();
          SETTINGS.save();
+         try { Studio.savePlacement(); } catch (java.io.IOException ex) { LOG.warn("Could not save placement", ex); }
       });
       LOG.info("{} loaded", "Nocturne Lyrics");
    }
 
    public static Screen settingsScreen(Screen parent) {
-      return (Screen)(SETTINGS.guiStyle.get() == 1 ? new GlassLyricsScreen(parent) : new LyricsScreen(parent));
+      return new dev.truwty.nocturne.gui.StudioScreen(parent);
    }
 
    private static void tick(Minecraft mc) {
@@ -64,6 +66,8 @@ public class NocturneClient implements ClientModInitializer {
          }
       }
 
+      LyricsService.INSTANCE.system.audio(SETTINGS.audioReactive.on() && !SETTINGS.reducedMotion.on());
+      Studio.tick();
       SETTINGS.tickPreset();
       if (SETTINGS.isEnabled()) {
          SETTINGS.onTick(mc);

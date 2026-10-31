@@ -6,56 +6,96 @@
 
 </div>
 
-Cinematic world lyrics for **Minecraft Java 26.1.2 + Fabric**, entirely client-side. Nocturne automatically detects music playing on your desktop. **No Spotify login, developer application, Client ID, or API token is needed.**
+Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + Fabric**. Entirely client-side, with automatic desktop music detection. **No Spotify login, developer application, Client ID, or API token.**
 
-![Nocturne settings in Minecraft 26.1.2](docs/settings.png)
+![Nocturne Studio](docs/studio.png)
 
 ## Install
 
-1. Install Minecraft **26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Put `nocturne-0.4.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases) in the instance's `mods` folder. Remove older Nocturne or Kangetsu Lyrics JARs from that instance first; keep one lyric mod installed.
-3. Start Spotify or another supported desktop music player and play a song.
-4. Press **N** in-game, or click **Nocturne** on the title screen. The default settings interface is Glass. The key can be rebound in Controls.
+1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
+2. Replace older Nocturne/Kangetsu JARs with `nocturne-0.5.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
-No server mod is required. Nocturne draws local visuals; it does not stream music. A server's own rules still apply. Hypixel compatibility has not been tested directly.
+No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
 
-## Lyrics and effects
+## Studio
 
-- Seven placements: scattered around you, ahead, following, sky, clouds, automatic placement, and moving drift.
-- Eight animations: Edit, Karaoke, Typewriter, Wave, Drop, Glitch, Rise, and Zoom.
-- Twelve visual presets including Custom, Music edit, Chill, Hype, Minimal, Neon, Retro, Bouncy, Dreamy, Sky, Battle, and Album.
-- Smooth, Elegant, Impact, and Pixel fonts; configurable colours, glow, chromatic split, sparkles, impact shake/flash, cinematic bars, beat pulse, next line and song intros.
-- World geometry rendering, optional visibility through walls, floor placement, battle words, front-view orbit, cloud effects and rain tinting.
-- Both Glass and vanilla-style settings, timing adjustment, diagnostics, and a rescan action.
-- Shader-compatible projected lyric rendering is available under Shader support. Third-party shader-pack compatibility is not guaranteed.
+The seven tabs bring playback, lyric correction and visual editing into one interface. Small windows use scrolling; the coloured scrollbar and Scroll hint indicate additional controls. Detailed settings opens the original Glass or vanilla settings interface.
 
-The included **Play demo song** action animates original demonstration text without playing audio. Use it to check visual effects independently of player detection or lyric coverage.
+### Player and apps
 
-![World lyrics in an automated Minecraft test](docs/world.png)
+Play/pause, next/previous, ±10-second seeking and a draggable timeline control the existing desktop player. Controls are disabled when that player does not advertise support, or while the visual demo is active. Rejected commands appear as a status message.
 
-## Automatic music detection
+Auto prefers playing Spotify, then another playing session, with paused/current-player fallback. The **Apps** tab lists detected Windows/Linux sessions. Pin a player to retain that selection, including while it is closed; Nocturne reconnects when it returns. Auto clears the pin. Reconnect restarts the media helper with the pin preserved.
 
-On **Windows**, the bundled PowerShell helper reads Windows media sessions. It prefers playing Spotify, then another playing session, then paused Spotify/current-session fallback. No Python installation or frozen native executable is needed. If no music is found, start playback in the desktop app and use **Rescan desktop players** in settings.
+Windows uses the bundled PowerShell/Windows media-session helper; no Python installation is required to use the mod. macOS uses Spotify/Music AppleScript integration and may require OS automation permission. Linux requires `playerctl` and MPRIS. Windows is validated locally; macOS/Linux transport integration remains unverified.
 
-On **macOS**, the existing Spotify and Music application integration uses AppleScript; macOS may ask for permission to control those apps. On **Linux**, install `playerctl` and use a player exposing MPRIS metadata. Windows has been tested locally; macOS and Linux integrations have not been validated in this release.
+### Lyric correction
 
-Lyrics are looked up separately through LRCLIB and the upstream lyric-search fallback. Detection does not provide Spotify's own lyrics. Availability, matching and synchronization depend on the catalog and the metadata exposed by your player. Unsynced fallback lyrics have estimated timing. Album-based colours need artwork metadata; the current Windows helper does not supply album artwork.
+The **Lyrics** tab searches LRCLIB for alternative synchronized matches. Select a result to keep that correction for the current song. If the song changed during a search, selection is rejected to avoid saving the wrong correction.
 
-Nocturne sends track metadata to lyric services for lookup. It stores settings in `config/nocturne.json`. It never asks for or stores Spotify credentials, starts an OAuth callback server, or opens a Spotify authorization page.
+Import a UTF-8 `.lrc` or enhanced-LRC file by entering its full path and choosing **Import LRC**. Files must be at most 1 MiB and contain timestamps. Imports and chosen matches take priority over online lookup and work offline. **Use automatic lyrics again** removes that song's override.
 
-## Changes from previous Nocturne releases
+**Earlier / Later / Reset offset** saves a separate timing adjustment for each song. Positive offsets show lyrics earlier. The original global offset remains available under Detailed settings.
 
-Version 0.4 replaces the previous Nocturne player implementation with the permitted Kangetsu-derived 26.1.2 port. Its focus is the original world lyric effects. The older transport controls, local-LRC library, six-theme player and settings format are not included in this replacement. Previous releases remain available from their existing tags.
+Lyrics are stored as hashed track identifiers under `config/nocturne/lyrics/`. Presets, offsets and the pinned player are kept in `config/nocturne/library.json`; general settings remain in `config/nocturne.json`. Writes use temporary files and atomic replacement when supported. A malformed library is preserved and becomes read-only with an error message until repaired.
 
-The mod name, package, resource namespace, key category, config file, menu labels, icon and media helper namespace are Nocturne. Original copyright, font licenses and attribution are preserved. See [porting and licensing](PORTING-NOTICE.md); this version is **not wholly MIT licensed**.
+### Theme editor
+
+Set background, accent and text using `#RRGGBB` fields. Adjust opacity, row spacing and interface font. Changes apply immediately, including to the Glass settings interface. Name a preset to save/load it; saved names are listed below. **Copy JSON / Paste JSON** shares themes through the clipboard. Imports validate colour, mode and numeric ranges before applying changes.
+
+### Placement editor
+
+Choose one of seven placement modes, then **Edit in world**. Drag to move, rotate or resize; right-drag adjusts roll; the mouse wheel adjusts distance. Real lyrics remain visible behind the editor. Save or Escape retains the edit. Join a world and start music/the visual demo for a live preview.
+
+Each placement mode maintains its own active transform profile. Named profiles and clipboard JSON provide additional save/share slots for that mode. Line anchors, edited transforms and rotations blend using frame-rate-independent smoothing. Transition duration is configurable.
+
+### Motion, performance and accessibility
+
+- Independent flash and shake switches, both off by default.
+- Reduced motion suppresses flash, camera beat zoom, animated styling, particles and ambient animation.
+- High-contrast lyrics use white text with a dark readability treatment; the lyric size control supports larger text.
+- Lightweight, Balanced and Ultra quality levels change glow passes and particle budgets. Additional particle limits and distance/behind-camera culling bound effects work.
+- Apply lightweight preset disables expensive glow/chromatic/cloud drift effects together.
+
+The original world effects remain: seven placements, eight animations, twelve visual presets, four lyric fonts, chromatic split, sparkles, cinematic bars, battle words, cloud lettering, optional through-wall rendering and rain tinting.
+
+### Optional audio reaction
+
+**Desktop audio reactive** is opt-in and Windows-only. It reads the actual peak level of the default output device using [Windows Core Audio](https://learn.microsoft.com/en-us/windows/win32/api/endpointvolume/nn-endpointvolume-iaudiometerinformation), then smooths it into lyric scale pulses. Adjust Audio sensitivity to suit the output level.
+
+This meter includes **all sound on that output**, including Minecraft and notifications. It does not isolate Spotify, detect BPM, use the microphone, record audio, or transmit audio. Health reports when the output meter is unavailable. Reduced motion suppresses audio-driven movement. With audio reaction off, the original lyric-timing pulse remains available.
+
+## Coverage and privacy
+
+Automatic detection reads metadata published by desktop players; it does not obtain Spotify's own lyric feed. Live lyric availability and synchronization depend on external catalogs. Unsynchronized fallback has estimated timing. The demo animates original text without playing audio.
+
+Track metadata is sent to lyric/artwork providers for lookup (LRCLIB, the upstream NetEase fallback and Apple's artwork catalog). Imported local lyrics bypass lyric lookup; artwork lookup is separate. Audio metering stays local. No Spotify credentials are requested or stored.
+
+Shader-compatible projected text is available in Detailed settings. Automated tests exercise vanilla, Sodium 0.9.2 and Iris 1.11.4 with Minecraft 26.1.2. An Iris test without a shader pack does not establish compatibility with every shader pack.
 
 ## Build and test
 
-With Java 25 configured as `JAVA_HOME`:
+With Java 25 as `JAVA_HOME`:
 
 ```powershell
 ./gradlew.bat build
 ./gradlew.bat runClientGameTest
+./gradlew.bat runClientGameTest -Pcompat=sodium
+./gradlew.bat runClientGameTest -Pcompat=iris
 ```
 
-The build runs eight unit tests covering lyric timing and credential-free media-session parsing. The client game test creates an isolated world and checks world-geometry submission, the rain hook, seven placements, four fonts, HUD fallback, and both settings interfaces. See [validation](VALIDATION.md).
+Compatibility dependencies are pinned and used only with the requested Gradle property; they are not bundled in the release. GitHub CI runs unit/build checks and a three-renderer client test matrix with a virtual display.
+
+The optional Windows transport test creates and controls only its own muted media session:
+
+```powershell
+python -m pip install -r scripts/media-test-requirements.txt
+python scripts/windows_media_smoke.py
+```
+
+Those Python dependencies are for developer tests only. See [validation](VALIDATION.md) for the tested behavior and limits.
+
+## Attribution
+
+Nocturne is derived from the Kangetsu Lyrics port, distributed with permission confirmed by the repository owner. Original copyright and font licenses remain intact. This version is **not wholly MIT licensed**; see [porting and licensing](PORTING-NOTICE.md). Historical independently written Nocturne releases retain their own original licenses.

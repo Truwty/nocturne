@@ -21,6 +21,6 @@ public record NowPlaying(
    }
 
    public String key() {
-      return (this.artist + " - " + this.title).toLowerCase();
+      return (this.artist + " - " + this.title).toLowerCase(java.util.Locale.ROOT);
    }
 }

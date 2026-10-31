@@ -47,6 +47,7 @@ public final class LyricsPresets {
          s.chroma.set(p.chroma());
          s.sparkles.set(p.sparkles());
          s.impact.set(p.impact());
+         if (!p.impact()) { s.flashEffects.set(false); s.shakeEffects.set(false); }
          s.beatZoom.set(p.beatZoom());
          s.cinematic.set(p.cinematic());
       }

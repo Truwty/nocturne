@@ -28,7 +28,8 @@ public class ColorSetting extends Setting<Integer> {
          try {
             String s = e.getAsString().replace("#", "");
             this.value = (int)Long.parseLong(s, 16);
-         } catch (NumberFormatException var3) {
+         } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("Invalid colour setting: " + this.name, ex);
          }
       }
    }

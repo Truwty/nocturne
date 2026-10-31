@@ -290,6 +290,9 @@ public final class Draw {
 
    public static MutableComponent comp(String s, boolean bold) {
       MutableComponent c = Component.literal(s);
+      if (dev.truwty.nocturne.NocturneClient.SETTINGS != null && dev.truwty.nocturne.NocturneClient.SETTINGS.uiFont.get() != 0) {
+         return lyric(s, bold, dev.truwty.nocturne.NocturneClient.SETTINGS.uiFont.get());
+      }
       if (Fx.smoothFont()) {
          return c.withStyle(st -> st.withFont(bold ? SMOOTH_BOLD : SMOOTH));
       } else {
