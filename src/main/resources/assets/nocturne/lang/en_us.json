@@ -4,5 +4,7 @@
   "key.nocturne.toggle": "Play / pause",
   "key.nocturne.next": "Next track",
   "key.nocturne.previous": "Previous track",
-  "key.nocturne.hud": "Toggle music HUD"
+  "key.nocturne.hud": "Toggle music HUD",
+  "key.nocturne.lyrics": "Toggle lyrics overlay",
+  "key.nocturne.pin": "Pin lyrics in world"
 }

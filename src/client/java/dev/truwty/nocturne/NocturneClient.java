@@ -17,26 +17,33 @@ public final class NocturneClient implements ClientModInitializer {
     public static final Logger LOG = LoggerFactory.getLogger("nocturne");
     public static final MediaBridge MEDIA = new MediaBridge();
     public static Preferences preferences;
+    public static LyricsService LYRICS;
 
     @Override public void onInitializeClient() {
         preferences = Preferences.load();
+        LYRICS = new LyricsService(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("nocturne/lyrics"));
         var category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("nocturne", "music"));
         var open = key("open", GLFW.GLFW_KEY_N, category);
         var toggle = key("toggle", GLFW.GLFW_KEY_UNKNOWN, category);
         var next = key("next", GLFW.GLFW_KEY_UNKNOWN, category);
         var previous = key("previous", GLFW.GLFW_KEY_UNKNOWN, category);
         var hud = key("hud", GLFW.GLFW_KEY_UNKNOWN, category);
+        var lyrics = key("lyrics", GLFW.GLFW_KEY_UNKNOWN, category);
+        var pin = key("pin", GLFW.GLFW_KEY_UNKNOWN, category);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (open.consumeClick()) client.setScreen(new MusicScreen(client.screen));
             while (toggle.consumeClick()) if (MEDIA.state().canToggle()) MEDIA.command("toggle");
             while (next.consumeClick()) if (MEDIA.state().canNext()) MEDIA.command("next");
             while (previous.consumeClick()) if (MEDIA.state().canPrevious()) MEDIA.command("previous");
             while (hud.consumeClick()) { preferences.hud = !preferences.hud; preferences.save(); }
+            while (lyrics.consumeClick()) { preferences.lyricsHud = !preferences.lyricsHud; preferences.save(); }
+            while (pin.consumeClick()) LyricOverlay.pin();
             Artwork.update(MEDIA.state().art());
+            LYRICS.update(MEDIA.state(), preferences.onlineLyrics);
         });
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT,
                 Identifier.fromNamespaceAndPath("nocturne", "player"), MusicVisuals::hud);
-        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { MEDIA.close(); Artwork.close(); });
+        ClientLifecycleEvents.CLIENT_STOPPING.register(client -> { MEDIA.close(); Artwork.close(); LYRICS.close(); });
         MEDIA.start();
     }
 

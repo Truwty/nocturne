@@ -3,7 +3,7 @@
   "id": "nocturne",
   "version": "${version}",
   "name": "Nocturne",
-  "description": "Your soundtrack. Your world. A client-only desktop music cockpit.",
+  "description": "Client-only music controls and synced lyrics, with six themes and local world-pinned lyric displays.",
   "authors": ["Truwty"],
   "contact": { "sources": "https://github.com/Truwty/nocturne" },
   "license": "MIT",

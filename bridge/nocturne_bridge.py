@@ -80,6 +80,7 @@ class Bridge:
     def __init__(self, manager: Any) -> None:
         self.manager = manager
         self.selected = ""
+        self.auto_source = ""
         self.cover_key: tuple[str, str, str, str] | None = None
         self.cover = ""
         self.error = ""
@@ -88,12 +89,42 @@ class Bridge:
         sessions = list(self.manager.get_sessions())
         if self.selected:
             return next((s for s in sessions if s.source_app_user_model_id == self.selected), None)
-        return self.manager.get_current_session()
+        current = self.manager.get_current_session()
+        music_apps = ("spotify", "cider", "apple", "tidal", "foobar", "musicbee", "aimp", "youtube-music", "ytmdesktop")
+        candidates: list[tuple[int, bool, Any]] = []
+        for session in sessions:
+            source = session.source_app_user_model_id.lower()
+            # Speech/call sessions should not displace a music player in Auto mode.
+            if any(app in source for app in ("openai.codex", "discord", "teams", "zoom")):
+                continue
+            try:
+                playing = session.get_playback_info().playback_status == Status.PLAYING
+            except (OSError, RuntimeError) as error:
+                print(f"Session disappeared: {error}", file=sys.stderr, flush=True)
+                continue
+            known = any(app in source for app in music_apps)
+            score = (30 if known else 20) if playing else (10 if known else 0)
+            if current is not None and session.source_app_user_model_id == current.source_app_user_model_id:
+                score += 1
+            candidates.append((score, playing, session))
+        if not candidates:
+            self.auto_source = ""
+            return None
+        active = [candidate for candidate in candidates if candidate[1]]
+        if active:
+            chosen = max(active, key=lambda candidate: candidate[0])[2]
+        else:
+            chosen = next((candidate[2] for candidate in candidates if candidate[2].source_app_user_model_id == self.auto_source), None)
+            if chosen is None:
+                chosen = max(candidates, key=lambda candidate: candidate[0])[2]
+        self.auto_source = chosen.source_app_user_model_id
+        return chosen
 
     async def command(self, command: dict[str, Any]) -> None:
         action = command["action"]
         if action == "select":
             self.selected = command["source"]
+            self.auto_source = ""
             self.error = ""
             return
         session = self.session()

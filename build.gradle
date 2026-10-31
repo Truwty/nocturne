@@ -35,6 +35,7 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
     withSourcesJar()
 }
+tasks.named('sourcesJar') { exclude('native/**') }
 test { useJUnitPlatform() }
 sourceSets.test.compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
 sourceSets.test.runtimeClasspath += sourceSets.client.output + sourceSets.client.runtimeClasspath

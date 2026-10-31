@@ -1,26 +1,32 @@
-# Validation: 0.1.0-beta.1
+# Validation: 0.2.0-beta.1
 
-Tested on Windows 11 x64, JDK 25.0.5, Minecraft 26.1.2, Fabric Loader 0.20.1, Fabric API 0.155.3+26.1.2, Python 3.14.3.
+Environment: Windows 11 x64, Minecraft 26.1.2, Fabric Loader 0.20.1, Fabric API 0.155.3+26.1.2, JDK 25, Python 3.14 x64.
 
-## Verified
+## Automated checks
 
-- Java build against the actual Minecraft 26.1.2 client libraries.
-- Five Java tests: time formatting, idle capability reset, partial snapshots, progress clamping, source naming.
-- Six Python tests: protocol validation, accepted commands, Unicode source identifiers, missing selected app isolation, rejected command feedback, connected idle state.
-- Frozen executable starts, reads real Windows sessions including Spotify metadata/artwork, and exits cleanly via the pipe protocol.
-- Minecraft launches with the client initializer and title-screen mixin; Nocturne's cockpit renders in the running client.
-- Live Spotify title, artist, album artwork, playback state, and progress are visible in Minecraft.
-- Pause and seek succeed through the native Windows API against a separate, muted synthetic MediaPlayer session. This did not exercise controls against each third-party app.
+- **27 Java tests**: playback state, LRC timestamps/offsets/Unicode, enhanced word timing, seeks in either direction, plain lyrics, path sanitization, provider request encoding, local overrides, offline cache, stale-response isolation, rate limits, damaged-cache recovery, exact fallback matching, and animation behavior at 30 vs 144 FPS.
+- **9 Python tests**: command validation, Unicode, control rejection, idle state, missing manual source, Auto music-vs-speech priority, browser playback priority, and retaining a paused source.
+- Packaged executable startup/read/shutdown smoke test against real Windows media sessions.
+- Build against actual Minecraft 26.1.2 libraries.
 
-## Not verified
+## Interactive checks
 
-- Full in-world HUD placement, hotkey behavior, and interaction with other HUD mods.
-- Hypixel or other multiplayer servers; compatibility with the server's supported client versions and mod policy.
-- End-to-end controls for Spotify, Cider, Apple Music, YouTube Music, TIDAL, or foobar2000 individually.
-- Windows 10, ARM systems, different DPI settings, very small windows, resource packs, and screen readers.
-- Long-duration sessions, suspend/resume, and reconnect after OS media service failure.
-- Code signing and reputation-based antivirus behavior; the bundled executable is unsigned.
+- Minecraft launches with Nocturne 0.2.0-beta.1.
+- Player, focused lyrics, appearance, and controls screens visually inspected at 1280×800 / GUI scale 2.
+- Graphite and Paper themes switched in the running client; palette, labels, and saved settings verified.
+- Original timestamped local LRC rendered and scrolled in sync with a separate muted Windows media session.
+- Clicking a lyric and dragging the progress bar produced the expected seek positions in the synthetic session.
+- Music HUD, lyric subtitles, and the N hotkey checked in a single-player development world.
+- World pin control places the lyric display at the projected camera target in the development world. Block occlusion and large camera/distance changes still need broader testing.
+- Real Spotify metadata/artwork display; direct LRCLIB network lookup returned synced lyrics for a known catalog track. Other lookups also returned temporary provider failures, so network/coverage limits are real.
 
-Computer Use inspection was stopped by the user with Escape before the remaining interactive checks. This release is deliberately marked **beta**. A successful compilation and a visually inspected cockpit do not establish perfect behavior or server approval.
+## Remaining limits
 
-The development launcher uses a dummy Fabric login, so its Realms/authentication warnings are expected and do not validate multiplayer login.
+- This is an early beta; full compatibility and perfect timing are not claimed.
+- Every music service has not been tested end to end. LRCLIB coverage and availability vary.
+- Hypixel and other multiplayer servers have not been tested or approved.
+- World pins use screen-space camera projection and a local collision raycast, not GPU depth-tested text.
+- Windows 10/ARM, unusual DPI/window sizes, screen readers, long sessions, suspend/resume, and mod/resource-pack combinations need broader testing.
+- The bundled executable is unsigned.
+
+The development launcher uses a dummy Fabric identity; its Realms/authentication warnings do not validate multiplayer login.

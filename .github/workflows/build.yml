@@ -8,23 +8,23 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.1.0
         with:
           distribution: temurin
           java-version: '25'
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7.1.0
         with:
           python-version: '3.14'
           architecture: x64
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6.4.1
       - name: Build native bridge, test, and package mod
         shell: pwsh
         run: ./scripts/build-windows.ps1
       - name: Verify frozen bridge
         shell: pwsh
         run: python bridge/smoke_frozen.py bridge/dist/nocturne-bridge.exe
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: nocturne-windows-mc26.1.2
           path: build/libs/*.jar

@@ -15,6 +15,13 @@ public final class Preferences {
     public int corner = 0;
     public boolean animations = true;
     public boolean hideWhenIdle = false;
+    public String theme = "GRAPHITE";
+    public boolean onlineLyrics = true;
+    public boolean lyricsHud = true;
+    public int lyricsMode = 0;
+    public double lyricsOffset = 0;
+    public double lyricsScale = 1;
+    public int hudOpacity = 90;
 
     public static Preferences load() {
         if (!Files.exists(FILE)) return new Preferences();
@@ -22,6 +29,11 @@ public final class Preferences {
             Preferences result = GSON.fromJson(reader, Preferences.class);
             if (result == null) return new Preferences();
             result.corner = Math.clamp(result.corner, 0, 3);
+            result.theme = Theme.fromName(result.theme).name();
+            result.lyricsMode = Math.clamp(result.lyricsMode, 0, 2);
+            result.lyricsOffset = Double.isFinite(result.lyricsOffset) ? Math.clamp(result.lyricsOffset, -10, 10) : 0;
+            result.lyricsScale = Double.isFinite(result.lyricsScale) ? Math.clamp(result.lyricsScale, 0.75, 1.5) : 1;
+            result.hudOpacity = Math.clamp(result.hudOpacity, 20, 100);
             return result;
         } catch (IOException | com.google.gson.JsonParseException ex) {
             NocturneClient.LOG.warn("Cannot read Nocturne settings; using defaults", ex);

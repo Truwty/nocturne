@@ -2,7 +2,7 @@ import asyncio
 import unittest
 from unittest.mock import AsyncMock, Mock
 
-from nocturne_bridge import Bridge, parse_command
+from nocturne_bridge import Bridge, Status, parse_command
 
 
 class ProtocolTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class ProtocolTests(unittest.TestCase):
         manager.get_current_session.assert_not_called()
 
     def test_rejected_control_is_reported(self) -> None:
-        session = Mock()
+        session = Mock(source_app_user_model_id="Fixture.exe")
         session.try_skip_next_async = AsyncMock(return_value=False)
         manager = Mock()
         manager.get_current_session.return_value = session
@@ -45,6 +45,39 @@ class ProtocolTests(unittest.TestCase):
         result = asyncio.run(Bridge(manager).snapshot())
         self.assertTrue(result["connected"])
         self.assertEqual(result["sources"], [])
+
+    def test_auto_prefers_music_over_speech_session(self) -> None:
+        spotify = Mock(source_app_user_model_id="Spotify.exe")
+        spotify.get_playback_info.return_value.playback_status = Status.PAUSED
+        speech = Mock(source_app_user_model_id="OpenAI.Codex_example!App")
+        speech.get_playback_info.return_value.playback_status = Status.PLAYING
+        manager = Mock()
+        manager.get_sessions.return_value = [speech, spotify]
+        manager.get_current_session.return_value = speech
+        self.assertIs(Bridge(manager).session(), spotify)
+
+    def test_playing_browser_can_take_priority_over_paused_music_app(self) -> None:
+        spotify = Mock(source_app_user_model_id="Spotify.exe")
+        spotify.get_playback_info.return_value.playback_status = Status.PAUSED
+        browser = Mock(source_app_user_model_id="chrome.exe")
+        browser.get_playback_info.return_value.playback_status = Status.PLAYING
+        manager = Mock()
+        manager.get_sessions.return_value = [spotify, browser]
+        manager.get_current_session.return_value = browser
+        self.assertIs(Bridge(manager).session(), browser)
+
+    def test_auto_keeps_the_same_player_when_it_is_paused(self) -> None:
+        spotify = Mock(source_app_user_model_id="Spotify.exe")
+        spotify.get_playback_info.return_value.playback_status = Status.PAUSED
+        browser = Mock(source_app_user_model_id="chrome.exe")
+        browser.get_playback_info.return_value.playback_status = Status.PLAYING
+        manager = Mock()
+        manager.get_sessions.return_value = [spotify, browser]
+        manager.get_current_session.return_value = browser
+        bridge = Bridge(manager)
+        self.assertIs(bridge.session(), browser)
+        browser.get_playback_info.return_value.playback_status = Status.PAUSED
+        self.assertIs(bridge.session(), browser)
 
 
 if __name__ == "__main__":
