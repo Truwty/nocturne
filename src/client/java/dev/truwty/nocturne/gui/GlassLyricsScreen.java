@@ -63,11 +63,15 @@ public class GlassLyricsScreen extends Screen {
       return NocturneClient.SETTINGS;
    }
 
+   private List<Setting<?>> cachedRows;
+
    private List<Setting<?>> rows() {
+      if (cachedRows != null) return cachedRows;
       List<Setting<?>> out = new ArrayList<>(this.s().settings);
       out.remove(this.s().guiStyle);
       out.remove(this.s().impact);
-      return out;
+      cachedRows = List.copyOf(out);
+      return cachedRows;
    }
 
    public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {

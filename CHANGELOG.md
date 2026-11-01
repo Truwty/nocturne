@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.0-beta.1
+
+- Theme-native buttons and sliders across Studio, classic settings and the placement editor, with smooth hover, keyboard focus and native narration.
+- Compact Player page with visible retry/recovery controls; Midnight, Lagoon and Ember theme shortcuts.
+- Reject invalid Windows timeline timestamps without breaking sparse valid updates; refresh lookups when duration arrives late.
+- Retry failed lookups instead of permanently caching misses, bound each lookup to 18 seconds, prefer available plain lyrics before another provider, and bound successful lyric cache entries to 128.
+- Default new installations to Follow view; add persistent visibility recovery that resets transforms and selects the compatible renderer.
+- Reduce idle helper telemetry from 20 to 4 updates/second; keep 20 Hz optional audio metering. Cache cloud-circle trigonometry, sample environment attributes at 10 Hz, skip effects without lyrics, cache Glass rows and lower Balanced particle cap to 48.
+- Remove upstream names from runtime metadata and ordinary product branding; retain copyright and font license notices in legal files.
+- Add lyric lookup fixtures, live-provider opt-in validation, timestamp regressions, theme shortcut and visibility-recovery client checks.
+
 ## 0.5.0-beta.1
 
 - Add Studio with Player, Lyrics, Apps, Theme, Placement, Motion and Health tabs; scrollable small-window layout and keyboard-accessible native widgets.
@@ -15,7 +26,7 @@
 
 ## 0.4.0-beta.1
 
-- Replace the previous implementation with the permitted Kangetsu-derived Minecraft 26.1.2 port, preserving its world lyrics, effects, presets, fonts and settings interfaces.
+- Replace the previous implementation with the permitted upstream-derived Minecraft 26.1.2 port, preserving its world lyrics, effects, presets, fonts and settings interfaces.
 - Rebrand mod identity, Java packages, resource paths, settings, key category, icon and menus as Nocturne; retain original attribution and license notices.
 - Remove Spotify OAuth, developer Client ID setup, credential storage and the callback HTTP server. Automatically detect desktop music instead.
 - Prefer playing Spotify on Windows, then another playing media session; retain paused-player fallback.

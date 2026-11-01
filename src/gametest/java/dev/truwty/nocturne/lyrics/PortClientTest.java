@@ -26,6 +26,24 @@ public final class PortClientTest implements FabricClientGameTest {
                     NocturneClient.LOG.info("AUTOMATIC MEDIA TEST PASSED: desktop player detected without OAuth");
                 });
             }
+            if ("true".equals(System.getenv("NOCTURNE_LIVE_LYRICS"))) {
+                context.runOnClient(mc -> {
+                    LyricsService.INSTANCE.stop();
+                    var media = new com.google.gson.JsonObject();
+                    media.addProperty("title", "Blinding Lights"); media.addProperty("artist", "The Weeknd");
+                    media.addProperty("album", "After Hours"); media.addProperty("app", "Spotify.exe");
+                    media.addProperty("playing", true); media.addProperty("pos", 35000); media.addProperty("dur", 200000);
+                    media.addProperty("updated", 1); media.addProperty("now", System.currentTimeMillis());
+                    LyricsService.INSTANCE.update(SystemMediaSource.decodeSession(media));
+                });
+                context.waitFor(mc -> LyricsService.INSTANCE.lyrics() != null, 500);
+                context.waitTicks(10);
+                context.runOnClient(mc -> {
+                    if (!LyricsRenderer.active() || LyricsDebug.worldPieces == 0) throw new AssertionError("Live provider lyrics did not reach world geometry");
+                    NocturneClient.LOG.info("LIVE LYRICS RENDER PASSED: detected metadata, invalid timestamp recovery, public lookup and visible world geometry");
+                    LyricsService.INSTANCE.start();
+                });
+            }
             world.getServer().runCommand("time set night");
             world.getServer().runCommand("weather rain");
             context.runOnClient(mc -> {
@@ -103,6 +121,17 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.waitTicks(3);
                 takeShot(context, "nocturne-studio-" + page);
             }
+            context.setScreen(() -> new StudioScreen(null, 0));
+            context.runOnClient(mc -> { NocturneClient.SETTINGS.editorX.set(8.0); NocturneClient.SETTINGS.follow.set(0); });
+            context.clickScreenButton("Restore visible lyrics");
+            context.waitTicks(4);
+            context.runOnClient(mc -> {
+                if (NocturneClient.SETTINGS.follow.get()!=2 || NocturneClient.SETTINGS.editorX.get()!=0 || NocturneClient.SETTINGS.shaderMode.get()!=1)
+                    throw new AssertionError("Visibility recovery was not persisted through placement profile switching");
+            });
+            context.setScreen(() -> new StudioScreen(null, 3));
+            context.clickScreenButton("Lagoon"); context.waitTicks(3); takeShot(context, "nocturne-lagoon-theme");
+            context.runOnClient(mc -> { if (NocturneClient.SETTINGS.uiAccent.argb()!=0xFF62E9D0) throw new AssertionError("Theme shortcut did not apply"); });
             context.setScreen(() -> new PlacementScreen(null));
             context.waitTicks(3);
             context.runOnClient(mc -> {

@@ -21,7 +21,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
 
 public final class StudioScreen extends Screen {
-    private static final String[] TABS = {"Player", "Lyrics", "Apps", "Theme", "Placement", "Motion", "Health"};
+    private static final String[] TABS = {"Player", "Lyrics", "Apps", "Theme", "Place", "Motion", "Health"};
     private final Screen parent;
     private int page, resultPage, x, y, w, h, body, row, scroll;
     private String queryValue, fileValue = "", presetValue = "";
@@ -45,7 +45,7 @@ public final class StudioScreen extends Screen {
         for (int i = 0; i < TABS.length; i++) {
             final int index = i;
             Button tab = button(x + 12 + i * tabW, y + 39, tabW - 3, TABS[i], () -> { page = index; scroll = 0; notice = ""; rebuildWidgets(); });
-            if (page == i) tab.setMessage(Draw.comp(TABS[i]).withStyle(style -> style.withColor(s().uiAccent.argb() & 0xFFFFFF)));
+            if (page == i) tab.setMessage(Draw.comp("• " + TABS[i]).withStyle(style -> style.withColor(s().uiAccent.argb() & 0xFFFFFF)));
         }
         body = y + 72 - scroll; row = body;
         int contentStart = children().size(); seek = null; transport = List.of(); query = file = name = null;
@@ -56,14 +56,15 @@ public final class StudioScreen extends Screen {
         for (var child : children().subList(contentStart, children().size())) {
             if (child instanceof net.minecraft.client.gui.components.AbstractWidget widget) widget.visible = widget.getY() >= y + 68 && widget.getY() + widget.getHeight() <= y + h - 48;
         }
-        button(x + 12, y + h - 29, 120, "Detailed settings", () -> minecraft.setScreen(s().guiStyle.get() == 1 ? new GlassLyricsScreen(this) : new LyricsScreen(this)));
+        button(x + 12, y + h - 29, 120, "Advanced settings", () -> minecraft.setScreen(s().guiStyle.get() == 1 ? new GlassLyricsScreen(this) : new LyricsScreen(this)));
         button(x + w - 76, y + h - 29, 64, "Done", this::onClose);
+        if (page == 0) button(x + 140, y + h - 29, Math.max(40, w - 224), "Restore visible lyrics", this::restoreVisible);
         if (notice.isBlank() && !Studio.library().problem().isBlank()) notice = Studio.library().problem();
         tick();
     }
 
     private Button button(int bx, int by, int width, String text, Runnable action) {
-        return addRenderableWidget(Button.builder(Draw.comp(text), b -> attempt(action)).bounds(bx, by, width, 20).build());
+        return addRenderableWidget(StudioButton.create(Draw.comp(text), b -> attempt(action)).bounds(bx, by, width, 20).build());
     }
     private void attempt(Runnable action) { try { action.run(); } catch (RuntimeException ex) { notice = ex.getMessage(); NocturneClient.LOG.debug("Studio action failed", ex); } }
     private void io(IoAction action) { try { action.run(); notice = "Saved"; } catch (Exception ex) { notice = ex.getMessage(); NocturneClient.LOG.debug("Studio save/import failed", ex); } }
@@ -79,7 +80,7 @@ public final class StudioScreen extends Screen {
         button(x + 16, row, w - 32, setting.name + ": " + setting.current(), () -> { setting.cycle(1); s().save(); rebuildWidgets(); }); row += 24;
     }
     private void number(NumberSetting setting) {
-        addRenderableWidget(new AbstractSliderButton(x + 16, row, w - 32, 20, Component.empty(), setting.fraction()) {
+        addRenderableWidget(new StudioSlider(x + 16, row, w - 32, 20, Component.empty(), setting.fraction()) {
             { updateMessage(); }
             @Override protected void updateMessage() { setMessage(Component.literal(setting.name + ": " + setting.display())); }
             @Override protected void applyValue() { setting.setFraction(value); updateMessage(); }
@@ -88,7 +89,7 @@ public final class StudioScreen extends Screen {
     }
 
     private void player() {
-        row += 50;
+        row += 32;
         int bw = (w - 48) / 5;
         transport = List.of(
             button(x + 16, row, bw, "Previous", () -> service().system.command("previous", 0)),
@@ -96,9 +97,17 @@ public final class StudioScreen extends Screen {
             button(x + 24 + bw * 2, row, bw, "Play / pause", () -> service().system.command("toggle", 0)),
             button(x + 28 + bw * 3, row, bw, "+10s", () -> relativeSeek(10000)),
             button(x + 32 + bw * 4, row, bw, "Next", () -> service().system.command("next", 0)));
-        row += 30; seek = addRenderableWidget(new SeekSlider(x + 16, row, w - 32)); row += 34;
-        button(x + 16, row, w / 2 - 20, "Lyrics: " + (s().isEnabled() ? "On" : "Off"), () -> { s().setEnabled(!s().isEnabled()); s().save(); rebuildWidgets(); });
-        button(x + w / 2 + 4, row, w / 2 - 20, service().demoPlaying() ? "Stop visual demo" : "Play visual demo", () -> { if (service().demoPlaying()) service().stopDemo(); else service().startDemo(); rebuildWidgets(); });
+        row += 24; seek = addRenderableWidget(new SeekSlider(x + 16, row, w - 32)); row += 24;
+        int third = (w - 40) / 3;
+        button(x + 16, row, third, "Lyrics: " + (s().isEnabled() ? "On" : "Off"), () -> { s().setEnabled(!s().isEnabled()); s().save(); rebuildWidgets(); });
+        button(x + 20 + third, row, third, service().demoPlaying() ? "Stop demo" : "Visual demo", () -> { if (service().demoPlaying()) service().stopDemo(); else service().startDemo(); rebuildWidgets(); });
+        button(x + 24 + third * 2, row, third, "Retry lyrics", () -> { service().refetch(); notice = "Looking for lyrics again"; });
+    }
+    private void restoreVisible() {
+        s().setEnabled(true); s().follow.set(2); Studio.tick(); s().shaderMode.set(1); s().faceYou.set(true); s().floor.set(false); s().seeThrough.set(true);
+        s().distance.set(3.5); s().size.set(100.0); s().editorX.set(0.0); s().editorY.set(0.0);
+        s().editorYaw.set(0.0); s().editorPitch.set(0.0); s().editorRoll.set(0.0); s().save(); io(Studio::savePlacement);
+        notice = "Lyrics follow your view; compatible renderer enabled"; rebuildWidgets();
     }
     private void relativeSeek(long delta) { NowPlaying track = service().now(); if (track != null) service().system.command("seek", track.positionMs() + delta); }
 
@@ -143,7 +152,17 @@ public final class StudioScreen extends Screen {
             box.setMaxLength(9); box.setValue(String.format("#%06X", colour.argb() & 0xFFFFFF));
             box.setResponder(value -> { if (value.matches("#[0-9a-fA-F]{6}")) { colour.set(0xFF000000 | Integer.parseInt(value.substring(1), 16)); s().save(); } }); addRenderableWidget(box);
         }
-        row += 42; number(s().uiOpacity); number(s().uiSpacing); mode(s().uiFont);
+        row += 42;
+        int paletteWidth = (w - 40) / 3;
+        String[] labels = {"Midnight", "Lagoon", "Ember"};
+        int[] backgrounds = {0xFF100E18, 0xFF0A191D, 0xFF211411};
+        int[] accents = {0xFFB77FFF, 0xFF62E9D0, 0xFFFFAC77};
+        for (int i=0;i<3;i++) { int palette=i;
+            button(x+16+i*(paletteWidth+4),row,paletteWidth,labels[i],()-> {
+                s().uiBackground.set(backgrounds[palette]); s().uiAccent.set(accents[palette]); s().uiText.set(0xFFF0EEF5); s().save(); rebuildWidgets();
+            });
+        }
+        row += 24; number(s().uiOpacity); number(s().uiSpacing); mode(s().uiFont);
         presets("themes");
     }
     private void presets(String group) {
@@ -185,8 +204,9 @@ public final class StudioScreen extends Screen {
     @Override public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) { g.fill(0, 0, width, height, 0x88000000); }
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         Draw.round(g, x, y, w, h, 12, Draw.withAlpha(s().uiBackground.argb(), Math.round(s().uiOpacity.f() * 2.55F)));
-        Draw.text(g, font, "Nocturne / Studio", x + 16, y + 15, s().uiText.argb(), 1.25F, false);
-        Draw.rect(g, x + 16, y + 32, w - 32, 1, s().uiAccent.argb());
+        Draw.text(g, font, "Nocturne", x + 16, y + 13, s().uiText.argb(), 1.25F, false);
+        Draw.text(g, font, TABS[page] + " / Studio", x + 112, y + 16, Draw.alpha(s().uiText.argb(), .5f), false);
+        Draw.rect(g, x + 16, y + 32, w - 32, 1, Draw.alpha(s().uiAccent.argb(), .3f));
         super.extractRenderState(g, mx, my, delta);
         if (maxScroll() > 0) {
             int top = y + 68, available = h - 116;
@@ -201,7 +221,6 @@ public final class StudioScreen extends Screen {
         if (page == 0) {
             text(g, track == null ? "Start music in your desktop player" : track.title(), body);
             text(g, track == null ? service().system.status() : track.artist() + " · " + track.source(), body + 18);
-            text(g, service().system.commandStatus(), body + 169);
         } else if (page == 1) {
             text(g, track == null ? "No current song" : "Song offset: " + Math.round(Studio.songOffset(track)) + " ms · " + service().lyricsStatus(), body + 209);
             text(g, service().searchStatus(), body + 223);
@@ -218,6 +237,7 @@ public final class StudioScreen extends Screen {
         if ((page == 3 || page == 4) && name != null) text(g, "Saved: " + String.join(", ", Studio.library().presets(page == 3 ? "themes" : "placement:" + s().follow.get())), body + 211);
         g.disableScissor();
         if (!notice.isBlank()) text(g, notice, y + h - 44);
+        else if (page == 0) text(g, track == null ? service().system.status() : service().lyricsStatus(), y + h - 44);
     }
     private void text(GuiGraphicsExtractor g, String value, int by) { Draw.text(g, font, font.plainSubstrByWidth(value, w - 32), x + 16, by, s().uiText.argb(), false); }
     @Override public boolean mouseScrolled(double mx, double my, double sx, double sy) {
@@ -225,12 +245,12 @@ public final class StudioScreen extends Screen {
         rebuildWidgets(); return true;
     }
     private int maxScroll() {
-        int contentHeight = page == 2 ? service().system.players().size() * 24 + 60 : page == 1 ? 244 : page == 3 || page == 4 ? 224 : 204;
+        int contentHeight = page == 2 ? service().system.players().size() * 24 + 60 : page == 0 ? 104 : page == 1 ? 244 : page == 3 || page == 4 ? 224 : 204;
         return Math.max(0, contentHeight - (h - 116));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); minecraft.setScreen(parent); }
 
-    private final class SeekSlider extends AbstractSliderButton {
+    private final class SeekSlider extends StudioSlider {
         SeekSlider(int bx, int by, int width) { super(bx, by, width, 20, Component.literal("No track"), 0); }
         void refresh() {
             NowPlaying track = service().now();

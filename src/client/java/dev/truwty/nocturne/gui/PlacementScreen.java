@@ -16,20 +16,20 @@ public final class PlacementScreen extends Screen {
     @Override public boolean isPauseScreen() { return false; }
     @Override protected void init() {
         String[] modes = {"Move", "Rotate", "Resize"};
-        for (int i = 0; i < 3; i++) { int next = i; addRenderableWidget(Button.builder(Component.literal(modes[i]), b -> mode = next).bounds(12 + i * 76, 12, 72, 20).build()); }
-        addRenderableWidget(Button.builder(Component.literal("Reset"), b -> {
+        for (int i = 0; i < 3; i++) { int next = i; addRenderableWidget(StudioButton.create(Component.literal(modes[i]), b -> mode = next).bounds(12 + i * Math.min(76, (width-32)/5), 12, Math.min(72,(width-32)/5-4), 20).build()); }
+        addRenderableWidget(StudioButton.create(Component.literal("Reset"), b -> {
             var s = NocturneClient.SETTINGS; s.editorX.set(0.0); s.editorY.set(0.0); s.editorYaw.set(0.0); s.editorPitch.set(0.0); s.editorRoll.set(0.0); s.size.set(100.0); s.distance.set(3.5);
-        }).bounds(width - 154, 12, 66, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Save"), b -> onClose()).bounds(width - 80, 12, 66, 20).build());
+        }).bounds(width - 16 - 2*Math.min(74,(width-32)/5), 12, Math.min(66,(width-32)/5-4), 20).build());
+        addRenderableWidget(StudioButton.create(Component.literal("Save"), b -> onClose()).bounds(width - 16 - Math.min(74,(width-32)/5), 12, Math.min(66,(width-32)/5-4), 20).build());
     }
     @Override public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {}
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
         super.extractRenderState(g, mx, my, delta);
         var s = NocturneClient.SETTINGS;
-        g.fill(12, height - 53, width - 12, height - 12, 0xCC101118);
+        g.fill(12, height - 53, width - 12, height - 12, Draw.alpha(NocturneClient.SETTINGS.uiBackground.argb(), .9f));
         Draw.text(g, font, "Drag to " + new String[]{"move", "rotate", "resize"}[mode] + " · Wheel: distance · Right drag: roll", 20, height - 45, -1, false);
         Draw.text(g, font, "X " + s.editorX.display() + "  Y " + s.editorY.display() + "  Yaw " + s.editorYaw.display() + "  Pitch " + s.editorPitch.display() + "  Size " + s.size.display(), 20, height - 28, -1, false);
-        Draw.roundOutline(g, width / 2 - 110, height / 2 - 45, 220, 90, 6, 0x888DD6C0);
+        Draw.roundOutline(g, width / 2 - 110, height / 2 - 45, 220, 90, 6, Draw.alpha(s.uiAccent.argb(), .6f));
         Draw.textCentered(g, font, minecraft.level == null ? "Join a world for a live preview" : "Live lyric placement", width / 2f, height / 2f + 51, -1, 1, false);
     }
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean twice) {

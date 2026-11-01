@@ -85,14 +85,14 @@ public class LyricsScreen extends Screen {
       int right = this.width / 2 + 5;
       int i = 0;
       if (this.page == LyricsScreen.Page.MAIN) {
-         Button master = Button.builder(Component.empty(), b -> {
+         Button master = StudioButton.create(Component.empty(), b -> {
             s.setEnabled(!s.isEnabled());
             s.save();
          }).bounds(left, this.top, 150, 20).build();
          this.refresh.add(() -> master.setMessage(Component.literal("Lyrics: " + (s.isEnabled() ? "ON" : "OFF"))));
          this.addRenderableWidget(master);
          ActionSetting demo = this.action("Demo");
-         Button demoBtn = Button.builder(Component.empty(), b -> demo.action.run()).bounds(right, this.top, 150, 20).build();
+         Button demoBtn = StudioButton.create(Component.empty(), b -> demo.action.run()).bounds(right, this.top, 150, 20).build();
          this.refresh.add(() -> demoBtn.setMessage(Component.literal(demo.label.get())));
          this.addRenderableWidget(demoBtn);
          i = 2;
@@ -117,13 +117,13 @@ public class LyricsScreen extends Screen {
          this.addRenderableWidget(this.sub(LyricsScreen.Page.PLAYER, "Desktop player...", right, y + 24));
       }
 
-      this.addRenderableWidget(Button.builder(Component.literal("Style: Vanilla ⇄ Glass"), b -> {
+      this.addRenderableWidget(StudioButton.create(Component.literal("Style: Vanilla ⇄ Glass"), b -> {
          s.guiStyle.set(1);
          s.save();
          this.minecraft.setScreen(new GlassLyricsScreen(this.rootParent()));
       }).bounds(left, this.height - 27, 150, 20).build());
       this.addRenderableWidget(
-         Button.builder(Component.literal("Done"), b -> this.onClose()).bounds(right, this.height - 27, 150, 20).build()
+         StudioButton.create(Component.literal("Done"), b -> this.onClose()).bounds(right, this.height - 27, 150, 20).build()
       );
 
       for (Runnable r : this.refresh) {
@@ -153,7 +153,7 @@ public class LyricsScreen extends Screen {
    }
 
    private Button sub(LyricsScreen.Page target, String label, int x, int y) {
-      return Button.builder(Component.literal(label), b -> this.minecraft.setScreen(new LyricsScreen(this, target)))
+      return StudioButton.create(Component.literal(label), b -> this.minecraft.setScreen(new LyricsScreen(this, target)))
          .bounds(x, y, 150, 20)
          .build();
    }
@@ -169,7 +169,7 @@ public class LyricsScreen extends Screen {
 
    private AbstractWidget widget(Setting<?> st, int x, int y, int w) {
       if (st instanceof NumberSetting n) {
-         AbstractSliderButton slider = new AbstractSliderButton(x, y, w, 20, Component.empty(), n.fraction()) {
+         AbstractSliderButton slider = new StudioSlider(x, y, w, 20, Component.empty(), n.fraction()) {
             protected void updateMessage() {
                this.setMessage(Component.literal(n.name + ": " + n.display()));
             }
@@ -182,7 +182,7 @@ public class LyricsScreen extends Screen {
          slider.setMessage(Component.literal(n.name + ": " + n.display()));
          return slider;
       } else {
-         Button b = Button.builder(Component.empty(), btn -> {
+         Button b = StudioButton.create(Component.empty(), btn -> {
             if (st instanceof BoolSetting bs) {
                bs.toggle();
             } else if (st instanceof ModeSetting m) {
@@ -223,6 +223,12 @@ public class LyricsScreen extends Screen {
       } else {
          return st instanceof ActionSetting a ? Component.literal(a.label.get()) : Component.literal(st.name);
       }
+   }
+
+   @Override public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) {
+      g.fill(0,0,width,height,0x99000000);
+      int panelWidth=Math.min(width-8,344);
+      Draw.round(g,(width-panelWidth)/2,6,panelWidth,height-12,9,Draw.alpha(s().uiBackground.argb(),s().uiOpacity.f()/100));
    }
 
    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {

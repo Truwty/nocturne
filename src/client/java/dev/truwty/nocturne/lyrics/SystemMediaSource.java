@@ -370,7 +370,10 @@ public final class SystemMediaSource {
       long position = Math.max(0L, o.get("pos").getAsLong());
       if (playing && o.has("updated") && o.get("updated").getAsLong() > 0L) {
          long elapsed = Math.max(0L, o.get("now").getAsLong() - o.get("updated").getAsLong());
-         position = position > Long.MAX_VALUE - elapsed ? Long.MAX_VALUE : position + elapsed;
+         // Extrapolate sparse timeline updates, but reject timestamps older than the track.
+         // Invalid/default timestamps otherwise force every sample to the song's end.
+         long maximumAge = duration > 0 ? duration : TimeUnit.DAYS.toMillis(1);
+         if (elapsed <= maximumAge) position = position > Long.MAX_VALUE - elapsed ? Long.MAX_VALUE : position + elapsed;
       }
       if (duration > 0) position = Math.min(position, duration);
       String app = o.has("app") ? o.get("app").getAsString() : "System";

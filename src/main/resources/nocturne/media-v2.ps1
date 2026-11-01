@@ -117,5 +117,5 @@ while ($true) {
         [Console]::Out.Flush()
         Start-Sleep -Milliseconds 500
     }
-    Start-Sleep -Milliseconds 50
+    Start-Sleep -Milliseconds $(if ($audio) { 50 } else { 250 })
 }

@@ -193,7 +193,7 @@ public class LyricsSettings {
       this.lyricFont = this.add(new ModeSetting("Lyrics font", 0, Draw.LYRIC_FONTS));
       this.follow = this.add(
          new ModeSetting(
-            "Placement", 0, "Scattered around you", "Straight ahead", "Follow view", "In the sky", "In the clouds", "Auto", "Around you, moving along"
+            "Placement", 2, "Scattered around you", "Straight ahead", "Follow view", "In the sky", "In the clouds", "Auto", "Around you, moving along"
          )
       );
       this.battle = this.add(new BoolSetting("Battle words when fighting", true));

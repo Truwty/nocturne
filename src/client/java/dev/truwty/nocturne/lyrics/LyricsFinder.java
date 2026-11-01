@@ -43,9 +43,14 @@ final class LyricsFinder {
       2
    );
    boolean reached;
+   private long deadline;
+   private final java.util.function.Function<String, JsonElement> transport;
+   LyricsFinder() { this(null); }
+   LyricsFinder(java.util.function.Function<String, JsonElement> transport) { this.transport = transport; }
 
    LyricsFinder.Result find(NowPlaying np, boolean allowPlain) {
       this.reached = false;
+      this.deadline = System.nanoTime() + Duration.ofSeconds(18).toNanos();
       long durMs = np.durationMs();
       List<LyricsFinder.Query> queries = queries(np);
       String plain = null;
@@ -103,6 +108,10 @@ final class LyricsFinder {
          plain = pf.plain;
       }
 
+      if (!instrumental && allowPlain && plain != null && !plain.isBlank()) {
+         Lyrics estimated = Lyrics.fromPlain(plain, durMs);
+         if (!estimated.lines.isEmpty()) return new Result(estimated, "Lyrics (timing estimated)");
+      }
       if (!instrumental) {
          for (LyricsFinder.Query q : queries) {
             Lyrics l = this.netease(q, durMs);
@@ -116,7 +125,7 @@ final class LyricsFinder {
          return new LyricsFinder.Result(null, "Instrumental");
       }
 
-      if (allowPlain && plain != null && !plain.isBlank()) {
+      if (!instrumental && allowPlain && plain != null && !plain.isBlank()) {
          Lyrics l = Lyrics.fromPlain(plain, durMs);
          if (!l.lines.isEmpty()) {
             return new LyricsFinder.Result(l, "Lyrics (timing estimated)");
@@ -329,8 +338,11 @@ final class LyricsFinder {
    }
 
    private JsonElement get(String url, boolean browserish) {
+      if (transport != null) { reached = true; return transport.apply(url); }
+      long remaining = deadline - System.nanoTime();
+      if (remaining <= 0 || Thread.currentThread().isInterrupted()) return null;
       try {
-         Builder b = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8L)).GET();
+         Builder b = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofNanos(Math.min(remaining, Duration.ofSeconds(4).toNanos()))).GET();
          if (browserish) {
             b.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nocturne Lyrics (Minecraft client mod)")
                .header("Referer", "https://music.163.com/");
@@ -339,8 +351,11 @@ final class LyricsFinder {
          }
 
          HttpResponse<String> res = HTTP.send(b.build(), BodyHandlers.ofString());
-         this.reached = true;
+         this.reached |= res.statusCode() == 200 || res.statusCode() == 404;
          return res.statusCode() != 200 ? null : JsonParser.parseString(res.body());
+      } catch (InterruptedException e) {
+         Thread.currentThread().interrupt();
+         return null;
       } catch (Exception e) {
          NocturneClient.LOG.debug("Lyrics request failed: {}", url, e);
          return null;

@@ -60,6 +60,16 @@ public final class LyricsRenderer {
    private static final List<LyricsRenderer.Spark> SPARKS = new ArrayList<>();
    private static final List<LyricsRenderer.Mist> MIST = new ArrayList<>();
    private static final List<LyricsRenderer.BattleWord> BATTLE = new ArrayList<>();
+   private static long nextEnvironment;
+   private static ClientLevel environmentLevel;
+   private static final float[][] CIRCLE_COS = new float[17][];
+   private static final float[][] CIRCLE_SIN = new float[17][];
+   static {
+      for (int segments : new int[]{8, 12, 16}) {
+         CIRCLE_COS[segments] = new float[segments + 1]; CIRCLE_SIN[segments] = new float[segments + 1];
+         for (int i=0;i<=segments;i++) { CIRCLE_COS[segments][i]=(float)Math.cos(i*Math.PI*2/segments); CIRCLE_SIN[segments][i]=(float)Math.sin(i*Math.PI*2/segments); }
+      }
+   }
    private static int combat;
    private static LivingEntity target;
    private static int cloudTint = -1;
@@ -115,7 +125,7 @@ public final class LyricsRenderer {
    private static float editorX, editorY, editorYaw, editorPitch, editorRoll, audioEnvelope;
    private static int particleBudget() {
       LyricsSettings mod = NocturneClient.SETTINGS;
-      return mod.reducedMotion.on() ? 0 : Math.min(mod.particleLimit.i(), mod.quality.get() == 0 ? 20 : mod.quality.get() == 1 ? 90 : 180);
+      return mod.reducedMotion.on() ? 0 : Math.min(mod.particleLimit.i(), mod.quality.get() == 0 ? 20 : mod.quality.get() == 1 ? 48 : 180);
    }
    private static float impact;
    private static float flash;
@@ -243,6 +253,7 @@ public final class LyricsRenderer {
             songKey = "";
          } else {
             Lyrics ly = chunk(LyricsService.INSTANCE.lyrics(), mod.maxWords.i());
+            if (ly == null || ly.lines.isEmpty()) { reset(); return; }
             Font font = mc.font;
             Vec3 cam = ctx.levelState().cameraRenderState.pos;
             fontIdx = mod.lyricFont.get();
@@ -708,6 +719,10 @@ public final class LyricsRenderer {
 
    private static void environment(Minecraft mc, Vec3 cam) {
       ClientLevel level = mc.level;
+      long now = System.nanoTime();
+      if (level == environmentLevel && now < nextEnvironment) return;
+      environmentLevel = level;
+      nextEnvironment = now + 100_000_000L;
       if (level != null) {
          try {
             Float ch = (Float)level.environmentAttributes().getValue(EnvironmentAttributes.CLOUD_HEIGHT, cam);
@@ -728,7 +743,8 @@ public final class LyricsRenderer {
             if (sky != null) {
                skyTint = 0xFF000000 | sky;
             }
-         } catch (Throwable var12) {
+         } catch (RuntimeException ex) {
+            LyricsDebug.note("Environment attributes unavailable: " + ex.getClass().getSimpleName());
          }
 
          BlockPos bp = BlockPos.containing(cam);
@@ -886,12 +902,8 @@ public final class LyricsRenderer {
             ps.translate(0.0F, 0.0F, z);
             out.submitCustomGeometry(ps, RenderTypes.debugFilledBox(), (pose, buf) -> {
                for (int i = 0; i < seg; i++) {
-                  double a0 = i * Math.PI * 2.0 / (double)seg;
-                  double a1 = (i + 1) * Math.PI * 2.0 / (double)seg;
-                  float c0 = (float)Math.cos(a0);
-                  float s0 = (float)Math.sin(a0);
-                  float c1 = (float)Math.cos(a1);
-                  float s1 = (float)Math.sin(a1);
+                  float c0 = CIRCLE_COS[seg][i], s0 = CIRCLE_SIN[seg][i];
+                  float c1 = CIRCLE_COS[seg][i+1], s1 = CIRCLE_SIN[seg][i+1];
                   float hx0 = cx + c0 * r * 0.5F;
                   float hy0 = cy + s0 * r * 0.5F;
                   float hx1 = cx + c1 * r * 0.5F;

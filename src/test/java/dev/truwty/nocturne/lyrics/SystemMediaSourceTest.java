@@ -30,10 +30,20 @@ final class SystemMediaSourceTest {
         assertEquals(12000, SystemMediaSource.decodeSession(sample(false)).progressMs());
     }
 
-    @Test void staleTimelineCannotExceedTrackDuration() {
+    @Test void staleTimelineDoesNotHideLyricsByJumpingToTrackEnd() {
         JsonObject json = sample(true);
         json.addProperty("now", Long.MAX_VALUE);
-        assertEquals(180000, SystemMediaSource.decodeSession(json).progressMs());
+        assertEquals(12000, SystemMediaSource.decodeSession(json).progressMs());
+    }
+
+    @Test void sparseTimelineUpdatesStillAdvanceAfterTenSeconds() {
+        JsonObject json=sample(true); json.addProperty("now",40000);
+        assertEquals(42000,SystemMediaSource.decodeSession(json).progressMs());
+    }
+
+    @Test void futureTimestampDoesNotRewindPlayback() {
+        JsonObject json=sample(true); json.addProperty("updated",20000);
+        assertEquals(12000,SystemMediaSource.decodeSession(json).progressMs());
     }
 
     @Test void missingSessionClearsDetection() {

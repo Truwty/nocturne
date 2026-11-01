@@ -87,7 +87,6 @@ public final class LyricsDebug {
       String status = svc.lyricsStatus();
       String src = "Automatic desktop detection";
       boolean rendering = System.nanoTime() - lastRender < 1000000000L;
-      boolean visuals = FabricLoader.getInstance().isModLoaded("kangetsuvisuals");
       int lvl = 2;
       String sys = svc.system.status();
       String cause;
@@ -135,9 +134,7 @@ public final class LyricsDebug {
       } else if (ly.estimated) {
          cause = "Plain lyrics: the timing is guessed, use \"Timing offset\" to line it up";
          lvl = 1;
-      } else if (visuals) {
-         cause = "Another lyric overlay is installed: disable one overlay to avoid duplicate lyrics";
-         lvl = 1;
+
       } else {
          cause = "Everything looks fine";
          lvl = 0;
@@ -217,9 +214,6 @@ public final class LyricsDebug {
       out.add(new LyricsDebug.Row(mod.albumRain.on() && raining && rainAge >= 2000L ? 1 : 3, "Album colour rain", rain));
       int album = svc.albumColor();
       out.add(new LyricsDebug.Row(3, "Album colour", album == 0 ? "none (no cover found)" : String.format(Locale.ROOT, "#%06X", album & 16777215)));
-      if (visuals) {
-         out.add(new LyricsDebug.Row(1, "Other mods", "Nocturne is installed (two sets of lyrics if both are on)"));
-      }
 
       for (String e : errors()) {
          out.add(new LyricsDebug.Row(1, "Recent problem", e));

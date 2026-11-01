@@ -13,14 +13,20 @@ Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + 
 ## Install
 
 1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Replace older Nocturne/Kangetsu JARs with `nocturne-0.5.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-0.6.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
 
+## If a song is detected but lyrics are missing
+
+Press **N → Player → Retry lyrics** to fetch again. **Restore visible lyrics** resets the transform, follows your view, enables through-wall display, and selects the compatible projected renderer. Both controls are on the main player page. No config deletion is needed.
+
+The player page shows the lyric lookup status. Search alternatives or import a local LRC in Lyrics when the providers do not have the track. This release rejects invalid Windows timestamps, retries misses, refreshes lyrics when track duration arrives late, and bounds individual lookup time. Valid sparse timeline updates still advance normally.
+
 ## Studio
 
-The seven tabs bring playback, lyric correction and visual editing into one interface. Small windows use scrolling; the coloured scrollbar and Scroll hint indicate additional controls. Detailed settings opens the original Glass or vanilla settings interface.
+The seven tabs bring playback, lyric correction and visual editing into one interface. Small windows use scrolling; the coloured scrollbar and Scroll hint indicate additional controls. Advanced settings opens the Glass or classic settings interface. Buttons and sliders follow the selected theme, with keyboard focus and reduced-motion support.
 
 ### Player and apps
 
@@ -55,7 +61,7 @@ Each placement mode maintains its own active transform profile. Named profiles a
 - Independent flash and shake switches, both off by default.
 - Reduced motion suppresses flash, camera beat zoom, animated styling, particles and ambient animation.
 - High-contrast lyrics use white text with a dark readability treatment; the lyric size control supports larger text.
-- Lightweight, Balanced and Ultra quality levels change glow passes and particle budgets. Additional particle limits and distance/behind-camera culling bound effects work.
+- Lightweight, Balanced and Ultra quality levels change glow passes and cap particles at 20, 48 and 180 respectively. Additional particle limits and distance/behind-camera culling bound effects work.
 - Apply lightweight preset disables expensive glow/chromatic/cloud drift effects together.
 
 The original world effects remain: seven placements, eight animations, twelve visual presets, four lyric fonts, chromatic split, sparkles, cinematic bars, battle words, cloud lettering, optional through-wall rendering and rain tinting.
@@ -98,4 +104,4 @@ Those Python dependencies are for developer tests only. See [validation](VALIDAT
 
 ## Attribution
 
-Nocturne is derived from the Kangetsu Lyrics port, distributed with permission confirmed by the repository owner. Original copyright and font licenses remain intact. This version is **not wholly MIT licensed**; see [porting and licensing](PORTING-NOTICE.md). Historical independently written Nocturne releases retain their own original licenses.
+Nocturne includes upstream code distributed with permission confirmed by the repository owner. Original copyright and font licenses remain intact. This version is **not wholly MIT licensed**; see [porting and licensing](PORTING-NOTICE.md). Historical independently written Nocturne releases retain their own original licenses.
