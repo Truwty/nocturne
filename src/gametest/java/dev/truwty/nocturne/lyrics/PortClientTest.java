@@ -152,6 +152,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 takeShot(context,"nocturne-workspace-"+tab.replace(' ','-'));
             }
             context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));context.clickScreenButton("Timing");
+            context.clickScreenButton("Prev line");
             context.clickScreenButton("Line +50 ms");context.clickScreenButton("Save lyrics");
             context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics().lines.getFirst().start()!=1050)throw new AssertionError("Timing editor did not save correction");});
             context.clickScreenButton("Undo");context.clickScreenButton("Save lyrics");
