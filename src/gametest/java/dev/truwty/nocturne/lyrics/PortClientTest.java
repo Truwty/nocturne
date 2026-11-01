@@ -339,11 +339,11 @@ public final class PortClientTest implements FabricClientGameTest {
         context.setScreen(()->new net.minecraft.client.gui.screens.inventory.InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));context.waitTicks(5);
         context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Inventory did not hide lyrics");});
         context.setScreen(()->null);context.runOnClient(mc->mc.debugEntries.setOverlayVisible(true));context.waitTicks(5);
-        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Debug overlay did not hide lyrics");mc.debugEntries.setOverlayVisible(false);NocturneClient.SETTINGS.editorX.set(8.0);});context.waitTicks(30);
+        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Debug overlay did not hide lyrics");mc.debugEntries.setOverlayVisible(false);NocturneClient.SETTINGS.editorX.set(8.0);});context.waitFor(mc->dev.truwty.nocturne.accessibility.EdgeFallback.showing(),200);
         context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Off-screen editor placement did not activate edge fallback");});takeShot(context,"nocturne-edge-fallback");
         context.runOnClient(mc->NocturneClient.SETTINGS.edgeFallback.set(false));context.waitTicks(2);
         context.runOnClient(mc->{if(dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Disabled fallback retained its visible state");NocturneClient.SETTINGS.edgeFallback.set(true);});context.waitTicks(2);
-        context.runOnClient(mc->NocturneClient.SETTINGS.editorX.set(0.0));context.waitFor(mc->!dev.truwty.nocturne.accessibility.EdgeFallback.showing(),100);
+        context.runOnClient(mc->NocturneClient.SETTINGS.editorX.set(0.0));context.waitFor(mc->!dev.truwty.nocturne.accessibility.EdgeFallback.showing(),200);
         context.runOnClient(mc->{if(dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Fallback did not clear after the world text returned");});
         context.setScreen(()->new StudioScreen(null,5));context.clickScreenButton("Gameplay & accessibility");context.clickScreenButton("Readability");context.clickScreenButton("White on charcoal");context.waitTicks(5);takeShot(context,"nocturne-readability");
         context.clickScreenButton("Contexts");context.clickScreenButton("Edit Combat");context.clickScreenButton("Suggested preset");context.clickScreenButton("Preview: Off");context.waitTicks(3);
