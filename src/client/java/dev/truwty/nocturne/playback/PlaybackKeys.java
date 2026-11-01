@@ -1,14 +1,11 @@
 package dev.truwty.nocturne.playback;
 
-import com.mojang.blaze3d.platform.InputConstants.Type;
-
-import dev.truwty.nocturne.lyrics.LyricsService;
+import dev.truwty.nocturne.compat.ClientAccess;
+import java.util.*;
 
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.*;
 import net.minecraft.network.chat.Component;
-
-import java.util.*;
 
 public final class PlaybackKeys {
     private static final Map<String, KeyMapping> KEYS = new LinkedHashMap<>();
@@ -30,13 +27,13 @@ public final class PlaybackKeys {
             KEYS.put(
                     action,
                     KeyMappingHelper.registerKeyMapping(
-                            new KeyMapping("key.nocturne." + action, Type.KEYSYM, -1, category)));
+                            new KeyMapping("key.nocturne." + action, ClientAccess.keyType(), -1, category)));
     }
 
     public static void tick(Minecraft mc) {
         for (var entry : KEYS.entrySet())
             while (entry.getValue().consumeClick())
-                if (mc.level != null && mc.screen == null) dispatch(entry.getKey(), mc);
+                if (mc.level != null && ClientAccess.screen (mc) == null) dispatch(entry.getKey(), mc);
     }
 
     public static void dispatch(String key, Minecraft mc) {
@@ -62,7 +59,7 @@ public final class PlaybackKeys {
         }
         if (Playback.can(action)) Playback.command(action, value);
         else if (mc.player != null)
-            mc.gui.setOverlayMessage(
-                    Component.literal("Nocturne: current player does not expose " + action), true);
+            ClientAccess.overlay(
+          mc, Component.literal("Nocturne: current player does not expose " + action), true);
     }
 }

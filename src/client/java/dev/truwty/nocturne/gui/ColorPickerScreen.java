@@ -1,12 +1,12 @@
 package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
+import java.util.function.IntConsumer;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
-
-import java.util.function.IntConsumer;
 
 public final class ColorPickerScreen extends StudioPanel {
     private PickerColor color;
@@ -109,7 +109,7 @@ public final class ColorPickerScreen extends StudioPanel {
                 () -> {
                     Studio.library().rememberColor(color.argb());
                     accept.accept(color.argb());
-                    minecraft.setScreen(parent);
+                    ClientAccess.setScreen(minecraft, parent);
                 });
     }
 

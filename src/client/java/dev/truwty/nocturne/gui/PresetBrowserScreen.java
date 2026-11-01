@@ -4,10 +4,10 @@ import com.google.gson.JsonObject;
 
 import dev.truwty.nocturne.*;
 
+import dev.truwty.nocturne.compat.ClientAccess;
+import java.util.*;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-
-import java.util.*;
 
 public final class PresetBrowserScreen extends StudioPanel {
     private final String group;
@@ -241,7 +241,7 @@ public final class PresetBrowserScreen extends StudioPanel {
                     (w - 36) / 2,
                     "Drag HUD layout",
                     "Open the draggable HUD editor",
-                    () -> minecraft.setScreen(new HudEditorScreen(this)));
+                    () -> ClientAccess.setScreen(minecraft, new HudEditorScreen(this)));
         }
     }
 

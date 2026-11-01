@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.accessibility;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.gui.Draw;
 import dev.truwty.nocturne.lyrics.*;
 
@@ -41,7 +42,7 @@ public final class EdgeFallback {
             outside = false;
             key = song.key();
         }
-        var camera = mc.gameRenderer.getMainCamera();
+        var camera = ClientAccess.camera(mc);
         Vec3 delta = anchor.subtract(camera.position());
         var forward = new org.joml.Vector3f(0, 0, -1).rotate(camera.rotation());
         behind = delta.dot(new Vec3(forward.x, forward.y, forward.z)) <= .01;

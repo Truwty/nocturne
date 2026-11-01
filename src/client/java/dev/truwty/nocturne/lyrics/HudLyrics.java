@@ -1,10 +1,12 @@
 package dev.truwty.nocturne.lyrics;
 
+import com.mojang.blaze3d.platform.NativeImage;
+
 import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.accessibility.*;
-import dev.truwty.nocturne.performance.RenderPerformance;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.gui.Draw;
-import com.mojang.blaze3d.platform.NativeImage;
+import dev.truwty.nocturne.performance.RenderPerformance;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -147,7 +149,7 @@ public final class HudLyrics {
          Font font = mc.font;
          int gw = g.guiWidth();
          int gh = g.guiHeight();
-         Camera camera = mc.gameRenderer.getMainCamera();
+         Camera camera = ClientAccess.camera(mc);
          forward = new Vector3f(0.0F, 0.0F, -1.0F).rotate(camera.rotation());
          FRAME.clear();
 

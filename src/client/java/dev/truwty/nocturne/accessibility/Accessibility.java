@@ -3,12 +3,12 @@ package dev.truwty.nocturne.accessibility;
 import com.google.gson.*;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
+import java.util.*;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.*;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-
-import java.util.*;
 
 public final class Accessibility {
     private static Set<String> screens;
@@ -95,8 +95,8 @@ public final class Accessibility {
     }
 
     public static void tick(Minecraft mc) {
-        if (mc.screen != null && !mc.screen.getClass().getName().startsWith("dev.truwty.nocturne."))
-            lastScreen = mc.screen.getClass().getName();
+        if (ClientAccess.screen (mc) != null && !ClientAccess.screen(mc).getClass().getName().startsWith("dev.truwty.nocturne."))
+            lastScreen = ClientAccess.screen(mc).getClass().getName();
         ContextProfiles.tick(mc);
     }
 
@@ -104,7 +104,7 @@ public final class Accessibility {
         var mc = Minecraft.getInstance();
         var s = NocturneClient.SETTINGS;
         if (s == null) return false;
-        var screen = mc.screen;
+        var screen = ClientAccess.screen(mc);
         return new ScreenPolicy(
                         s.hideChat.on(),
                         s.hideInventory.on(),
@@ -119,7 +119,7 @@ public final class Accessibility {
                         screen instanceof AbstractContainerScreen<?>,
                         screen instanceof PauseScreen,
                         mc.getDebugOverlay().showDebugScreen(),
-                        mc.options.hideGui);
+                        ClientAccess.hiddenHud(mc));
     }
 
     public static void applyFriendly() {

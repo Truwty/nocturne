@@ -2,12 +2,13 @@ package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.*;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import dev.truwty.nocturne.compat.ClientAccess;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 public final class HudLayouts {
     private static final Map<String, HudLayout> CACHE = new HashMap<>();
@@ -15,7 +16,7 @@ public final class HudLayouts {
     private HudLayouts() {}
 
     public static String context() {
-        return Minecraft.getInstance().screen == null ? "Gameplay" : "Menu";
+        return ClientAccess.screen(Minecraft.getInstance()) == null ? "Gameplay" : "Menu";
     }
 
     public static HudLayout current() {

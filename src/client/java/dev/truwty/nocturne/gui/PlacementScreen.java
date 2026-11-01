@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.setting.NumberSetting;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -81,7 +82,7 @@ public final class PlacementScreen extends Screen {
         addRenderableWidget(
                 StudioButton.create(
                                 Component.literal("HUD editor"),
-                                b -> minecraft.setScreen(new HudEditorScreen(this)))
+                                b -> ClientAccess.setScreen(minecraft, new HudEditorScreen(this)))
                         .bounds(148, 36, 90, 20)
                         .build());
     }
@@ -206,24 +207,24 @@ public final class PlacementScreen extends Screen {
 
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        if ((event.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL) != 0) {
-            if (event.key() == 90) {
-                if ((event.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT) != 0)
+        if ((event.modifiers() & com.mojang.blaze3d.platform.InputConstants.MOD_CONTROL) != 0) {
+            if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_Z) {
+                if ((event.modifiers() & com.mojang.blaze3d.platform.InputConstants.MOD_SHIFT) != 0)
                     StudioEdits.redo("placement");
                 else StudioEdits.undo("placement");
                 return true;
             }
-            if (event.key() == 89) {
+            if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_Y) {
                 StudioEdits.redo("placement");
                 return true;
             }
         }
-        if ((event.modifiers() & org.lwjgl.glfw.GLFW.GLFW_MOD_ALT) != 0) {
+        if ((event.modifiers() & com.mojang.blaze3d.platform.InputConstants.MOD_ALT) != 0) {
             switch (event.key()) {
-                case 263 -> controllerNudge(-1, 0);
-                case 262 -> controllerNudge(1, 0);
-                case 265 -> controllerNudge(0, -1);
-                case 264 -> controllerNudge(0, 1);
+                case com.mojang.blaze3d.platform.InputConstants.KEY_LEFT -> controllerNudge(-1, 0);
+                case com.mojang.blaze3d.platform.InputConstants.KEY_RIGHT -> controllerNudge(1, 0);
+                case com.mojang.blaze3d.platform.InputConstants.KEY_UP -> controllerNudge(0, -1);
+                case com.mojang.blaze3d.platform.InputConstants.KEY_DOWN -> controllerNudge(0, 1);
                 default -> {
                     return super.keyPressed(event);
                 }
@@ -241,6 +242,6 @@ public final class PlacementScreen extends Screen {
         } catch (java.io.IOException ex) {
             NocturneClient.LOG.warn("Placement save failed", ex);
         }
-        minecraft.setScreen(parent);
+        ClientAccess.setScreen(minecraft, parent);
     }
 }

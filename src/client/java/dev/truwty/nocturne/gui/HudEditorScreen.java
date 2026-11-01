@@ -1,16 +1,15 @@
 package dev.truwty.nocturne.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
+import java.util.*;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.*;
 import net.minecraft.network.chat.Component;
-
-import org.lwjgl.glfw.GLFW;
-
-import java.util.*;
 
 public final class HudEditorScreen extends Screen {
     private final Screen parent;
@@ -165,7 +164,7 @@ public final class HudEditorScreen extends Screen {
                 () -> {
                     for (String key : List.of("Gameplay", "Menu"))
                         HudLayouts.save(key, HudLayout.parse(histories.get(key).value()));
-                    minecraft.setScreen(parent);
+                    ClientAccess.setScreen(minecraft, parent);
                 });
         button(
                 0,
@@ -202,7 +201,7 @@ public final class HudEditorScreen extends Screen {
                 5,
                 "Presets",
                 "Save, favorite, preview and share HUD layouts",
-                () -> minecraft.setScreen(new PresetBrowserScreen(this, "hudLayouts")));
+                () -> ClientAccess.setScreen(minecraft, new PresetBrowserScreen(this, "hudLayouts")));
         button(4, 1, 5, "Cancel", "Discard unsaved layout edits", this::onClose);
         int by = height - 85, bw = (width - 24) / 5;
         addRenderableWidget(
@@ -376,27 +375,28 @@ public final class HudEditorScreen extends Screen {
 
     @Override
     public boolean keyPressed(KeyEvent event) {
-        if (event.key() == GLFW.GLFW_KEY_H) {
+        if (event.key() == InputConstants.KEY_H) {
             controlsHidden = !controlsHidden;
             rebuildWidgets();
             return true;
         }
-        if ((event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0
-                && (event.key() == GLFW.GLFW_KEY_Z || event.key() == GLFW.GLFW_KEY_Y)) {
-            if (event.key() == GLFW.GLFW_KEY_Y || (event.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0)
+        if ((event.modifiers() & InputConstants.MOD_CONTROL) != 0
+                && (event.key() == InputConstants.KEY_Z || event.key() == InputConstants.KEY_Y)) {
+            if (event.key() == InputConstants.KEY_Y
+          || (event.modifiers() & InputConstants.MOD_SHIFT) != 0)
                 histories.get(context).redo();
             else histories.get(context).undo();
             layout = HudLayout.parse(histories.get(context).value());
             rebuildWidgets();
             return true;
         }
-        if ((event.modifiers() & GLFW.GLFW_MOD_ALT) != 0) {
-            int step = (event.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0 ? 10 : 1;
+        if ((event.modifiers() & InputConstants.MOD_ALT) != 0) {
+            int step = (event.modifiers() & InputConstants.MOD_SHIFT) != 0 ? 10 : 1;
             switch (event.key()) {
-                case GLFW.GLFW_KEY_LEFT -> nudge(-step, 0);
-                case GLFW.GLFW_KEY_RIGHT -> nudge(step, 0);
-                case GLFW.GLFW_KEY_UP -> nudge(0, -step);
-                case GLFW.GLFW_KEY_DOWN -> nudge(0, step);
+                case InputConstants.KEY_LEFT -> nudge(-step, 0);
+                case InputConstants.KEY_RIGHT -> nudge(step, 0);
+                case InputConstants.KEY_UP -> nudge(0, -step);
+                case InputConstants.KEY_DOWN -> nudge(0, step);
                 default -> {
                     return super.keyPressed(event);
                 }
@@ -471,6 +471,6 @@ public final class HudEditorScreen extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        ClientAccess.setScreen(minecraft, parent);
     }
 }

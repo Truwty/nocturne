@@ -6,11 +6,10 @@ import com.google.gson.*;
 
 import dev.truwty.nocturne.performance.*;
 
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-
 import java.nio.file.*;
 import java.util.*;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class MaintenanceTest {
     @TempDir Path directory;
@@ -99,6 +98,24 @@ class MaintenanceTest {
         assertTrue(
                 ReleaseCatalog.newest(
                                 "[" + release("v1.0.0", false, false) + "]", "0.13.0-beta.1", true)
+            .isEmpty());
+  }
+
+  @Test
+  void targetSpecificJarAndMarkerAreRequiredForModernPorts() {
+    var item = JsonParser.parseString(release("v1.0.0", false, false)).getAsJsonObject();
+    item.getAsJsonArray("assets")
+        .get(0)
+        .getAsJsonObject()
+        .addProperty("name", "nocturne-1.0.0-mc26.2.jar");
+    String catalog = "[" + item + "]";
+    assertTrue(ReleaseCatalog.newest(catalog, "0.13.0", true, "26.2").isPresent());
+    assertTrue(ReleaseCatalog.newest(catalog, "0.13.0", true, "26.3").isEmpty());
+    item.getAsJsonArray("assets")
+        .get(1)
+        .getAsJsonObject()
+        .addProperty("name", "nocturne-mc26.3.json");
+    assertTrue(ReleaseCatalog.newest("[" + item + "]", "0.13.0", true, "26.3")
                         .isEmpty());
     }
 

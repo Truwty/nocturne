@@ -1,11 +1,12 @@
 package dev.truwty.nocturne.lyrics;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.Studio;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.gui.GlassLyricsScreen;
 import dev.truwty.nocturne.gui.LyricsScreen;
-import dev.truwty.nocturne.gui.StudioScreen;
 import dev.truwty.nocturne.gui.PlacementScreen;
-import dev.truwty.nocturne.Studio;
+import dev.truwty.nocturne.gui.StudioScreen;
 import java.nio.file.Files;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
@@ -15,7 +16,7 @@ public final class PortClientTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
-            world.getClientLevel().waitForChunksRender();
+            dev.truwty.nocturne.compat.TestAccess.waitForChunks(world);
             if(System.getenv("NOCTURNE_TEST_SHADER")!=null) {
                 context.runOnClient(mc->{ if(!ShaderCompat.shaderPackOn())throw new AssertionError("Requested real shader pack did not activate"); });
                 NocturneClient.LOG.info("REAL SHADER PACK ACTIVE");
@@ -56,7 +57,8 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.waitTicks(10);
                 context.runOnClient(mc -> {
                     if (!LyricsRenderer.active() || (LyricsDebug.worldPieces == 0 && LyricsDebug.hudDrawn == 0)) throw new AssertionError("Live provider lyrics did not reach world geometry");
-                    NocturneClient.LOG.info("LIVE LYRICS RENDER PASSED: detected metadata, invalid timestamp recovery, public lookup and visible world geometry");
+                    NocturneClient.LOG.info("LIVE LYRICS RENDER PASSED: detected metadata, invalid timestamp recovery, public"
+                  + " lookup and visible world geometry");
                     LyricsService.INSTANCE.start();
                 });
             }
@@ -139,7 +141,10 @@ public final class PortClientTest implements FabricClientGameTest {
             }
             context.getInput().resizeWindow(1280,960);context.runOnClient(mc -> {mc.options.guiScale().set(2);mc.resizeGui();});
             context.runOnClient(mc -> {
-                var primary=Lyrics.parse("[00:01]<00:01>مرحبا <00:02>بالعالم<00:03>\n[00:04]\n[00:08]<00:08>שלום <00:09>עולם<00:10>\n[00:12]")
+                var primary=Lyrics.parse("[00:01]<00:01>مرحبا <00:02>بالعالم<00:03>\n"
+                        + "[00:04]\n"
+                        + "[00:08]<00:08>שלום <00:09>עולם<00:10>\n"
+                        + "[00:12]")
                     .secondary(Lyrics.parse("[00:01]Hello world\n[00:08]こんにちは世界"),Lyrics.parse("[00:01]marhaban bilalam"));
                 LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(),primary);
                 NocturneClient.SETTINGS.translation.set(true);NocturneClient.SETTINGS.romanization.set(true);
@@ -148,7 +153,7 @@ public final class PortClientTest implements FabricClientGameTest {
             for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
                 context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));
                 if(!tab.equals("History"))context.clickScreenButton(tab);
-                context.waitTicks(4);context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                context.waitTicks(4);context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
                 takeShot(context,"nocturne-workspace-"+tab.replace(' ','-'));
             }
             context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));context.clickScreenButton("Timing");
@@ -158,7 +163,7 @@ public final class PortClientTest implements FabricClientGameTest {
             context.clickScreenButton("Undo");context.clickScreenButton("Save lyrics");
             context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics().lines.getFirst().start()!=1000)throw new AssertionError("Timing editor undo did not restore bounds");});
             context.runOnClient(mc->{
-                var screen=mc.screen;screen.mouseScrolled(100,100,0,-100);
+                var screen=ClientAccess.screen(mc);screen.mouseScrolled(100,100,0,-100);
                 int panelW=Math.min(650,screen.width-16),panelH=Math.min(406,screen.height-16);
                 int panelX=(screen.width-panelW)/2,panelY=(screen.height-panelH)/2;
                 int scroll=Math.max(0,285-(panelH-138));
@@ -169,7 +174,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 screen.mouseDragged(drag,7,0);screen.mouseReleased(drag);
             });
             context.clickScreenButton("Save lyrics");
-            context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics().lines.getFirst().words().getFirst().start()<=1000)throw new AssertionError("Timeline boundary drag did not save word timing");mc.screen.mouseScrolled(100,100,0,100);});
+            context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics().lines.getFirst().words().getFirst().start()<=1000)throw new AssertionError("Timeline boundary drag did not save word timing");ClientAccess.screen(mc).mouseScrolled(100,100,0,100);});
             context.clickScreenButton("Undo");context.clickScreenButton("Save lyrics");
             context.runOnClient(mc->{
                 try {
@@ -204,18 +209,20 @@ public final class PortClientTest implements FabricClientGameTest {
             context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
             for(int playbackTab=0;playbackTab<4;playbackTab++){
                 int tab=playbackTab;context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null,tab));context.waitTicks(5);
-                context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
                 takeShot(context,"nocturne-playback-"+tab);
             }
             context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null));
             context.clickScreenButton("Configure playback shortcuts…");context.waitTicks(3);
-            context.runOnClient(mc->{if(!(mc.screen instanceof net.minecraft.client.gui.screens.options.controls.KeyBindsScreen))throw new AssertionError("Playback keybind screen did not open");});
-            NocturneClient.LOG.info("PLAYBACK UI TEST PASSED: four integration pages, artwork texture, capability gating and native keybind configuration");
+            context.runOnClient(mc->{if(!(ClientAccess.screen (mc)
+            instanceof net.minecraft.client.gui.screens.options.controls.KeyBindsScreen))throw new AssertionError("Playback keybind screen did not open");});
+            NocturneClient.LOG.info("PLAYBACK UI TEST PASSED: four integration pages, artwork texture, capability gating and"
+              + " native keybind configuration");
             context.setScreen(() -> new PlacementScreen(null));
             context.waitTicks(3);
             context.runOnClient(mc -> {
                 var settings = NocturneClient.SETTINGS;
-                var editor = mc.screen;
+                var editor = ClientAccess.screen(mc);
                 var event = new net.minecraft.client.input.MouseButtonEvent(editor.width / 2.0, editor.height / 2.0,
                     new net.minecraft.client.input.MouseButtonInfo(0, 0));
                 double before = settings.editorX.get();
@@ -227,7 +234,7 @@ public final class PortClientTest implements FabricClientGameTest {
             context.clickScreenButton("Redo");context.runOnClient(mc->{if(NocturneClient.SETTINGS.editorX.get()!=dragged)throw new AssertionError("Placement redo failed");});
             context.clickScreenButton("Rotate");
             context.runOnClient(mc -> {
-                var editor = mc.screen;
+                var editor = ClientAccess.screen(mc);
                 var event = new net.minecraft.client.input.MouseButtonEvent(editor.width / 2.0, editor.height / 2.0,
                     new net.minecraft.client.input.MouseButtonInfo(0, 0));
                 double before = NocturneClient.SETTINGS.editorYaw.get();
@@ -250,11 +257,11 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.setScreen(() -> new StudioScreen(null, page));
                 context.waitTicks(2);
                 context.runOnClient(mc -> {
-                    ScreenBounds.assertVisibleWidgetsFit(mc.screen);
-                    mc.screen.mouseScrolled(100, 100, 0, -8);
+                    ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));
+                    ClientAccess.screen(mc).mouseScrolled(100, 100, 0, -8);
                 });
                 context.waitTicks(2);
-                context.runOnClient(mc -> ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                context.runOnClient(mc -> ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
             }
             takeShot(context, "nocturne-small-window");
             context.getInput().resizeWindow(854,480);context.runOnClient(mc -> { mc.options.guiScale().set(1); mc.resizeGui(); });
@@ -262,16 +269,16 @@ public final class PortClientTest implements FabricClientGameTest {
             for(int guiScale:new int[]{1,2,3,4}) {
                 context.getInput().resizeWindow(1280,960);context.runOnClient(mc->{mc.options.guiScale().set(guiScale);mc.resizeGui();});
                 context.setScreen(()->new StudioScreen(null,0));context.waitTicks(3);
-                context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
                     ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
                     ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null),()->new dev.truwty.nocturne.gui.MaintenanceScreen(null),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,0),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,1),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,2),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3),()->new dev.truwty.nocturne.gui.ContextProfileEditorScreen(null,dev.truwty.nocturne.accessibility.GameplayContext.COMBAT))) {
-                    context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
+                    context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));ClientAccess.screen(mc).mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));});
                 }
                 for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
                     context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));
                     if(!tab.equals("History"))context.clickScreenButton(tab);
-                    context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
+                    context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));ClientAccess.screen(mc).mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));});
                 }
             }
             context.setScreen(()->null);
@@ -279,10 +286,12 @@ public final class PortClientTest implements FabricClientGameTest {
             context.waitFor(mc -> reload.isDone(), 400);
             reload.join();
             context.setScreen(() -> null);
-            NocturneClient.LOG.info("STUDIO TEST PASSED: world lyrics, placements, fonts, UI tabs, local correction, song offset, theme round trip, reduced motion, small-window bounds and resource reload");
+            NocturneClient.LOG.info("STUDIO TEST PASSED: world lyrics, placements, fonts, UI tabs, local correction, song"
+              + " offset, theme round trip, reduced motion, small-window bounds and resource"
+              + " reload");
         }
         try (TestSingleplayerContext reconnected = context.worldBuilder().create()) {
-            reconnected.getClientLevel().waitForChunksRender();
+            dev.truwty.nocturne.compat.TestAccess.waitForChunks(reconnected);
             context.runOnClient(mc -> LyricsService.INSTANCE.startDemo());
             context.waitTicks(25);
             context.runOnClient(mc -> { if (!LyricsRenderer.active()) throw new AssertionError("Lyrics did not recover after reconnect"); });
@@ -298,9 +307,10 @@ public final class PortClientTest implements FabricClientGameTest {
         context.runOnClient(mc->{try(var files=java.nio.file.Files.list(Studio.directory().resolve("diagnostics"))){if(files.noneMatch(p->p.getFileName().toString().endsWith(".json")))throw new AssertionError("No diagnostic file exported");}catch(java.io.IOException ex){throw new AssertionError(ex);}});
         takeShot(context,"nocturne-maintenance");
         if(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("modmenu")) {
-            context.runOnClient(mc->{var entries=net.fabricmc.loader.api.FabricLoader.getInstance().getEntrypoints("modmenu",com.terraformersmc.modmenu.api.ModMenuApi.class);var integration=entries.stream().filter(e->e instanceof dev.truwty.nocturne.maintenance.ModMenuIntegration).findFirst().orElseThrow();var parent=mc.screen;mc.setScreen(integration.getModConfigScreenFactory().create(parent));if(!(mc.screen instanceof StudioScreen))throw new AssertionError("Mod Menu factory did not open Studio");mc.screen.onClose();if(mc.screen!=parent)throw new AssertionError("Mod Menu parent was not restored");});
+            context.runOnClient(mc->{var entries=net.fabricmc.loader.api.FabricLoader.getInstance().getEntrypoints("modmenu",com.terraformersmc.modmenu.api.ModMenuApi.class);var integration=entries.stream().filter(e->e instanceof dev.truwty.nocturne.maintenance.ModMenuIntegration).findFirst().orElseThrow();var parent=ClientAccess.screen(mc);ClientAccess.setScreen(mc, integration.getModConfigScreenFactory().create(parent));if(!(ClientAccess.screen (mc) instanceof StudioScreen))throw new AssertionError("Mod Menu factory did not open Studio");ClientAccess.screen(mc).onClose();if(ClientAccess.screen(mc) !=parent)throw new AssertionError("Mod Menu parent was not restored");});
         }
-        NocturneClient.LOG.info("MAINTENANCE TEST PASSED: filtered clipboard/file export, screen bounds and optional Mod Menu entrypoint");
+        NocturneClient.LOG.info("MAINTENANCE TEST PASSED: filtered clipboard/file export, screen bounds and optional Mod"
+            + " Menu entrypoint");
     }
     private static void regressionChecks(ClientGameTestContext context) {
         var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
@@ -348,7 +358,8 @@ public final class PortClientTest implements FabricClientGameTest {
         context.runOnClient(mc->{var s=NocturneClient.SETTINGS;if(s.topBar.on()||s.nextLine.on()||dev.truwty.nocturne.accessibility.Accessibility.textMotion()||dev.truwty.nocturne.accessibility.Accessibility.particles()||dev.truwty.nocturne.accessibility.Accessibility.camera()||dev.truwty.nocturne.accessibility.Accessibility.flashes()||LyricsRenderer.fovKick()!=1||LyricsRenderer.flash()!=0)throw new AssertionError("Friendly preset left an effect enabled");try{var forced=new com.google.gson.JsonObject();forced.addProperty("Flash effects",true);forced.addProperty("Camera movement",true);forced.addProperty("Particle effects",true);forced.addProperty("Animated lyric text",true);forced.addProperty("Reduced motion",false);dev.truwty.nocturne.accessibility.ContextProfiles.save(dev.truwty.nocturne.accessibility.GameplayContext.MENUS,forced);try(var scope=dev.truwty.nocturne.accessibility.ContextProfiles.scope()){if(dev.truwty.nocturne.accessibility.Accessibility.camera()||dev.truwty.nocturne.accessibility.Accessibility.flashes()||dev.truwty.nocturne.accessibility.Accessibility.textMotion()||dev.truwty.nocturne.accessibility.Accessibility.particles())throw new AssertionError("Context bypassed friendly-mode lock");}if(s.cameraMovement.on()||s.flashEffects.on())throw new AssertionError("Render scope leaked context values");}catch(java.io.IOException ex){throw new AssertionError(ex);}});
         context.setScreen(()->null);context.runOnClient(mc->LyricsService.INSTANCE.startDemo());context.waitTicks(40);takeShot(context,"nocturne-friendly-preset");
         context.runOnClient(mc->{var frame=dev.truwty.nocturne.performance.RenderPerformance.snapshot();if(frame.particles()!=0||frame.glow()!=0||frame.cloud()!=0||frame.text()==0)throw new AssertionError("Friendly mode rendered decoration or lost core lyrics");try{dev.truwty.nocturne.accessibility.ContextProfiles.remove(dev.truwty.nocturne.accessibility.GameplayContext.COMBAT);dev.truwty.nocturne.accessibility.ContextProfiles.remove(dev.truwty.nocturne.accessibility.GameplayContext.MENUS);}catch(java.io.IOException ex){throw new AssertionError(ex);}dev.truwty.nocturne.accessibility.ContextProfiles.clearPreview();for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));});
-        NocturneClient.LOG.info("ACCESSIBILITY TEST PASSED: chat/inventory/debug hiding, edge recovery, readability, profile preview/save/restoration and friendly lock across contexts");
+        NocturneClient.LOG.info("ACCESSIBILITY TEST PASSED: chat/inventory/debug hiding, edge recovery, readability,"
+            + " profile preview/save/restoration and friendly lock across contexts");
     }
 
     private static void performanceChecks(ClientGameTestContext context){
@@ -358,8 +369,9 @@ public final class PortClientTest implements FabricClientGameTest {
         context.waitTicks(45);
         context.runOnClient(mc->{var frame=dev.truwty.nocturne.performance.RenderPerformance.snapshot();if(frame.glow()!=0||frame.cloud()!=0||frame.particles()!=0||frame.trails()!=0)throw new AssertionError("Zero effect budgets were exceeded");if(frame.text()==0)throw new AssertionError("Budget reduction hid the core lyrics");if(!Double.isFinite(frame.cpuMs())||frame.cpuMs()<=0)throw new AssertionError("Invalid CPU metric");});
         takeShot(context,"nocturne-performance-hud");context.setScreen(()->new StudioScreen(null,5));context.clickScreenButton("Performance & budgets");context.waitTicks(5);takeShot(context,"nocturne-performance");
-        context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));});
-        NocturneClient.LOG.info("PERFORMANCE TEST PASSED: hard zero budgets, preserved lyric text, CPU metrics, live readout and settings bounds");
+        context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));});
+        NocturneClient.LOG.info("PERFORMANCE TEST PASSED: hard zero budgets, preserved lyric text, CPU metrics, live"
+            + " readout and settings bounds");
     }
 
     private static void interfaceChecks(ClientGameTestContext context) {
@@ -367,7 +379,7 @@ public final class PortClientTest implements FabricClientGameTest {
         context.setScreen(()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null));
         int applied=context.computeOnClient(mc->NocturneClient.SETTINGS.uiAccent.argb());
         context.clickScreenButton("Accent");
-        context.runOnClient(mc->{for(var child:mc.screen.children())if(child instanceof net.minecraft.client.gui.components.EditBox field){field.setValue("#8062E9D0");break;}});
+        context.runOnClient(mc->{for(var child:ClientAccess.screen(mc).children())if(child instanceof net.minecraft.client.gui.components.EditBox field){field.setValue("#8062E9D0");break;}});
         context.clickScreenButton("Read hex");takeShot(context,"nocturne-color-picker");context.clickScreenButton("Use color");
         context.runOnClient(mc->{if(NocturneClient.SETTINGS.uiAccent.argb()!=applied)throw new AssertionError("Color preview mutated global theme");});
         context.clickScreenButton("Undo");context.clickScreenButton("Redo");context.clickScreenButton("Cancel");
@@ -377,25 +389,26 @@ public final class PortClientTest implements FabricClientGameTest {
         context.runOnClient(mc->{dev.truwty.nocturne.gui.StudioEdits.undo("themes");if(NocturneClient.SETTINGS.uiAccent.argb()!=applied)throw new AssertionError("Applied theme undo failed");dev.truwty.nocturne.gui.StudioEdits.redo("themes");dev.truwty.nocturne.gui.StudioEdits.undo("themes");
             String exported=dev.truwty.nocturne.gui.PresetCodec.encode("themes","Test",Studio.snapshot("themes"));mc.keyboardHandler.setClipboard(exported);
         });
-        context.runOnClient(mc->mc.screen.mouseScrolled(100,100,0,-12));context.clickScreenButton("Import JSON");context.clickScreenButton("Apply preset");
+        context.runOnClient(mc->ClientAccess.screen(mc).mouseScrolled(100,100,0,-12));context.clickScreenButton("Import JSON");context.clickScreenButton("Apply preset");
         int background=context.computeOnClient(mc->NocturneClient.SETTINGS.uiBackground.argb());
         context.runOnClient(mc->mc.keyboardHandler.setClipboard("{\"UI accent\":\"#FFAABBCC\"}"));
         context.clickScreenButton("Import JSON");context.waitTicks(2);context.clickScreenButton("Apply preset");
         context.runOnClient(mc->{if(NocturneClient.SETTINGS.uiAccent.argb()!=0xffaabbcc||NocturneClient.SETTINGS.uiBackground.argb()!=background)throw new AssertionError("Partial theme import lost other applied values");dev.truwty.nocturne.gui.StudioEdits.undo("themes");});
         context.setScreen(()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null));
-        context.runOnClient(mc->{for(var child:mc.screen.children())if(child instanceof net.minecraft.client.gui.components.EditBox field){field.setValue("Distance");break;}});
+        context.runOnClient(mc->{for(var child:ClientAccess.screen(mc).children())if(child instanceof net.minecraft.client.gui.components.EditBox field){field.setValue("Distance");break;}});
         context.waitTicks(3);takeShot(context,"nocturne-settings-search");
-        context.runOnClient(mc->{boolean found=mc.screen.children().stream().anyMatch(child->child instanceof net.minecraft.client.gui.components.AbstractWidget widget&&widget.getMessage().getString().startsWith("Distance:"));if(!found)throw new AssertionError("Settings search lost numeric setting");
-            mc.screen.setFocused((net.minecraft.client.gui.components.events.GuiEventListener)null);
-            dev.truwty.nocturne.gui.StudioController.dispatch(mc.screen,dev.truwty.nocturne.gui.ControllerRepeater.Action.NEXT);
-            if(mc.screen.getFocused()==null)throw new AssertionError("Controller navigation did not focus a native control");
-            dev.truwty.nocturne.gui.StudioController.dispatch(mc.screen,dev.truwty.nocturne.gui.ControllerRepeater.Action.NEXT);
-            dev.truwty.nocturne.gui.StudioController.dispatch(mc.screen,dev.truwty.nocturne.gui.ControllerRepeater.Action.ACCEPT);
-            if(mc.screen.children().stream().noneMatch(child->child instanceof net.minecraft.client.gui.components.AbstractWidget widget&&widget.getMessage().getString().equals("Lyrics & playback")))throw new AssertionError("Controller accept did not activate category filter");
+        context.runOnClient(mc->{boolean found=ClientAccess.screen(mc).children().stream().anyMatch(child->child instanceof net.minecraft.client.gui.components.AbstractWidget widget&&widget.getMessage().getString().startsWith("Distance:"));if(!found)throw new AssertionError("Settings search lost numeric setting");
+            ClientAccess.screen(mc)
+          .setFocused((net.minecraft.client.gui.components.events.GuiEventListener)null);
+            dev.truwty.nocturne.gui.StudioController.dispatch(ClientAccess.screen(mc),dev.truwty.nocturne.gui.ControllerRepeater.Action.NEXT);
+            if(ClientAccess.screen(mc).getFocused()==null)throw new AssertionError("Controller navigation did not focus a native control");
+            dev.truwty.nocturne.gui.StudioController.dispatch(ClientAccess.screen(mc),dev.truwty.nocturne.gui.ControllerRepeater.Action.NEXT);
+            dev.truwty.nocturne.gui.StudioController.dispatch(ClientAccess.screen(mc),dev.truwty.nocturne.gui.ControllerRepeater.Action.ACCEPT);
+            if(ClientAccess.screen(mc).children().stream().noneMatch(child->child instanceof net.minecraft.client.gui.components.AbstractWidget widget&&widget.getMessage().getString().equals("Lyrics & playback")))throw new AssertionError("Controller accept did not activate category filter");
         });
         context.setScreen(()->new dev.truwty.nocturne.gui.HudEditorScreen(null));context.clickScreenButton("Hide controls");
         var initial=context.computeOnClient(mc->dev.truwty.nocturne.gui.HudLayouts.load("Gameplay").node("Karaoke"));
-        context.runOnClient(mc->{var screen=mc.screen;var box=initial.box(screen.width,screen.height,Math.min(screen.width-16,370),30);
+        context.runOnClient(mc->{var screen=ClientAccess.screen(mc);var box=initial.box(screen.width,screen.height,Math.min(screen.width-16,370),30);
             var down=new net.minecraft.client.input.MouseButtonEvent(box.centerX(),box.centerY(),new net.minecraft.client.input.MouseButtonInfo(0,0));
             var drag=new net.minecraft.client.input.MouseButtonEvent(box.centerX()-40,box.centerY()+120,new net.minecraft.client.input.MouseButtonInfo(0,0));
             screen.mouseClicked(down,false);screen.mouseDragged(drag,-40,120);screen.mouseReleased(drag);
@@ -404,7 +417,8 @@ public final class PortClientTest implements FabricClientGameTest {
         context.clickScreenButton("Gameplay");context.clickScreenButton("Hidden");context.clickScreenButton("Save layouts");
         context.runOnClient(mc->{var game=dev.truwty.nocturne.gui.HudLayouts.load("Gameplay").node("Karaoke");var menu=dev.truwty.nocturne.gui.HudLayouts.load("Menu").node("Karaoke");if(game.equals(initial))throw new AssertionError("HUD drag did not save");if(!menu.visible()||menu.x()!=.5)throw new AssertionError("Separate menu HUD layout did not save independently");});
         context.setScreen(()->null);context.waitTicks(5);takeShot(context,"nocturne-moved-hud");
-        NocturneClient.LOG.info("INTERFACE TEST PASSED: theme preview/cancel/apply, picker hex/alpha, history, presets import/export, search, controller focus, HUD drag/snap/layout isolation");
+        NocturneClient.LOG.info("INTERFACE TEST PASSED: theme preview/cancel/apply, picker hex/alpha, history, presets"
+            + " import/export, search, controller focus, HUD drag/snap/layout isolation");
     }
 
     private static void takeShot(ClientGameTestContext context, String name) {
@@ -416,7 +430,7 @@ public final class PortClientTest implements FabricClientGameTest {
             // Read the already rendered framebuffer for compatibility runs instead.
             String renderer = loader.isModLoaded("iris") ? "iris" : "sodium";
             context.runOnClient(mc -> net.minecraft.client.Screenshot.grab(mc.gameDirectory,
-                renderer + "-" + name + ".png", mc.getMainRenderTarget(), 1, message -> {}));
+                renderer + "-" + name + ".png", ClientAccess.renderTarget(mc), 1, message -> {}));
             context.waitTicks(2);
         } else context.takeScreenshot(name);
     }

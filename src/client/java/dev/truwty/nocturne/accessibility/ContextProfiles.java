@@ -3,12 +3,12 @@ package dev.truwty.nocturne.accessibility;
 import com.google.gson.*;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.lyrics.LyricsRenderer;
+import java.util.*;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-
-import java.util.*;
 
 /** Render-scoped overrides sit above global/per-song values and never enter config saves. */
 public final class ContextProfiles {
@@ -38,12 +38,12 @@ public final class ContextProfiles {
 
     public static GameplayContext current() {
         var mc = Minecraft.getInstance();
-        return GameplayContext.choose(screenshot, mc.screen != null, LyricsRenderer.inCombat());
+        return GameplayContext.choose(screenshot, ClientAccess.screen (mc) != null, LyricsRenderer.inCombat());
     }
 
     public static void tick(Minecraft mc) {
-        if (mc.screen != previewOwner
-                && !(mc.screen instanceof dev.truwty.nocturne.gui.ColorPickerScreen))
+        if (ClientAccess.screen (mc) != previewOwner
+                && !(ClientAccess.screen (mc) instanceof dev.truwty.nocturne.gui.ColorPickerScreen))
             clearPreview();
         if (mc.level == null) screenshot = false;
     }

@@ -2,12 +2,12 @@ package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.*;
 import dev.truwty.nocturne.accessibility.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.setting.*;
+import java.util.*;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-
-import java.util.*;
 
 public final class AccessibilityScreen extends StudioPanel {
     private int page;
@@ -230,8 +230,8 @@ public final class AccessibilityScreen extends StudioPanel {
                             "Edit " + context.label,
                             "Draft separate appearance, placement, HUD and effect settings",
                             () ->
-                                    minecraft.setScreen(
-                                            new ContextProfileEditorScreen(this, context)));
+                                    ClientAccess.setScreen(
+                                            minecraft, new ContextProfileEditorScreen(this, context)));
                     yy += 26;
                 }
             }

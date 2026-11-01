@@ -3,6 +3,7 @@ package dev.truwty.nocturne.gui;
 import com.google.gson.JsonObject;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
@@ -64,8 +65,9 @@ public final class ThemeEditorScreen extends StudioPanel {
                     Character.toUpperCase(key.charAt(3)) + key.substring(4),
                     "Preview a color with hue, saturation, brightness and alpha",
                     () ->
-                            minecraft.setScreen(
-                                    new ColorPickerScreen(
+                            ClientAccess.setScreen(
+                                    minecraft,
+                  new ColorPickerScreen(
                                             this,
                                             key,
                                             PickerColor.hex(draft.get(key).getAsString()),
@@ -172,7 +174,7 @@ public final class ThemeEditorScreen extends StudioPanel {
                     var before = Studio.snapshot("themes");
                     Studio.apply("themes", draft);
                     StudioEdits.record("themes", before, Studio.snapshot("themes"));
-                    minecraft.setScreen(parent);
+                    ClientAccess.setScreen(minecraft, parent);
                 });
     }
 

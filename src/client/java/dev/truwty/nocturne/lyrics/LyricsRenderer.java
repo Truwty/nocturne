@@ -1,14 +1,15 @@
 package dev.truwty.nocturne.lyrics;
 
-import dev.truwty.nocturne.NocturneClient;
-import dev.truwty.nocturne.accessibility.*;
-import dev.truwty.nocturne.Studio;
-import dev.truwty.nocturne.performance.RenderPerformance;
+import com.mojang.blaze3d.vertex.PoseStack;
 import dev.truwty.nocturne.FrameMotion;
 import dev.truwty.nocturne.LyricsSettings;
+import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.Studio;
+import dev.truwty.nocturne.accessibility.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.gui.Anim;
 import dev.truwty.nocturne.gui.Draw;
-import com.mojang.blaze3d.vertex.PoseStack;
+import dev.truwty.nocturne.performance.RenderPerformance;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.IdentityHashMap;
@@ -36,13 +37,13 @@ import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.attribute.EnvironmentAttributes;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ClipContext;
-import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.ClipContext.Block;
 import net.minecraft.world.level.ClipContext.Fluid;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.HitResult;
-import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.joml.Quaternionfc;
 
@@ -204,7 +205,8 @@ public final class LyricsRenderer {
             target = hit;
          }
 
-         if (p.swinging && mc.crosshairPickEntity instanceof LivingEntity le && le != p && le.isAlive()) {
+         if (ClientAccess.swinging (p)
+          && mc.crosshairPickEntity instanceof LivingEntity le && le != p && le.isAlive()) {
             combat = Math.max(combat, 50);
             target = le;
          }
@@ -747,9 +749,9 @@ public final class LyricsRenderer {
                cloudY = ch.floatValue();
             }
 
-            Integer cc = (Integer)level.environmentAttributes().getValue(EnvironmentAttributes.CLOUD_COLOR, cam);
-            Integer sun = (Integer)level.environmentAttributes().getValue(EnvironmentAttributes.SUNRISE_SUNSET_COLOR, cam);
-            Integer sky = (Integer)level.environmentAttributes().getValue(EnvironmentAttributes.SKY_COLOR, cam);
+            Integer cc = ClientAccess.cloudColor(level, cam);
+            Integer sun = ClientAccess.sunColor(level, cam);
+            Integer sky = ClientAccess.skyColor(level, cam);
             float lum = cc == null ? 1.0F : (0.3F * (cc >> 16 & 0xFF) + 0.59F * (cc >> 8 & 0xFF) + 0.11F * (cc & 0xFF)) / 255.0F;
             float day = Anim.clamp01((lum - 0.3F) / 0.55F);
             int base = Draw.mix(-4667137, -1, day);
@@ -1975,7 +1977,7 @@ public final class LyricsRenderer {
    }
 
    private static void rot(PoseStack ps, Quaternionfc q) {
-      ps.mulPose(q);
+      ClientAccess.rotate(ps, q);
    }
 
    @Environment(EnvType.CLIENT)

@@ -1,14 +1,14 @@
 package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.lyrics.LyricsService;
 import dev.truwty.nocturne.playback.*;
+import java.util.*;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
-
-import java.util.*;
 
 public final class PlaybackScreen extends StudioPanel {
     private int page, queuePage;
@@ -134,8 +134,9 @@ public final class PlaybackScreen extends StudioPanel {
                         "Configure playback shortcuts…",
                         "Minecraft Controls → Nocturne; shortcuts start unbound",
                         () ->
-                                minecraft.setScreen(
-                                        new net.minecraft.client.gui.screens.options.controls
+                                ClientAccess.setScreen(
+                                        minecraft,
+                    new net.minecraft.client.gui.screens.options.controls
                                                 .KeyBindsScreen(this, minecraft.options)));
                 button(
                         x + 16,
@@ -172,7 +173,7 @@ public final class PlaybackScreen extends StudioPanel {
                                             ((color >> 8) & 255) / 10,
                                             (color & 255) / 10));
                             theme.addProperty("UI text", "#FFF4F1F8");
-                            minecraft.setScreen(new ThemeEditorScreen(this, theme));
+                            ClientAccess.setScreen(minecraft, new ThemeEditorScreen(this, theme));
                         });
             }
             case 1 -> {
@@ -261,7 +262,7 @@ public final class PlaybackScreen extends StudioPanel {
                         () -> {
                             PlaybackPreferences.clientId(clientId.strip());
                             var url = Playback.spotify().connect(clientId.strip());
-                            net.minecraft.util.Util.getPlatform().openUri(url);
+                            ClientAccess.openUri(url);
                         });
                 button(
                         x + 20 + (w - 36) / 2,
@@ -313,8 +314,7 @@ public final class PlaybackScreen extends StudioPanel {
                         "Open Spotify developer dashboard",
                         "Create your own public app and register the exact redirect below",
                         () ->
-                                net.minecraft.util.Util.getPlatform()
-                                        .openUri(
+                                ClientAccess.openUri(
                                                 java.net.URI.create(
                                                         "https://developer.spotify.com/dashboard")));
             }

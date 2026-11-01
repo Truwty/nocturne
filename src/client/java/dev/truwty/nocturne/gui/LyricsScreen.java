@@ -1,7 +1,9 @@
 package dev.truwty.nocturne.gui;
 
-import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.LyricsSettings;
+
+import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.setting.ActionSetting;
 import dev.truwty.nocturne.setting.BoolSetting;
 import dev.truwty.nocturne.setting.ColorSetting;
@@ -120,7 +122,7 @@ public class LyricsScreen extends Screen {
       this.addRenderableWidget(StudioButton.create(Component.literal("Style: Vanilla ⇄ Glass"), b -> {
          s.guiStyle.set(1);
          s.save();
-         this.minecraft.setScreen(new GlassLyricsScreen(this.rootParent()));
+         ClientAccess.setScreen(this.minecraft, new GlassLyricsScreen(this.rootParent()));
       }).bounds(left, this.height - 27, 150, 20).build());
       this.addRenderableWidget(
          StudioButton.create(Component.literal("Done"), b -> this.onClose()).bounds(right, this.height - 27, 150, 20).build()
@@ -153,7 +155,7 @@ public class LyricsScreen extends Screen {
    }
 
    private Button sub(LyricsScreen.Page target, String label, int x, int y) {
-      return StudioButton.create(Component.literal(label), b -> this.minecraft.setScreen(new LyricsScreen(this, target)))
+      return StudioButton.create(Component.literal(label), b -> ClientAccess.setScreen(this.minecraft, new LyricsScreen(this, target)))
          .bounds(x, y, 150, 20)
          .build();
    }
@@ -257,7 +259,7 @@ public class LyricsScreen extends Screen {
 
    public void onClose() {
       s().save();
-      this.minecraft.setScreen(this.parent);
+      ClientAccess.setScreen(this.minecraft, this.parent);
    }
 
    @Environment(EnvType.CLIENT)

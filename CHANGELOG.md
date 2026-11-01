@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.14.0-beta.1
+
+- Add exact-target Fabric builds for Minecraft 26.1, 26.1.1, 26.2 and 26.3 alongside 26.1.2, with compile-time client/rendering adapters.
+- Adapt 26.3 keyboard/controller input to SDL and its updated weather rendering hooks.
+- Match update notifications and diagnostics to the running Minecraft version.
+- Add a screenshot-led GitHub Pages showcase and version/release download selector backed by audited artifacts.
+- Deduplicate website assets, remove the unused greeting file and reorganize the repository guide.
+- Run native client and repeat-build regression checks separately for each modern target.
+
+
 ## 0.13.0-beta.1
 
 - Add optional Mod Menu config integration without bundling it or requiring it at runtime.

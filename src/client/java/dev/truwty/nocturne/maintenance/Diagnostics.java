@@ -5,9 +5,8 @@ import dev.truwty.nocturne.accessibility.Accessibility;
 import dev.truwty.nocturne.lyrics.*;
 import dev.truwty.nocturne.performance.RenderPerformance;
 
-import net.minecraft.client.Minecraft;
-
 import java.util.*;
+import net.minecraft.client.Minecraft;
 
 public final class Diagnostics {
     private Diagnostics() {}
@@ -22,7 +21,7 @@ public final class Diagnostics {
         var facts = new LinkedHashMap<String, Object>();
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         facts.put("modVersion", UpdateChecker.version());
-        facts.put("minecraft", ReleaseCatalog.MINECRAFT);
+        facts.put("minecraft", NocturneClient.minecraftVersion());
         facts.put(
                 "os",
                 os.contains("win")

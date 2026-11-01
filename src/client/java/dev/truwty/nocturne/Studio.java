@@ -1,6 +1,7 @@
 package dev.truwty.nocturne;
 
 import com.google.gson.JsonObject;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.gui.StudioScreen;
 import dev.truwty.nocturne.lyrics.NowPlaying;
 import dev.truwty.nocturne.setting.Setting;
@@ -21,7 +22,7 @@ public final class Studio {
         return library;
     }
     public static Path directory() { return FabricLoader.getInstance().getConfigDir().resolve("nocturne"); }
-    public static void open() { Minecraft mc = Minecraft.getInstance(); mc.setScreen(new StudioScreen(mc.screen)); }
+    public static void open() { Minecraft mc = Minecraft.getInstance(); ClientAccess.setScreen(mc, new StudioScreen(ClientAccess.screen(mc))); }
     public static double songOffset(NowPlaying track) { return track == null ? 0 : library().offset(track.key()); }
 
     public static void tick() {

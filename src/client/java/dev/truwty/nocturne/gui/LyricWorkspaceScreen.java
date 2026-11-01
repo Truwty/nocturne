@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.lyrics.*;
 import java.nio.file.Path;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -99,7 +100,7 @@ public final class LyricWorkspaceScreen extends Screen {
         button(x+16,body+88,w-32,"Font: "+s().lyricFont.current(),()->{s().lyricFont.cycle(1);s().save();rebuildWidgets();});
         addRenderableWidget(new StudioSlider(x+16,body+112,w-32,20,Component.literal("Size"),s().size.fraction()){
             {updateMessage();} protected void updateMessage(){setMessage(Draw.comp("Size: "+s().size.display()));}protected void applyValue(){s().size.setFraction(value);updateMessage();}public void onRelease(MouseButtonEvent event){super.onRelease(event);s().save();}});
-        button(x+16,body+140,w-32,"Placement and effects in Studio",()->minecraft.setScreen(new StudioScreen(this,4)));
+        button(x+16,body+140,w-32,"Placement and effects in Studio",()->ClientAccess.setScreen(minecraft, new StudioScreen(this,4)));
     }
     private long timelineStart(){return Math.max(0,selected().start()-1000);}
     private long timelineEnd(){return Math.max(timelineStart()+2000,selected().end()+1000);}
@@ -146,5 +147,5 @@ public final class LyricWorkspaceScreen extends Screen {
         String status=!notice.isBlank()?notice:(maxScroll()>0?"Scroll for more · ":"")+document.lyrics().confidence()+" · "+(track==null?"No player":track.title());text(g,status,y+h-48,s().uiText.argb());
     }
     private static String stamp(long ms){return "%d:%02d.%03d".formatted(ms/60000,(ms/1000)%60,ms%1000);}
-    @Override public void onClose(){minecraft.setScreen(parent);}
+    @Override public void onClose(){ClientAccess.setScreen(minecraft, parent);}
 }

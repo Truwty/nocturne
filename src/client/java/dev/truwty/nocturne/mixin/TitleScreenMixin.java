@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.mixin;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.compat.ClientAccess;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -17,7 +18,7 @@ abstract class TitleScreenMixin extends Screen {
     @Inject(method = "init", at = @At("TAIL"))
     private void nocturne$addButton(CallbackInfo ci) {
         addRenderableWidget(Button.builder(Component.literal("Nocturne"),
-            button -> minecraft.setScreen(NocturneClient.settingsScreen(this)))
+            button -> ClientAccess.setScreen(minecraft, NocturneClient.settingsScreen(this)))
             .bounds(width - 94, 10, 84, 20).build());
     }
 }

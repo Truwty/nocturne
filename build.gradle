@@ -4,6 +4,17 @@ plugins {
 
 repositories { mavenCentral(); maven { url = 'https://api.modrinth.com/maven' } }
 
+def minecraftTarget = providers.gradleProperty('minecraftVersion').getOrElse('26.1.2')
+def apiTargets = ['26.1': '0.155.3+26.1.2', '26.1.1': '0.155.3+26.1.2', '26.1.2': '0.155.3+26.1.2', '26.2': '0.161.0+26.2', '26.3': '0.165.0+26.3']
+if (!apiTargets.containsKey(minecraftTarget)) throw new GradleException('Unsupported build target: ' + minecraftTarget)
+def fabricApiTarget = apiTargets[minecraftTarget]
+if (minecraftTarget != '26.1.2') {
+    layout.buildDirectory = layout.projectDirectory.dir('build/minecraft/' + minecraftTarget)
+    base.archivesName = 'nocturne'
+    tasks.withType(Jar).configureEach { archiveClassifier = 'mc' + minecraftTarget + (name == 'sourcesJar' ? '-sources' : '') }
+}
+
+
 loom {
     splitEnvironmentSourceSets()
     mods {
@@ -14,12 +25,18 @@ loom {
     }
 }
 
+sourceSets.client.java.srcDir('src/compat/' + (minecraftTarget.startsWith('26.1') ? '26.1' : minecraftTarget) + '/java')
+sourceSets.client.java.srcDir(minecraftTarget == '26.3' ? 'src/compat/sdl/java' : 'src/compat/glfw/java')
+
 dependencies {
     compileOnly 'maven.modrinth:modmenu:18.0.2'
-    if (providers.gradleProperty('withModMenu').getOrElse('false') == 'true') runtimeOnly 'maven.modrinth:modmenu:18.0.2'
-    minecraft 'com.mojang:minecraft:26.1.2'
+    if (providers.gradleProperty('withModMenu').getOrElse('false') == 'true') {
+        if (!minecraftTarget.startsWith('26.1')) throw new GradleException('The Mod Menu compatibility fixture is pinned to Minecraft 26.1.x')
+        runtimeOnly 'maven.modrinth:modmenu:18.0.2'
+    }
+    minecraft 'com.mojang:minecraft:' + minecraftTarget
     implementation 'net.fabricmc:fabric-loader:0.20.1'
-    implementation 'net.fabricmc.fabric-api:fabric-api:0.155.3+26.1.2'
+    implementation 'net.fabricmc.fabric-api:fabric-api:' + fabricApiTarget
     implementation include('org.yaml:snakeyaml:2.7')
     testImplementation platform('org.junit:junit-bom:5.13.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -28,6 +45,7 @@ dependencies {
 
 def compatibility = providers.gradleProperty('compat').getOrElse('vanilla')
 if (!(compatibility in ['vanilla', 'sodium', 'iris', 'optimized'])) throw new GradleException('Use -Pcompat=vanilla, sodium, iris or optimized')
+if (compatibility != 'vanilla' && minecraftTarget != '26.1.2') throw new GradleException('Renderer compatibility fixtures are pinned to Minecraft 26.1.2')
 if (compatibility != 'vanilla') dependencies { runtimeOnly 'maven.modrinth:sodium:mc26.1.2-0.9.2-fabric' }
 if (compatibility == 'optimized') dependencies {
     runtimeOnly 'maven.modrinth:lithium:mc26.1.2-0.24.7-fabric'
@@ -38,7 +56,8 @@ if (compatibility == 'iris') dependencies { runtimeOnly 'maven.modrinth:iris:1.1
 processResources {
     def modVersion = project.version
     inputs.property 'version', modVersion
-    filesMatching('fabric.mod.json') { expand version: modVersion }
+    inputs.property 'minecraftTarget', minecraftTarget
+    filesMatching('fabric.mod.json') { expand version: modVersion, minecraft: minecraftTarget, fabricApi: fabricApiTarget.substring(0, fabricApiTarget.indexOf('+')) }
 }
 
 tasks.withType(JavaCompile).configureEach { options.release = 25 }
@@ -61,6 +80,7 @@ fabricApi {
         eula = true
     }
 }
+sourceSets.gametest.java.srcDir(minecraftTarget.startsWith('26.1') ? 'src/compat/26.1/gametest' : 'src/compat/26.2/gametest')
 sourceSets.gametest.compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
 sourceSets.gametest.runtimeClasspath += sourceSets.client.output + sourceSets.client.runtimeClasspath
 sourceSets.test.compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
@@ -72,6 +92,7 @@ jar {
 
 // Optional local compatibility fixtures stay out of release artifacts.
 tasks.named('runClientGameTest') {
+    workingDir = file('build/run/clientGameTest')
     maxHeapSize = '4G'
     doFirst {
         def runRoot = file('build/run/clientGameTest').canonicalFile
@@ -100,17 +121,19 @@ tasks.withType(AbstractArchiveTask).configureEach {
     preserveFileTimestamps = false
     reproducibleFileOrder = true
 }
-def supportManifest = layout.buildDirectory.file('release/nocturne-mc26.1.2.json')
+def supportManifest = layout.buildDirectory.file('release/nocturne-mc' + minecraftTarget + '.json')
 tasks.register('writeSupportManifest') {
     inputs.property('releaseVersion', project.version.toString())
+    inputs.property('minecraftTarget', minecraftTarget)
+    inputs.property('fabricApiTarget', fabricApiTarget)
     outputs.file(supportManifest)
     doLast {
         def out = supportManifest.get().asFile
         out.parentFile.mkdirs()
         out.setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([
-            schema: 1, version: project.version.toString(), minecraft: ['26.1.2'],
+            schema: 1, version: project.version.toString(), minecraft: [minecraftTarget],
             loader: 'fabric', environment: 'client', java: 25,
-            fabricLoaderMinimum: '0.20.1', fabricApiMinimum: '0.155.3+26.1.2'
+            fabricLoaderMinimum: '0.20.1', fabricApiMinimum: fabricApiTarget
         ])) + '\n', 'UTF-8')
     }
 }

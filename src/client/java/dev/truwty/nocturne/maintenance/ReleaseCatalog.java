@@ -14,6 +14,11 @@ public final class ReleaseCatalog {
     private ReleaseCatalog() {}
 
     public static Optional<Release> newest(String json, String current, boolean previews) {
+    return newest(json, current, previews, MINECRAFT);
+  }
+
+  public static Optional<Release> newest(
+      String json, String current, boolean previews, String minecraft) {
         if (json.length() > 262144) throw new IllegalArgumentException("Release catalog too large");
         ReleaseVersion installed = ReleaseVersion.parse(current), best = installed;
         Release found = null;
@@ -31,12 +36,13 @@ public final class ReleaseCatalog {
                 boolean marker = false, jar = false;
                 for (var asset : item.getAsJsonArray("assets")) {
                     String name = asset.getAsJsonObject().get("name").getAsString();
-                    marker |= name.equals("nocturne-mc" + MINECRAFT + ".json");
-                    jar |=
-                            name.equals(
-                                    "nocturne-"
-                                            + (tag.startsWith("v") ? tag.substring(1) : tag)
-                                            + ".jar");
+                    marker |= name.equals("nocturne-mc" + minecraft + ".json");
+                    String releaseVersion =
+                            tag.startsWith("v") ? tag.substring(1) : tag;
+          jar |=
+              name.equals("nocturne-" + releaseVersion + "-mc" + minecraft + ".jar")
+                  || (minecraft.equals(MINECRAFT)
+                      && name.equals("nocturne-" + releaseVersion + ".jar"));
                 }
                 if (!marker || !jar) continue;
                 best = version;

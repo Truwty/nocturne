@@ -1,7 +1,9 @@
 package dev.truwty.nocturne.gui;
 
-import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.LyricsSettings;
+
+import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.setting.ActionSetting;
 import dev.truwty.nocturne.setting.BoolSetting;
 import dev.truwty.nocturne.setting.ColorSetting;
@@ -242,7 +244,7 @@ public class GlassLyricsScreen extends Screen {
       if (mx >= this.chipX && mx < this.chipX + this.chipW && my >= this.chipY && my < this.chipY + this.chipH) {
          this.s().guiStyle.set(0);
          this.s().save();
-         this.minecraft.setScreen(new LyricsScreen(this.parent));
+         ClientAccess.setScreen(this.minecraft, new LyricsScreen(this.parent));
          return true;
       }
 
@@ -322,6 +324,6 @@ public class GlassLyricsScreen extends Screen {
 
    public void onClose() {
       this.s().save();
-      this.minecraft.setScreen(this.parent);
+      ClientAccess.setScreen(this.minecraft, this.parent);
    }
 }

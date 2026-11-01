@@ -1,24 +1,22 @@
 package dev.truwty.nocturne;
 
-import dev.truwty.nocturne.gui.GlassLyricsScreen;
-import dev.truwty.nocturne.gui.LyricsScreen;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.lyrics.HudLyrics;
 import dev.truwty.nocturne.lyrics.LyricsHud;
 import dev.truwty.nocturne.lyrics.LyricsRenderer;
 import dev.truwty.nocturne.lyrics.LyricsService;
-import com.mojang.blaze3d.platform.InputConstants.Type;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents.ClientStopping;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping.Category;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.Identifier;
 import org.slf4j.Logger;
@@ -40,8 +38,8 @@ public class NocturneClient implements ClientModInitializer {
       LyricsService.INSTANCE.system.select(Studio.library().player());
       dev.truwty.nocturne.playback.Playback.initialize();
       Category category = Category.register(Identifier.fromNamespaceAndPath("nocturne", "main"));
-      OPEN_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.open", Type.KEYSYM, 78, category));
-      SCREENSHOT_CONTEXT_KEY=KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.screenshot_context",Type.KEYSYM,-1,category));
+      OPEN_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.open", ClientAccess.keyType(), com.mojang.blaze3d.platform.InputConstants.KEY_N, category));
+      SCREENSHOT_CONTEXT_KEY=KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.screenshot_context",ClientAccess.keyType(),-1,category));
       dev.truwty.nocturne.playback.PlaybackKeys.register(category);
       ClientTickEvents.END_CLIENT_TICK.register(NocturneClient::tick);
       LevelRenderEvents.COLLECT_SUBMITS.register(LyricsRenderer::render);
@@ -52,7 +50,8 @@ public class NocturneClient implements ClientModInitializer {
       }
 
       ClientLifecycleEvents.CLIENT_STOPPING.register((ClientStopping)client -> {
-         dev.truwty.nocturne.maintenance.UpdateChecker.close();
+         dev.truwty.nocturne.compat.GamepadInput.close();
+              dev.truwty.nocturne.maintenance.UpdateChecker.close();
          dev.truwty.nocturne.playback.Playback.close();
          dev.truwty.nocturne.gui.AlbumArtwork.close();
          SongAppearance.restore();
@@ -63,19 +62,28 @@ public class NocturneClient implements ClientModInitializer {
       LOG.info("{} loaded", "Nocturne Lyrics");
    }
 
-   public static Screen settingsScreen(Screen parent) {
+   public static String minecraftVersion() {
+    return net.fabricmc.loader.api.FabricLoader.getInstance()
+        .getModContainer("minecraft")
+        .orElseThrow()
+        .getMetadata()
+        .getVersion()
+        .getFriendlyString();
+  }
+
+  public static Screen settingsScreen(Screen parent) {
       return new dev.truwty.nocturne.gui.StudioScreen(parent);
    }
 
    private static void tick(Minecraft mc) {
       dev.truwty.nocturne.maintenance.UpdateChecker.tick();
       if (!SETTINGS.isEnabled() && ++playbackTicks % 10 == 0) LyricsService.INSTANCE.system.start();
-      while(SCREENSHOT_CONTEXT_KEY.consumeClick())if(mc.screen==null&&mc.level!=null)dev.truwty.nocturne.accessibility.ContextProfiles.screenshot(!dev.truwty.nocturne.accessibility.ContextProfiles.screenshot());
+      while(SCREENSHOT_CONTEXT_KEY.consumeClick())if(ClientAccess.screen(mc) ==null&&mc.level!=null)dev.truwty.nocturne.accessibility.ContextProfiles.screenshot(!dev.truwty.nocturne.accessibility.ContextProfiles.screenshot());
       dev.truwty.nocturne.accessibility.Accessibility.tick(mc);
       dev.truwty.nocturne.playback.PlaybackKeys.tick(mc);
       while (OPEN_KEY.consumeClick()) {
-         if (mc.screen == null) {
-            mc.setScreen(settingsScreen(null));
+         if (ClientAccess.screen (mc) == null) {
+            ClientAccess.setScreen(mc, settingsScreen(null));
          }
       }
 

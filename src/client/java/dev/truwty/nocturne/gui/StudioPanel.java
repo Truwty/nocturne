@@ -1,14 +1,14 @@
 package dev.truwty.nocturne.gui;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.compat.ClientAccess;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.network.chat.Component;
-
-import org.lwjgl.glfw.GLFW;
 
 public abstract class StudioPanel extends Screen {
     protected final Screen parent;
@@ -135,21 +135,21 @@ public abstract class StudioPanel extends Screen {
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (!(getFocused() instanceof EditBox)
-                && (event.modifiers() & GLFW.GLFW_MOD_CONTROL) != 0) {
-            if (event.key() == GLFW.GLFW_KEY_Z) {
-                if ((event.modifiers() & GLFW.GLFW_MOD_SHIFT) != 0) redo();
+                && (event.modifiers() & InputConstants.MOD_CONTROL) != 0) {
+            if (event.key() == InputConstants.KEY_Z) {
+                if ((event.modifiers() & InputConstants.MOD_SHIFT) != 0) redo();
                 else undo();
                 rebuildWidgets();
                 return true;
             }
-            if (event.key() == GLFW.GLFW_KEY_Y) {
+            if (event.key() == InputConstants.KEY_Y) {
                 redo();
                 rebuildWidgets();
                 return true;
             }
         }
-        if (event.key() == GLFW.GLFW_KEY_PAGE_DOWN || event.key() == GLFW.GLFW_KEY_PAGE_UP) {
-            mouseScrolled(0, 0, 0, event.key() == GLFW.GLFW_KEY_PAGE_DOWN ? -5 : 5);
+        if (event.key() == InputConstants.KEY_PAGEDOWN || event.key() == InputConstants.KEY_PAGEUP) {
+            mouseScrolled(0, 0, 0, event.key() == InputConstants.KEY_PAGEDOWN ? -5 : 5);
             return true;
         }
         return super.keyPressed(event);
@@ -210,6 +210,6 @@ public abstract class StudioPanel extends Screen {
 
     @Override
     public void onClose() {
-        minecraft.setScreen(parent);
+        ClientAccess.setScreen(minecraft, parent);
     }
 }

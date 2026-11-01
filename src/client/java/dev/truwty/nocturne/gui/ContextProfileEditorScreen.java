@@ -4,14 +4,14 @@ import com.google.gson.*;
 
 import dev.truwty.nocturne.*;
 import dev.truwty.nocturne.accessibility.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.setting.*;
+import java.util.*;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-
-import java.util.*;
 
 public final class ContextProfileEditorScreen extends StudioPanel {
     private final GameplayContext context;
@@ -226,8 +226,9 @@ public final class ContextProfileEditorScreen extends StudioPanel {
                     name + ": " + value.getAsString(),
                     tip,
                     () ->
-                            minecraft.setScreen(
-                                    new ColorPickerScreen(
+                            ClientAccess.setScreen(
+                                    minecraft,
+                  new ColorPickerScreen(
                                             this,
                                             name,
                                             PickerColor.hex(value.getAsString()),

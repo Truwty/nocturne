@@ -1,18 +1,18 @@
 package dev.truwty.nocturne.maintenance;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.playback.BoundedBody;
-
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.toasts.SystemToast;
-import net.minecraft.network.chat.Component;
-
 import java.net.URI;
 import java.net.http.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.*;
+
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.SystemToast;
+import net.minecraft.network.chat.Component;
 
 public final class UpdateChecker {
     private static final HttpClient HTTP =
@@ -55,7 +55,7 @@ public final class UpdateChecker {
         var mc = Minecraft.getInstance();
         if (available != null && mc.player != null && !available.tag().equals(chatNotified)) {
             chatNotified = available.tag();
-            mc.getChatListener()
+            ClientAccess.chat(mc)
                     .handleSystemMessage(
                             Component.literal("Nocturne " + available.tag() + " available · ")
                                     .append(
@@ -95,7 +95,7 @@ public final class UpdateChecker {
     }
 
     static void applyCatalog(String catalog, boolean previews) {
-        available = ReleaseCatalog.newest(catalog, version(), previews).orElse(null);
+        available = ReleaseCatalog.newest(catalog, version(), previews, NocturneClient.minecraftVersion()).orElse(null);
         status =
                 available == null
                         ? "No newer compatible release in the latest 20 releases"
@@ -103,7 +103,7 @@ public final class UpdateChecker {
         if (available != null && !available.tag().equals(notified)) {
             notified = available.tag();
             SystemToast.add(
-                    Minecraft.getInstance().getToastManager(),
+                    ClientAccess.toasts(Minecraft.getInstance()),
                     TOAST,
                     Component.literal("Nocturne " + available.tag() + " available"),
                     Component.literal("N → Health → Releases & diagnostics"));

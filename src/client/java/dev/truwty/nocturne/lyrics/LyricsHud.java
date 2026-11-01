@@ -1,12 +1,14 @@
 package dev.truwty.nocturne.lyrics;
 
+import dev.truwty.nocturne.LyricsSettings;
+
 import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.accessibility.*;
-import dev.truwty.nocturne.performance.RenderPerformance;
-import dev.truwty.nocturne.LyricsSettings;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.gui.Anim;
 import dev.truwty.nocturne.gui.Draw;
 import dev.truwty.nocturne.gui.HudLayouts;
+import dev.truwty.nocturne.performance.RenderPerformance;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.api.EnvType;
@@ -41,7 +43,7 @@ public final class LyricsHud {
       lastNanos = now;
       LyricsSettings mod = NocturneClient.SETTINGS;
       Minecraft mc = Minecraft.getInstance();
-      if(mod!=null&&mod.performanceReadout.on()&&!mod.debug.on()&&mc.screen==null&&HudLayouts.current().node("Diagnostics").visible()){
+      if(mod!=null&&mod.performanceReadout.on()&&!mod.debug.on()&&ClientAccess.screen(mc) ==null&&HudLayouts.current().node("Diagnostics").visible()){
          int width=Math.min(g.guiWidth()-16,500);
          try(var scope=HudLayouts.begin(g,"Diagnostics",g.guiWidth(),g.guiHeight(),width,28)){
             g.fill(0,0,width,28,0xCF100E18);
@@ -50,7 +52,7 @@ public final class LyricsHud {
          }
       }
       if (mod != null && (mc.player != null || LyricsService.INSTANCE.now()!=null)) {
-         boolean want = !Accessibility.photosensitive() && mc.screen==null && mod.isEnabled() && mod.cinematic.on() && LyricsRenderer.active();
+         boolean want = !Accessibility.photosensitive() && ClientAccess.screen(mc) ==null && mod.isEnabled() && mod.cinematic.on() && LyricsRenderer.active();
          if(Accessibility.photosensitive())bars=0;
          bars = bars + ((want ? 1.0F : 0.0F) - bars) * (1.0F - (float)Math.exp(-dt * 3.5F));
          if (bars < 0.003F) {
@@ -95,7 +97,7 @@ public final class LyricsHud {
          }
          extras(g,mc,mod,sw,sh);
          float flash = LyricsRenderer.flash();
-         if (mc.screen==null && flash > 0.01F && mod.isEnabled()) {
+         if (ClientAccess.screen(mc) ==null && flash > 0.01F && mod.isEnabled()) {
             g.fill(0, 0, sw, sh, Draw.alpha(-1, Math.min(0.12F, flash * 0.07F)));
          }
 

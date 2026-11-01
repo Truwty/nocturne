@@ -2,11 +2,11 @@ package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.Studio;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.maintenance.*;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.util.Util;
 
 public final class MaintenanceScreen extends StudioPanel {
     private String preview = Diagnostics.report();
@@ -62,8 +62,7 @@ public final class MaintenanceScreen extends StudioPanel {
                 "Changelog / downloads",
                 "Open the available release, or the official release list",
                 () ->
-                        Util.getPlatform()
-                                .openUri(
+                        ClientAccess.openUri(
                                         UpdateChecker.available() == null
                                                 ? ReleaseCatalog.RELEASES
                                                 : UpdateChecker.available().changelog()));
@@ -74,8 +73,7 @@ public final class MaintenanceScreen extends StudioPanel {
                 "Minecraft support & build guide",
                 "Open supported versions and reproducible-build instructions",
                 () ->
-                        Util.getPlatform()
-                                .openUri(
+                        ClientAccess.openUri(
                                         java.net.URI.create(
                                                 "https://github.com/Truwty/nocturne/blob/main/SUPPORT.md")));
         button(
@@ -122,7 +120,7 @@ public final class MaintenanceScreen extends StudioPanel {
                 "Installed: "
                         + UpdateChecker.version()
                         + " · Minecraft "
-                        + ReleaseCatalog.MINECRAFT,
+                        + NocturneClient.minecraftVersion(),
                 body + 82,
                 ink);
         text(g, UpdateChecker.status(), body + 128, ink);

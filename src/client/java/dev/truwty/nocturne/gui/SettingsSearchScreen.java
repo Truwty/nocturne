@@ -1,7 +1,9 @@
 package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.*;
+import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.setting.*;
+import java.util.List;
 
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.*;
@@ -9,8 +11,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-
-import java.util.List;
 
 public final class SettingsSearchScreen extends StudioPanel {
     private String query = "";
@@ -125,7 +125,7 @@ public final class SettingsSearchScreen extends StudioPanel {
                     w - 32,
                     setting.name + " · preview editor",
                     tip,
-                    () -> minecraft.setScreen(new ThemeEditorScreen(this)));
+                    () -> ClientAccess.setScreen(minecraft, new ThemeEditorScreen(this)));
             return;
         }
         if (setting instanceof NumberSetting number) {
@@ -172,8 +172,9 @@ public final class SettingsSearchScreen extends StudioPanel {
                     setting.name + ": " + color.save().getAsString(),
                     tip,
                     () ->
-                            minecraft.setScreen(
-                                    new ColorPickerScreen(
+                            ClientAccess.setScreen(
+                                    minecraft,
+                  new ColorPickerScreen(
                                             this,
                                             color.name,
                                             color.argb(),
