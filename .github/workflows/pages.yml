@@ -1,0 +1,44 @@
+name: Showcase website
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'docs/**', 'src/main/resources/**', 'compatibility/**', 'scripts/build_site_*.py', 'scripts/tests/**', '.github/workflows/pages.yml']
+  release:
+    types: [published, edited]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+      - name: Test catalog compatibility and URL validation
+        run: python3 -m unittest discover -s scripts/tests -v
+      - name: Build verified release catalog
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 scripts/build_site_catalog.py
+      - name: Copy canonical screenshots and fonts
+        run: python3 scripts/build_site_assets.py
+      - uses: actions/configure-pages@v6.0.0
+      - uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v5.0.1
+        id: deployment

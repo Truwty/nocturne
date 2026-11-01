@@ -13,3 +13,8 @@ src/main/resources/native/*.exe
 
 # Local authentication data must never enter source control.
 **/nocturne/private/
+
+# Generated from GitHub release metadata during Pages deployment.
+site/releases.json
+site/assets/*
+!site/assets/README.md

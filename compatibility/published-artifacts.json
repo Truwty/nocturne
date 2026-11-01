@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "method": "Compatibility read from fabric.mod.json in each published JAR; SHA-256 pins the audited bytes.",
+  "artifacts": [
+    {
+      "tag": "v0.13.0-beta.1",
+      "name": "nocturne-0.13.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "0fae62bb135ba57b552d91f643ab53a2ca70af731cd21ddb30146a1ddcdcd67e"
+    },
+    {
+      "tag": "v0.12.0-beta.1",
+      "name": "nocturne-0.12.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "a852b72250391b335a861471e06b53a80d96047d1e9470d58d95284d08c17277"
+    },
+    {
+      "tag": "v0.11.0-beta.1",
+      "name": "nocturne-0.11.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "eea08ae5a920acb80b2835f69b000e3b33032d3b3a1cfe5d57e9d10e7725c18f"
+    },
+    {
+      "tag": "v0.10.0-beta.1",
+      "name": "nocturne-0.10.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "80e43cd836025e0e334277d0e3f2c1209cc06e7f905899619f4ff9b741fa603e"
+    },
+    {
+      "tag": "v0.9.0-beta.1",
+      "name": "nocturne-0.9.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "348d1e5c18a2d3df315fa9c0e7de5a32cebc64d444d4c7ec34de2520533ea57a"
+    },
+    {
+      "tag": "v0.8.0-beta.1",
+      "name": "nocturne-0.8.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "641f2ff2c1c573b4e3f08d9ec1d3fd2155a58c6975e4327fb3bfd5a44cdd8e03"
+    },
+    {
+      "tag": "v0.7.0-beta.1",
+      "name": "nocturne-0.7.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "21e81686ed99f4e27b4feaaa4eabbe748d23e7c05cda16b9a1c6c6fa2e51da9b"
+    },
+    {
+      "tag": "v0.6.0-beta.1",
+      "name": "nocturne-0.6.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "6e4a997e4c7d83176862608bb32ab289fca15a6b83f839207849a7b0682087c5"
+    },
+    {
+      "tag": "v0.5.0-beta.1",
+      "name": "nocturne-0.5.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "376b0045a6c3ecacd11ff82e3b69215a4a46ccc2680b95b0b6470c2c7c6a75de"
+    },
+    {
+      "tag": "v0.4.0-beta.1",
+      "name": "nocturne-0.4.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "1a68aea70d159c739031f0927371ccc8a9bd24699d74f975e001b4f108e3bcac"
+    },
+    {
+      "tag": "v0.2.0-beta.1",
+      "name": "nocturne-0.2.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "cec9e7997450bef4ecdc54beaece5b7693b8d5b755c8fce22b89fb75e9f019c4"
+    },
+    {
+      "tag": "v0.1.0-beta.1",
+      "name": "nocturne-0.1.0-beta.1.jar",
+      "minecraft": [
+        "26.1.2"
+      ],
+      "loader": "Fabric",
+      "java": 25,
+      "sha256": "06a67dbb44a66616bacd4a3bd2d793e5da788134c26f090de8f5af733dfe1ee5"
+    }
+  ]
+}
