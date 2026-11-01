@@ -1916,10 +1916,10 @@ public final class LyricsRenderer {
 
    private static void text(PoseStack ps, SubmitNodeCollector out, float x, float y, FormattedCharSequence s, boolean shadow, DisplayMode mode, int color) {
       if (!culled && Draw.visible(color)) {
-         RenderPerformance.text();
          if (hud) {
             HudLyrics.text(ps.last().pose(), x, y, s, shadow, color);
          } else {
+            RenderPerformance.text();
             out.submitText(ps, x, y, s, shadow, mode, 15728880, color, 0, 0);
             LyricsDebug.worldPiece();
          }

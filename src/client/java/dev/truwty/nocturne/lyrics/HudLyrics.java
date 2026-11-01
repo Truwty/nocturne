@@ -103,6 +103,7 @@ public final class HudLyrics {
 
    public static void text(Matrix4fc pose, float x, float y, FormattedCharSequence s, boolean shadow, int color) {
       if (ready && Draw.visible(Draw.alpha(color, groupAlpha))) {
+         RenderPerformance.text();
          HudLyrics.Cmd c = next(0, pose, color);
          c.x = x;
          c.y = y;
