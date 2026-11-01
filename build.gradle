@@ -115,3 +115,42 @@ tasks.register('writeSupportManifest') {
     }
 }
 tasks.named('assemble') { dependsOn 'writeSupportManifest' }
+
+// Loom enumerates client entries in filesystem order; canonicalize the final archive.
+tasks.named('jar') {
+    doLast {
+        def artifact = archiveFile.get().asFile.toPath()
+        def temporary = java.nio.file.Files.createTempFile(artifact.parent, 'nocturne-canonical-', '.jar')
+        try {
+            new java.util.zip.ZipFile(artifact.toFile()).withCloseable { source ->
+                new java.util.zip.ZipOutputStream(java.nio.file.Files.newOutputStream(temporary)).withCloseable { target ->
+                    def entries = source.entries().toList().sort { a, b ->
+                        def rank = { name -> name == 'META-INF/' ? 0 : name == 'META-INF/MANIFEST.MF' ? 1 : 2 }
+                        def order = rank(a.name) <=> rank(b.name)
+                        order != 0 ? order : a.name <=> b.name
+                    }
+                    entries.each { entry ->
+                        byte[] data = source.getInputStream(entry).withCloseable { it.bytes }
+                        if (entry.name == 'META-INF/MANIFEST.MF') {
+                            def manifest = new java.util.jar.Manifest(new ByteArrayInputStream(data))
+                            def key = 'Fabric-Loom-Client-Only-Entries'
+                            def clientEntries = manifest.mainAttributes.getValue(key)
+                            if (clientEntries) manifest.mainAttributes.putValue(key, clientEntries.split(';').sort().join(';'))
+                            def buffer = new ByteArrayOutputStream()
+                            manifest.write(buffer)
+                            data = buffer.toByteArray()
+                        }
+                        def canonical = new java.util.zip.ZipEntry(entry.name)
+                        canonical.setTimeLocal(java.time.LocalDateTime.of(1980, 2, 1, 0, 0))
+                        target.putNextEntry(canonical)
+                        target.write(data)
+                        target.closeEntry()
+                    }
+                }
+            }
+            java.nio.file.Files.move(temporary, artifact, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        } finally {
+            java.nio.file.Files.deleteIfExists(temporary)
+        }
+    }
+}

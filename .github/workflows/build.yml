@@ -79,6 +79,9 @@ jobs:
       - name: Compare Windows and Linux release bytes
         run: python3 scripts/compare_release.py build/windows-artifact
       - uses: actions/upload-artifact@v7.0.2
+        if: always()
         with:
           name: release-reproducibility
-          path: build/release/*
+          path: |
+            build/release/*
+            build/libs/*.jar
