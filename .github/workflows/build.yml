@@ -96,6 +96,9 @@ jobs:
     env:
       LIBGL_ALWAYS_SOFTWARE: 'true'
       MESA_GL_VERSION_OVERRIDE: '4.5'
+      # SDL3 can use EGL when the CI virtual display has no matching GLX visual.
+      # https://wiki.libsdl.org/SDL3/SDL_HINT_VIDEO_FORCE_EGL
+      SDL_VIDEO_FORCE_EGL: '1'
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-java@v6.1.0
@@ -104,7 +107,7 @@ jobs:
           java-version: '25.0.5+8'
       - uses: gradle/actions/setup-gradle@v6.4.1
       - name: Install virtual display
-        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 libegl1
       - name: Verify repeatable release bytes and offline behavior
         run: python3 scripts/verify_release.py --minecraft ${{ matrix.minecraft }}
       - name: Exercise the native Minecraft client
