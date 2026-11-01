@@ -101,7 +101,7 @@
   release.addEventListener('change', render);
   previews.addEventListener('change', populateMinecraft);
 
-  fetch('./releases.json', { headers: { Accept: 'application/json' } })
+  fetch('./releases.json', { cache: 'no-store', headers: { Accept: 'application/json' } })
     .then(response => { if (!response.ok) throw new Error('Catalog unavailable'); return response.json(); })
     .then(data => {
       releases = cleanCatalog(data);
