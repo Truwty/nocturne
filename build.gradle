@@ -45,7 +45,10 @@ java {
     withSourcesJar()
 }
 tasks.named('sourcesJar') { exclude('native/**') }
-test { useJUnitPlatform() }
+test {
+    useJUnitPlatform()
+    inputs.property('liveLyrics', providers.environmentVariable('NOCTURNE_LIVE_LYRICS').getOrElse('false'))
+}
 fabricApi {
     configureTests {
         createSourceSet = true
