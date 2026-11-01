@@ -6,13 +6,13 @@
 
 </div>
 
-Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + Fabric**. Entirely client-side, with automatic desktop music detection. **Desktop detection needs no Spotify login or developer application.** An optional Spotify account connection adds device volume and queue controls.
+Cinematic world lyrics and desktop music controls for **Minecraft Java + Fabric** (separate builds for 26.1, 26.1.1, 26.1.2, 26.2 and 26.3). Entirely client-side, with automatic desktop music detection. **Desktop detection needs no Spotify login or developer application.** An optional Spotify account connection adds device volume and queue controls.
 
 ![Nocturne Studio](studio.png)
 
 ## Install
 
-1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
+1. Select your **exact Minecraft version** on the [download page](https://truwty.github.io/nocturne/downloads.html). Use **Java 25**, **Fabric Loader 0.20.1+**, and the matching Fabric API listed in [support](../SUPPORT.md).
 2. Replace older Nocturne JARs with `nocturne-0.13.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
@@ -45,7 +45,7 @@ Open **N → Motion → Gameplay & accessibility** for Visibility, Motion, Reada
 
 ## Releases and maintenance
 
-Optional **Mod Menu 18.0.2** opens Studio through its config button. Open **N → Health → Releases & diagnostics** for opt-in update notifications, compatible-release changelogs, filtered diagnostic previews and local JSON export. All diagnostic copy actions now exclude personal song/player/server data, paths, arbitrary error text and credentials. No automatic downloads or diagnostic uploads run.
+Optional **Mod Menu 18.0.2**, tested on Minecraft 26.1.2, opens Studio through its config button. Open **N → Health → Releases & diagnostics** for opt-in update notifications, compatible-release changelogs, filtered diagnostic previews and local JSON export. All diagnostic copy actions now exclude personal song/player/server data, paths, arbitrary error text and credentials. No automatic downloads or diagnostic uploads run.
 
 CI gates fixed demo performance workloads, checks two clean release builds and compares Windows/Linux artifacts. See [supported Minecraft versions, update/privacy behavior and reproducible-build commands](../SUPPORT.md).
 
