@@ -32,6 +32,8 @@ public final class StudioScreen extends Screen {
     private boolean seeking;
     private List<Button> transport = List.of();
     private SeekSlider seek;
+    private Button recovery;
+    private dev.truwty.nocturne.lyrics.LyricsRecovery.Diagnosis recoveryDiagnosis;
 
     public StudioScreen(Screen parent) { super(Component.literal("Nocturne Studio")); this.parent = parent; }
     public StudioScreen(Screen parent, int page) { this(parent); this.page = page; }
@@ -58,7 +60,8 @@ public final class StudioScreen extends Screen {
         }
         button(x + 12, y + h - 29, 120, "Advanced settings", () -> minecraft.setScreen(s().guiStyle.get() == 1 ? new GlassLyricsScreen(this) : new LyricsScreen(this)));
         button(x + w - 76, y + h - 29, 64, "Done", this::onClose);
-        if (page == 0) button(x + 140, y + h - 29, Math.max(40, w - 224), "Restore visible lyrics", this::restoreVisible);
+        recovery=null;
+        if (page == 0) recovery=button(x + 140, y + h - 29, Math.max(40, w - 224), "Restore visible lyrics", this::repair);
         if (notice.isBlank() && !Studio.library().problem().isBlank()) notice = Studio.library().problem();
         tick();
     }
@@ -103,6 +106,17 @@ public final class StudioScreen extends Screen {
         button(x + 20 + third, row, third, service().demoPlaying() ? "Stop demo" : "Visual demo", () -> { if (service().demoPlaying()) service().stopDemo(); else service().startDemo(); rebuildWidgets(); });
         button(x + 24 + third * 2, row, third, "Retry lyrics", () -> { service().refetch(); notice = "Looking for lyrics again"; });
     }
+    private void repair() {
+        var diagnosis=recoveryDiagnosis==null?dev.truwty.nocturne.lyrics.LyricsRecovery.current():recoveryDiagnosis;
+        switch(diagnosis.action()) {
+            case ENABLE -> {s().setEnabled(true);s().save();}
+            case RETRY -> service().refetch();
+            case RESYNC -> service().resynchronize();
+            case RECONNECT -> {service().system.stop();service().system.start();}
+            default -> restoreVisible();
+        }
+        notice=diagnosis.detail();
+    }
     private void restoreVisible() {
         s().setEnabled(true); s().follow.set(2); Studio.tick(); s().shaderMode.set(1); s().faceYou.set(true); s().floor.set(false); s().seeThrough.set(true);
         s().distance.set(3.5); s().size.set(100.0); s().editorX.set(0.0); s().editorY.set(0.0);
@@ -137,7 +151,7 @@ public final class StudioScreen extends Screen {
         button(x + 16, row, w - 32, "Auto: prefer playing Spotify, then other players", () -> select("")); row += 26;
         var players = service().system.players(); shownPlayers = players;
         for (var app : players) {
-            button(x + 16, row, w - 32, (service().system.selected().equals(app.id()) ? "Pinned: " : "Pin: ") + font.plainSubstrByWidth(app.label(), w - 85), () -> select(app.id())); row += 24;
+            button(x + 16, row, w - 32, (service().system.selected().equals(app.id()) ? "Pinned: " : "Pin: ") + font.plainSubstrByWidth(app.label(), w - 85), () -> select(app.id())); row += 42;
         }
         button(x + 16, row + 4, w - 32, "Reconnect desktop media", () -> { service().system.stop(); service().system.start(); });
     }
@@ -190,9 +204,12 @@ public final class StudioScreen extends Screen {
     }
     private void health() {
         button(x + 16, row + 115, w - 32, "Copy diagnostics", () -> { minecraft.keyboardHandler.setClipboard(dev.truwty.nocturne.lyrics.LyricsDebug.report()); notice = "Diagnostics copied"; });
+        row=body+141; number(s().cacheDays);
+        button(x+16,body+169,w-32,"Resynchronize playback",()->service().resynchronize());
     }
 
     @Override public void tick() {
+        if(recovery!=null) {recoveryDiagnosis=dev.truwty.nocturne.lyrics.LyricsRecovery.current();recovery.setMessage(Draw.comp(recoveryDiagnosis.button()));}
         if (page == 1 && shownCandidates != service().candidates()) rebuildWidgets();
         if (page == 2 && !shownPlayers.equals(service().system.players())) rebuildWidgets();
         if (transport.size() == 5) {
@@ -224,6 +241,9 @@ public final class StudioScreen extends Screen {
         } else if (page == 1) {
             text(g, track == null ? "No current song" : "Song offset: " + Math.round(Studio.songOffset(track)) + " ms · " + service().lyricsStatus(), body + 209);
             text(g, service().searchStatus(), body + 223);
+        } else if (page == 2) {
+            int appY=body+49;
+            for(var app:shownPlayers) {text(g,app.diagnostic(),appY);appY+=42;}
         } else if (page == 3) {
             Draw.text(g, font, "Background", x + 16, body, s().uiText.argb(), false);
             Draw.text(g, font, "Accent", x + 16 + (w - 40) / 3 + 4, body, s().uiText.argb(), false);
@@ -232,12 +252,12 @@ public final class StudioScreen extends Screen {
         else if (page == 6) {
             int line = body;
             for (String value : List.of("Minecraft 26.1.2 / Fabric / client only", service().system.status(), service().lyricsStatus(),
-                service().system.audioStatus(), "Pinned app: " + (service().system.selected().isEmpty() ? "Auto" : service().system.selected()), "Shader packs: compatibility depends on the pack")) { text(g, value, line); line += 17; }
+                service().playbackStatus(), s().configNotice().isBlank()?"Config schema 1 / healthy":s().configNotice(), "Pinned app: " + (service().system.selected().isEmpty() ? "Auto" : service().system.selected()), "Shader packs: compatibility depends on the pack")) { text(g, value, line); line += 15; }
         }
         if ((page == 3 || page == 4) && name != null) text(g, "Saved: " + String.join(", ", Studio.library().presets(page == 3 ? "themes" : "placement:" + s().follow.get())), body + 211);
         g.disableScissor();
         if (!notice.isBlank()) text(g, notice, y + h - 44);
-        else if (page == 0) text(g, track == null ? service().system.status() : service().lyricsStatus(), y + h - 44);
+        else if (page == 0) text(g,dev.truwty.nocturne.lyrics.LyricsRecovery.current().summary()+" · "+service().lyricsStatus(),y+h-44);
     }
     private void text(GuiGraphicsExtractor g, String value, int by) { Draw.text(g, font, font.plainSubstrByWidth(value, w - 32), x + 16, by, s().uiText.argb(), false); }
     @Override public boolean mouseScrolled(double mx, double my, double sx, double sy) {
@@ -245,7 +265,7 @@ public final class StudioScreen extends Screen {
         rebuildWidgets(); return true;
     }
     private int maxScroll() {
-        int contentHeight = page == 2 ? service().system.players().size() * 24 + 60 : page == 0 ? 104 : page == 1 ? 244 : page == 3 || page == 4 ? 224 : 204;
+        int contentHeight = page == 2 ? service().system.players().size() * 42 + 60 : page == 0 ? 104 : page == 1 ? 244 : page == 3 || page == 4 ? 224 : 204;
         return Math.max(0, contentHeight - (h - 116));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); minecraft.setScreen(parent); }

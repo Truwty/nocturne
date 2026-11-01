@@ -67,7 +67,7 @@ final class LyricsFinder {
       );
       if (got != null && got.isJsonObject()) {
          JsonObject o = got.getAsJsonObject();
-         Lyrics l = synced(o);
+         Lyrics l = version(str(o,"trackName",q0.title())).equals(version(q0.title()))?synced(o):null;
          if (l != null) {
             return new LyricsFinder.Result(l, "Synced lyrics");
          }
@@ -114,6 +114,7 @@ final class LyricsFinder {
       }
       if (!instrumental) {
          for (LyricsFinder.Query q : queries) {
+            if(q.artist().isBlank())continue;
             Lyrics l = this.netease(q, durMs);
             if (l != null) {
                return new LyricsFinder.Result(l, "Synced lyrics (NetEase)");
@@ -135,13 +136,17 @@ final class LyricsFinder {
       return null;
    }
 
-   private static List<LyricsFinder.Query> queries(NowPlaying np) {
-      String title = np.title().trim();
+   static List<LyricsFinder.Query> queries(NowPlaying np) {
+      String title = np.title().trim().replaceFirst("(?i)\\s+[-|]\\s+(youtube( music)?|spotify|apple music|tidal)(\\s.*)?$", "");
       String artist = mainArtist(np.artist());
       String first = np.artist() == null ? "" : np.artist().split(",")[0].trim();
       Set<LyricsFinder.Query> out = new LinkedHashSet<>();
+      if(first.isBlank()) {
+         String[] browser=title.split("\\s+[-–—|]\\s+",2);
+         if(browser.length==2)out.add(new Query(browser[1].trim(),mainArtist(browser[0])));
+      }
       out.add(new LyricsFinder.Query(title, first));
-      out.add(new LyricsFinder.Query(cleanTitle(title), artist));
+      out.add(new LyricsFinder.Query(cleanTitle(title) + (version(title).equals("studio")?"":" ("+version(title)+")"), artist));
       if (!first.equals(artist)) {
          out.add(new LyricsFinder.Query(cleanTitle(title), first));
       }
@@ -152,7 +157,8 @@ final class LyricsFinder {
          out.add(new LyricsFinder.Query(cleanTitle(parts[0]), mainArtist(cleanTitle(parts[1]))));
       }
 
-      out.removeIf(q -> q.title().isBlank());
+      String wantedVersion=version(title);
+      out.removeIf(q -> q.title().isBlank() || !version(q.title()).equals(wantedVersion));
       if (out.isEmpty()) {
          out.add(new LyricsFinder.Query(title, artist));
       }
@@ -160,8 +166,14 @@ final class LyricsFinder {
       return new ArrayList<>(out);
    }
 
+   private static String version(String title) {
+      var match=Pattern.compile("(?i)\\b(live|acoustic|instrumental|remix|demo|sped up|slowed)\\b").matcher(title);
+      return match.find()?match.group(1).toLowerCase(Locale.ROOT):"studio";
+   }
+
    private static String cleanTitle(String t) {
-      String s = FEAT.matcher(t).replaceAll("");
+      String s = t.replaceFirst("(?i)\\s+[-|]\\s+(youtube( music)?|spotify|apple music|tidal)(\\s.*)?$", "");
+      s = FEAT.matcher(s).replaceAll("");
       s = DASH_TAIL.matcher(s).replaceAll("");
       s = BRACKETS.matcher(s).replaceAll("");
       s = NOISE.matcher(s).replaceAll("");
@@ -171,7 +183,7 @@ final class LyricsFinder {
 
    private static String mainArtist(String a) {
       String s = a == null ? "" : a;
-      s = s.split("\\s*(,|;|&|/|\\s+x\\s+|\\s+feat\\.?\\s+|\\s+ft\\.?\\s+|\\s+and\\s+)\\s*", 2)[0];
+      s = s.split("(?i)\\s*(,|;|&|/|\\s+x\\s+|\\s+feat\\.?\\s+|\\s+ft\\.?\\s+|\\s+and\\s+)\\s*", 2)[0];
       s = s.replaceAll("(?i)\\s*-\\s*topic$", "").replaceAll("(?i)vevo$", "").replaceAll("(?i)\\s+official$", "");
       return s.trim();
    }
@@ -197,28 +209,10 @@ final class LyricsFinder {
       return shorter.length() >= 4 && longer.contains(shorter) && shorter.length() >= longer.length() * 0.55;
    }
 
-   private static boolean artistMatches(String found, String wanted) {
-      String b = norm(wanted);
-      if (b.isEmpty()) {
-         return true;
-      }
-
-      String a = norm(found);
-      if (a.isEmpty()) {
-         return false;
-      }
-
-      if (!a.contains(b) && !b.contains(a)) {
-         for (String w : b.split(" ")) {
-            if (w.length() >= 3 && a.contains(w)) {
-               return true;
-            }
-         }
-
-         return false;
-      } else {
-         return true;
-      }
+   private static boolean artistMatches(String found,String wanted) {
+      String artist=norm(mainArtist(wanted)).replace(" ","");
+      if(artist.isEmpty())return true;
+      return norm(mainArtist(found)).replace(" ","").equals(artist);
    }
 
    private static LyricsFinder.Pick pickLrclib(JsonElement res, LyricsFinder.Query q, long durMs) {
@@ -227,15 +221,17 @@ final class LyricsFinder {
          JsonArray arr = res.getAsJsonArray();
          double bestSynced = Double.MAX_VALUE;
          double bestPlain = Double.MAX_VALUE;
+         Set<String> artists=new java.util.HashSet<>();
 
          for (JsonElement e : arr) {
             if (e.isJsonObject()) {
                JsonObject o = e.getAsJsonObject();
-               if (titleMatches(str(o, "trackName", ""), q.title()) && artistMatches(str(o, "artistName", ""), q.artist())) {
+               if (version(str(o,"trackName","")).equals(version(q.title())) && titleMatches(str(o, "trackName", ""), q.title()) && artistMatches(str(o, "artistName", ""), q.artist())) {
                   double diff = durMs > 0L && o.has("duration") && !o.get("duration").isJsonNull()
                      ? Math.abs(o.get("duration").getAsDouble() - durMs / 1000.0)
                      : 0.0;
                   if (!(diff > 5.0)) {
+                     artists.add(norm(str(o,"artistName","")));
                      if (bool(o, "instrumental") && diff < 2.0) {
                         p.instrumental = true;
                      }
@@ -259,6 +255,7 @@ final class LyricsFinder {
             }
          }
 
+         if(q.artist().isBlank() && artists.size()>1) { p.synced=null;p.plain=null;p.instrumental=false; }
          return p;
       } else {
          return p;
@@ -285,7 +282,7 @@ final class LyricsFinder {
                for (JsonElement e : result.getAsJsonArray("songs")) {
                   if (e.isJsonObject()) {
                      JsonObject song = e.getAsJsonObject();
-                     if (titleMatches(str(song, "name", ""), q.title())) {
+                     if (version(str(song,"name","")).equals(version(q.title())) && titleMatches(str(song, "name", ""), q.title())) {
                         StringBuilder artists = new StringBuilder();
                         if (song.has("artists") && song.get("artists").isJsonArray()) {
                            for (JsonElement a : song.getAsJsonArray("artists")) {
@@ -387,7 +384,7 @@ final class LyricsFinder {
    }
 
    @Environment(EnvType.CLIENT)
-   private record Query(String title, String artist) {
+   record Query(String title, String artist) {
    }
 
    @Environment(EnvType.CLIENT)

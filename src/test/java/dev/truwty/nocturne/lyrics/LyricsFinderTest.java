@@ -12,6 +12,16 @@ final class LyricsFinderTest {
     private JsonObject record(String field, String lyrics) {
         var o=new JsonObject(); o.addProperty("trackName","Neon Rain");o.addProperty("artistName","Night Test");o.addProperty("duration",180);o.addProperty(field,lyrics);return o;
     }
+    @Test void extractsBrowserArtistWhenMetadataIsMissing() {
+        var n=new NowPlaying("Night Test - Neon Rain - YouTube Music","","",180000,0,true,System.nanoTime(),"System");
+        var first=LyricsFinder.queries(n).getFirst();assertEquals("Night Test",first.artist());assertEquals("Neon Rain",first.title());
+    }
+    @Test void preservesLiveVersionIntentWhileNormalizingRemastersAndFeatures() {
+        var live=new NowPlaying("Neon Rain (Live)","Night Test feat. Guest","",180000,0,true,System.nanoTime(),"System");
+        assertTrue(LyricsFinder.queries(live).stream().allMatch(q->q.title().toLowerCase().contains("live")));
+        var remaster=new NowPlaying("Neon Rain (2025 Remaster)","Night Test feat. Guest","",180000,0,true,System.nanoTime(),"System");
+        assertTrue(LyricsFinder.queries(remaster).stream().anyMatch(q->q.title().equals("Neon Rain")&&q.artist().equals("Night Test")));
+    }
     @Test void findsNormalizedTitleAfterExactMetadataMisses() {
         var finder=new LyricsFinder(url->{
             if(url.contains("/search?track_name=Neon+Rain&")) { var a=new JsonArray();a.add(record("syncedLyrics","[00:01]Original fixture line"));return a; }
@@ -37,6 +47,10 @@ final class LyricsFinderTest {
         });
         var result=finder.find(track(),true);
         assertEquals("Instrumental",result.status());assertNull(result.lyrics());
+    }
+    @Test void sharedArtistWordDoesNotSelectTheWrongRecording() {
+        var finder=new LyricsFinder(url->{var a=new JsonArray();var o=record("syncedLyrics","[00:01]Wrong fixture");o.addProperty("artistName","Night Other");a.add(o);return a;});
+        assertNull(finder.find(track(),false));
     }
     @Test void doesNotAcceptADifferentArtist() {
         var finder=new LyricsFinder(url->{var a=new JsonArray();var o=record("syncedLyrics","[00:01]Wrong fixture");o.addProperty("artistName","Unrelated Person");a.add(o);return a;});

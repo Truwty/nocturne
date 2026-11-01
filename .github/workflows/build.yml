@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        renderer: [vanilla, sodium, iris]
+        renderer: [vanilla, sodium, iris, optimized]
     env:
       LIBGL_ALWAYS_SOFTWARE: 'true'
       MESA_GL_VERSION_OVERRIDE: '4.5'

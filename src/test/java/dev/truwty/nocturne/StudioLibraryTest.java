@@ -50,12 +50,18 @@ final class StudioLibraryTest {
         var library = new StudioLibrary(directory);
         assertThrows(IllegalArgumentException.class, () -> library.preset("themes", "", new JsonObject()));
     }
-    @Test void damagedLibraryIsPreservedAndBecomesReadOnly() throws Exception {
+    @Test void damagedLibraryIsPreservedAndRecoversSafely() throws Exception {
         Path file = directory.resolve("library.json"); Files.writeString(file, "{broken");
         var library = new StudioLibrary(directory);
         assertFalse(library.problem().isBlank()); assertEquals(0, library.offset("song"));
-        assertThrows(java.io.IOException.class, () -> library.player("Spotify.exe"));
-        assertEquals("{broken", Files.readString(file));
+        library.player("Spotify.exe");
+        assertEquals("Spotify.exe",new StudioLibrary(directory).player());
+        try(var paths=Files.list(directory)) {var backup=paths.filter(p->p.getFileName().toString().startsWith("library.json.corrupt-")).findFirst().orElseThrow();assertEquals("{broken",Files.readString(backup));}
+    }
+    @Test void damagedLibraryRestoresLastGoodValues() throws Exception {
+        var library=new StudioLibrary(directory);library.offset("song",125);library.player("Spotify.exe");
+        Files.writeString(directory.resolve("library.json"),"broken");
+        var restored=new StudioLibrary(directory);assertEquals(125,restored.offset("song"));assertTrue(restored.problem().contains("recovered"));
     }
     @Test void invalidOffsetInLibraryDoesNotPoisonRendering() throws Exception {
         Files.writeString(directory.resolve("library.json"), "{\"offsets\":{\"bad\":\"NaN\"}}");

@@ -19,11 +19,24 @@ public static class NocturneInput {
 }
 [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)] interface IDevice {
     [PreserveSig] int Activate(ref Guid iid, uint context, IntPtr parameters, [MarshalAs(UnmanagedType.IUnknown)] out object result);
+    [PreserveSig] int OpenPropertyStore(uint access, out IntPtr properties);
+    [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
 }
 [ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)] interface IMeter {
     [PreserveSig] int GetPeakValue(out float peak);
 }
 public static class NocturneMeter {
+    public static string DeviceId() {
+        object enumerator = null; IDevice device = null;
+        try {
+            enumerator = new DeviceEnumerator();
+            Marshal.ThrowExceptionForHR(((IDevices)enumerator).GetDefaultAudioEndpoint(0, 1, out device));
+            string id; Marshal.ThrowExceptionForHR(device.GetId(out id)); return id;
+        } finally {
+            if (device != null) Marshal.ReleaseComObject(device);
+            if (enumerator != null) Marshal.ReleaseComObject(enumerator);
+        }
+    }
     public static float Peak() {
         object enumerator = null; IDevice device = null; object instance = null;
         try {
@@ -91,6 +104,16 @@ while ($true) {
                 if (-not $session) { $session = $mgr.GetCurrentSession() }
             }
             $o = [ordered]@{ apps = @($sessions | ForEach-Object { $_.SourceAppUserModelId }); selected = $pinned; commandStatus = $commandStatus }
+            try { $o.deviceId = [NocturneMeter]::DeviceId() } catch { $o.deviceId = '' }
+            $o.sessions = @($sessions | ForEach-Object {
+                $entry = @{ id = $_.SourceAppUserModelId; playing = $false; issue = '' }
+                try {
+                    $info = $_.GetPlaybackInfo(); $c = $info.Controls; $entry.playing = $info.PlaybackStatus -eq 'Playing'
+                    $entry.toggle = $c.IsPlayPauseToggleEnabled -or $c.IsPlayEnabled -or $c.IsPauseEnabled
+                    $entry.next = $c.IsNextEnabled; $entry.previous = $c.IsPreviousEnabled; $entry.seek = $c.IsPlaybackPositionEnabled
+                } catch { $entry.issue = 'Player did not provide playback capabilities' }
+                $entry
+            })
             if ($session) {
                 $p = Await ($session.TryGetMediaPropertiesAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties])
                 $tl = $session.GetTimelineProperties(); $pb = $session.GetPlaybackInfo(); $controls = $pb.Controls

@@ -20,24 +20,34 @@ public final class StudioLibrary {
     private JsonObject data = new JsonObject();
     private IOException loadError;
 
+    private String recoveryNotice="";
     public StudioLibrary(Path root) throws IOException {
-        this.root = root;
-        if (Files.exists(root.resolve("library.json"))) {
-            try {
-                if (Files.size(root.resolve("library.json")) > 1_048_576) throw new IllegalArgumentException("Library exceeds 1 MiB");
-                data = JsonParser.parseString(Files.readString(root.resolve("library.json"))).getAsJsonObject();
-                for (var entry : data.entrySet()) {
-                    if (entry.getKey().equals("player")) {
-                        if (!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isString()) throw new IllegalArgumentException("Invalid pinned player");
-                    } else if (!entry.getValue().isJsonObject()) throw new IllegalArgumentException("Invalid preset group");
-                }
-                if (data.has("offsets")) for (var entry : data.getAsJsonObject("offsets").entrySet()) {
-                    double value = entry.getValue().getAsDouble();
-                    if (!Double.isFinite(value) || Math.abs(value) > 30000) throw new IllegalArgumentException("Invalid saved offset");
-                }
+        this.root=root; Path file=root.resolve("library.json");
+        if(!Files.exists(file))return;
+        try {data=readLibrary(file);}
+        catch(RuntimeException ex) {
+            try {Files.copy(file,file.resolveSibling("library.json.corrupt-"+java.util.UUID.randomUUID()));}
+            catch(IOException backupFailure) {loadError=new IOException("Library backup failed; saving disabled",backupFailure);return;}
+            Path backup=root.resolve("library.json.bak");
+            if(Files.exists(backup)) {
+                try {data=readLibrary(backup);recoveryNotice="Library recovered from backup; damaged file preserved";return;}
+                catch(RuntimeException|IOException badBackup) {ex.addSuppressed(badBackup);}
             }
-            catch (RuntimeException ex) { data = new JsonObject(); loadError = new IOException("Invalid Nocturne library; existing file retained. Fix library.json before saving presets.", ex); }
+            data=new JsonObject();recoveryNotice="Damaged library preserved; safe empty library loaded";
+        } catch(IOException ex) {data=new JsonObject();loadError=new IOException("Library cannot be read; saving disabled",ex);}
+    }
+    private static JsonObject readLibrary(Path file) throws IOException {
+        if(Files.size(file)>1_048_576)throw new IllegalArgumentException("Library exceeds 1 MiB");
+        var data=JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+        for(var entry:data.entrySet()) {
+            if(entry.getKey().equals("player")) {
+                if(!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isString())throw new IllegalArgumentException("Invalid pinned player");
+            } else if(!entry.getValue().isJsonObject())throw new IllegalArgumentException("Invalid preset group");
         }
+        if(data.has("offsets"))for(var entry:data.getAsJsonObject("offsets").entrySet()) {
+            double value=entry.getValue().getAsDouble();if(!Double.isFinite(value)||Math.abs(value)>30000)throw new IllegalArgumentException("Invalid saved offset");
+        }
+        return data;
     }
 
     public static String trackId(String key) {
@@ -95,8 +105,17 @@ public final class StudioLibrary {
         return data.getAsJsonObject(name);
     }
 
-    public String problem() { return loadError == null ? "" : loadError.getMessage(); }
-    private void save() throws IOException { if (loadError != null) throw loadError; write(root.resolve("library.json"), new GsonBuilder().setPrettyPrinting().create().toJson(data)); }
+    public String problem() { return loadError == null ? recoveryNotice : loadError.getMessage(); }
+    private void save() throws IOException {
+        if(loadError!=null)throw loadError;
+        Path file=root.resolve("library.json");
+        if(Files.exists(file)) {
+            boolean valid=true;
+            try {readLibrary(file);}catch(RuntimeException ex){valid=false;}
+            if(valid)Files.copy(file,root.resolve("library.json.bak"),StandardCopyOption.REPLACE_EXISTING);
+        }
+        write(file,new GsonBuilder().setPrettyPrinting().create().toJson(data));
+    }
 
     public static void write(Path target, String text) throws IOException {
         Files.createDirectories(target.toAbsolutePath().getParent());

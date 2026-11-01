@@ -60,6 +60,7 @@ public final class LyricsRenderer {
    private static final List<LyricsRenderer.Spark> SPARKS = new ArrayList<>();
    private static final List<LyricsRenderer.Mist> MIST = new ArrayList<>();
    private static final List<LyricsRenderer.BattleWord> BATTLE = new ArrayList<>();
+   private static long playbackRevision=-1;
    private static long nextEnvironment;
    private static ClientLevel environmentLevel;
    private static final float[][] CIRCLE_COS = new float[17][];
@@ -328,6 +329,10 @@ public final class LyricsRenderer {
 
             songAge += dt;
             double reported = np.positionMs() + mod.offset.get() + Studio.songOffset(np);
+            long revision=LyricsService.INSTANCE.playbackRevision();
+            if(revision!=playbackRevision) {
+               playbackRevision=revision; clock=reported; current=null; TRAIL.clear(); SPARKS.clear(); MIST.clear(); BATTLE.clear();
+            }
             if (!(clock < 0.0) && !(Math.abs(reported - clock) > 1200.0)) {
                if (np.playing()) {
                   clock += dt * 1000.0;

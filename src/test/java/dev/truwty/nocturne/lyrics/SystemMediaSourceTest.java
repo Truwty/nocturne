@@ -46,6 +46,12 @@ final class SystemMediaSourceTest {
         assertEquals(12000,SystemMediaSource.decodeSession(json).progressMs());
     }
 
+    @Test void reportsCapabilitiesPerPlayerAndPreservesDeviceIdentity() {
+        var o=com.google.gson.JsonParser.parseString("{\"sessions\":[{\"id\":\"one\",\"playing\":true,\"seek\":true},{\"id\":\"two\",\"toggle\":true,\"issue\":\"\"}]}").getAsJsonObject();
+        var players=SystemMediaSource.decodePlayers(o);assertTrue(players.getFirst().capabilities().contains("seek"));assertFalse(players.get(1).capabilities().contains("seek"));assertTrue(players.get(1).capabilities().contains("toggle"));
+        var media=sample(true);media.addProperty("deviceId","headphones");assertEquals("Spotify.exe|headphones",SystemMediaSource.decodeSession(media).sessionId());
+    }
+
     @Test void missingSessionClearsDetection() {
         assertNull(SystemMediaSource.decodeSession(new JsonObject()));
     }

@@ -23,7 +23,13 @@ import net.fabricmc.api.Environment;
 @Environment(EnvType.CLIENT)
 public final class SystemMediaSource {
    private volatile Process process;
-   public record Player(String id, String label) {}
+   public record Player(String id, String label, Set<String> capabilities, boolean playing, String issue) {
+      public Player(String id,String label) { this(id,label,Set.of(),false,"Capability details unavailable on this platform"); }
+      public String diagnostic() {
+         if(!issue.isBlank())return issue;
+         return (playing?"Playing":"Paused / idle")+" · "+(capabilities.isEmpty()?"No transport advertised":String.join(", ",new java.util.TreeSet<>(capabilities)));
+      }
+   }
    private volatile List<Player> players = List.of();
    private volatile Set<String> capabilities = Set.of();
    private volatile String activeId = "";
@@ -163,7 +169,9 @@ public final class SystemMediaSource {
       String[][] apps = new String[][]{{"Spotify", MAC_SPOTIFY, "Spotify app"}, {"Music", MAC_MUSIC, "Apple Music"}};
       NowPlaying paused = null;
 
-      players = List.of(new Player("Spotify", "Spotify"), new Player("Music", "Apple Music"));
+      var available=new java.util.ArrayList<Player>();
+      for(var app:apps) if(run("pgrep","-x",app[0])!=null)available.add(new Player(app[0],app[2]));
+      players=List.copyOf(available);
       capabilities = Set.of("toggle", "next", "previous", "seek");
       for (String[] app : apps) {
          if (!selectedId.isEmpty() && !selectedId.equals(app[0])) continue;
@@ -331,7 +339,8 @@ public final class SystemMediaSource {
                   try {
                      JsonObject o = JsonParser.parseString(line).getAsJsonObject();
                      if (o.has("error")) { this.status = o.get("error").getAsString(); this.latest = null; continue; }
-                     if (o.has("apps")) {
+                     if(o.has("sessions")) players=decodePlayers(o);
+                     else if (o.has("apps")) {
                         var list = new java.util.ArrayList<Player>();
                         for (var app : o.getAsJsonArray("apps")) list.add(new Player(app.getAsString(), app.getAsString()));
                         players = List.copyOf(list);
@@ -360,9 +369,22 @@ public final class SystemMediaSource {
             NocturneClient.LOG.debug("Desktop media helper disconnected", ex);
          }
 
-         if (this.process == p) this.status = "System media helper stopped";
+         if (this.process == p) {
+            this.status="System media helper stopped";this.latest=null;this.capabilities=Set.of();this.players=List.of();
+         }
       }
    }
+   static List<Player> decodePlayers(JsonObject o) {
+      var result=new java.util.ArrayList<Player>();
+      for(var value:o.getAsJsonArray("sessions")) {
+         var app=value.getAsJsonObject(); var caps=new java.util.HashSet<String>();
+         for(String action:List.of("toggle","seek","next","previous")) if(app.has(action)&&app.get(action).getAsBoolean())caps.add(action);
+         String id=app.get("id").getAsString();
+         result.add(new Player(id,id,Set.copyOf(caps),app.has("playing")&&app.get("playing").getAsBoolean(),app.has("issue")?app.get("issue").getAsString():""));
+      }
+      return List.copyOf(result);
+   }
+
    static NowPlaying decodeSession(JsonObject o) {
       if (!o.has("title") || o.get("title").getAsString().isBlank()) return null;
       boolean playing = o.get("playing").getAsBoolean();
@@ -379,7 +401,8 @@ public final class SystemMediaSource {
       String app = o.has("app") ? o.get("app").getAsString() : "System";
       return new NowPlaying(o.get("title").getAsString(), o.get("artist").getAsString(),
          o.get("album").getAsString(), duration, position, playing, System.nanoTime(),
-         app.toLowerCase(Locale.ROOT).contains("spotify") ? "Spotify app" : "System");
+         app.toLowerCase(Locale.ROOT).contains("spotify") ? "Spotify app" : "System", "",
+         app+"|"+(o.has("deviceId")?o.get("deviceId").getAsString():""));
    }
 
 }

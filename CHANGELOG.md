@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0-beta.1
+
+- Diagnose lookup, clock drift, disabled lyrics, missing players and hidden active lines separately; offer the matching repair action.
+- Persist synchronized/estimated lyrics and word timings across launches, with configurable 30-day expiry, manual refresh, corruption quarantine and bounded storage.
+- Normalize remasters, featured artists and browser titles; preserve performance-version intent and avoid ambiguous artist matches.
+- Resynchronize clocks and clear stale effects after seeks, pause/resume, ads, session loss and Windows output-device changes. Cancel stale lookup completions after refresh or track changes.
+- Add per-session Windows transport capabilities and device identity; show explicit unknown capability details on other platforms.
+- Add schema migration, unknown-setting preservation, rolling backups, corrupt-file recovery and read-only protection for future config versions. Recover damaged preset libraries safely.
+- Extend GUI-scale tests, add the optimized CI profile, and support isolated external modpack/shader/resource fixtures. Validate Adrenaline and Fabulously Optimized with real shader and resource packs.
+
 ## 0.6.0-beta.1
 
 - Theme-native buttons and sliders across Studio, classic settings and the placement editor, with smooth hover, keyboard focus and native narration.

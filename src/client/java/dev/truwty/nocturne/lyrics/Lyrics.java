@@ -62,6 +62,8 @@ public final class Lyrics {
       this.beatOrigin = Math.max(0L, first);
    }
 
+   static Lyrics restored(List<Line> lines, boolean estimated) { return new Lyrics(List.copyOf(lines), estimated); }
+
    public float beat(long pos) {
       if (pos < this.beatOrigin) {
          return 0.0F;

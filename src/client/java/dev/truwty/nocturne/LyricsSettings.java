@@ -30,6 +30,11 @@ public class LyricsSettings {
    private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("nocturne.json");
    public final List<Setting<?>> settings = new ArrayList<>();
    private boolean enabled = true;
+   public final NumberSetting cacheDays = add(new NumberSetting("Lyric cache expiry",30,1,90,1," days"));
+   private JsonObject preservedConfig = new JsonObject();
+   private String configNotice = "";
+   private boolean configWritable = true;
+   public String configNotice() { return configNotice; }
    public final ModeSetting preset;
    public final ModeSetting follow;
    public final ModeSetting style;
@@ -130,7 +135,9 @@ public class LyricsSettings {
             return;
          }
 
-         JsonObject root = JsonParser.parseString(Files.readString(FILE)).getAsJsonObject();
+         ConfigRecovery.Loaded loaded=ConfigRecovery.load(FILE);
+         configNotice=loaded.notice(); configWritable=loaded.writable();
+         JsonObject root=loaded.data(); preservedConfig=root.deepCopy();
          if (root.has("enabled")) {
             this.enabled = root.get("enabled").getAsBoolean();
          }
@@ -138,22 +145,35 @@ public class LyricsSettings {
          JsonObject s = root.has("settings") ? root.getAsJsonObject("settings") : new JsonObject();
 
          for (Setting<?> st : this.settings) {
-            st.load(s.get(st.name));
+            try {
+               var value=s.get(st.name);
+               if(value!=null && st instanceof BoolSetting && (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isBoolean()))throw new IllegalArgumentException("Expected boolean");
+               if(value!=null && st instanceof NumberSetting && (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()))throw new IllegalArgumentException("Expected number");
+               st.load(value);
+            }
+            catch (RuntimeException ex) {
+               if(!configNotice.startsWith("Invalid setting")) Files.copy(FILE,FILE.resolveSibling(FILE.getFileName()+".invalid-settings-"+java.util.UUID.randomUUID()));
+               configNotice = "Invalid setting ignored: " + st.name;
+               NocturneClient.LOG.warn("Invalid setting {} retained in migration backup",st.name,ex);
+            }
          }
 
          if (!s.has(this.lyricFont.name) && !this.smoothFont.on()) {
             this.lyricFont.set(3);
          }
       } catch (Exception e) {
+         configNotice="Config could not be backed up; saving disabled"; configWritable=false;
          NocturneClient.LOG.warn("Couldn't read {}", FILE, e);
       }
    }
 
    public void save() {
+      if(!configWritable)return;
       try {
-         JsonObject root = new JsonObject();
+         JsonObject root = preservedConfig.deepCopy();
          root.addProperty("enabled", this.enabled);
-         JsonObject s = new JsonObject();
+         root.addProperty("schemaVersion",ConfigRecovery.SCHEMA);
+         JsonObject s = root.has("settings") ? root.getAsJsonObject("settings").deepCopy() : new JsonObject();
 
          for (Setting<?> st : this.settings) {
             s.add(st.name, st.save());
@@ -161,8 +181,9 @@ public class LyricsSettings {
 
          root.add("settings", s);
          Files.createDirectories(FILE.getParent());
-         StudioLibrary.write(FILE, GSON.toJson(root));
+         ConfigRecovery.save(FILE, GSON.toJson(root));
       } catch (Exception e) {
+         configNotice="Settings could not be saved: "+e.getMessage();
          NocturneClient.LOG.warn("Couldn't save {}", FILE, e);
       }
    }

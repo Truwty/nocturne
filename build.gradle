@@ -24,8 +24,12 @@ dependencies {
 }
 
 def compatibility = providers.gradleProperty('compat').getOrElse('vanilla')
-if (!(compatibility in ['vanilla', 'sodium', 'iris'])) throw new GradleException('Use -Pcompat=vanilla, sodium or iris')
+if (!(compatibility in ['vanilla', 'sodium', 'iris', 'optimized'])) throw new GradleException('Use -Pcompat=vanilla, sodium, iris or optimized')
 if (compatibility != 'vanilla') dependencies { runtimeOnly 'maven.modrinth:sodium:mc26.1.2-0.9.2-fabric' }
+if (compatibility == 'optimized') dependencies {
+    runtimeOnly 'maven.modrinth:lithium:mc26.1.2-0.24.7-fabric'
+    runtimeOnly 'maven.modrinth:ferrite-core:9.0.0-fabric'
+}
 if (compatibility == 'iris') dependencies { runtimeOnly 'maven.modrinth:iris:1.11.4+26.1-fabric' }
 
 processResources {
@@ -58,4 +62,29 @@ sourceSets.test.runtimeClasspath += sourceSets.client.output + sourceSets.client
 jar {
     from('LICENSE')
     from('THIRD_PARTY_NOTICES.md')
+}
+
+// Optional local compatibility fixtures stay out of release artifacts.
+tasks.named('runClientGameTest') {
+    maxHeapSize = '4G'
+    doFirst {
+        def runRoot = file('build/run/clientGameTest').canonicalFile
+        if (!runRoot.toPath().startsWith(file('build/run').canonicalFile.toPath()) || runRoot.name != 'clientGameTest') throw new GradleException('Unexpected compatibility test directory')
+        ['mods','config','resourcepacks','shaderpacks'].each { name -> delete new File(runRoot,name) }
+        delete new File(runRoot,'options.txt')
+        runRoot.mkdirs()
+        def fixture = System.getenv('NOCTURNE_TEST_INSTANCE')
+        if (fixture) copy { from fixture; into runRoot }
+        def shader = System.getenv('NOCTURNE_TEST_SHADER')
+        if (shader) {
+            copy { from shader; into new File(runRoot, 'shaderpacks'); rename { 'compat-shader.zip' } }
+            def config = new File(runRoot, 'config/iris.properties'); config.parentFile.mkdirs()
+            config.text = 'enableShaders=true\nshaderPack=compat-shader.zip\n'
+        }
+        def resource = System.getenv('NOCTURNE_TEST_RESOURCE')
+        if (resource) {
+            copy { from resource; into new File(runRoot, 'resourcepacks'); rename { 'compat-resource.zip' } }
+            new File(runRoot, 'options.txt').text = 'resourcePacks:["vanilla","file/compat-resource.zip"]\nincompatibleResourcePacks:["file/compat-resource.zip"]\n'
+        }
+    }
 }

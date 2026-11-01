@@ -5,8 +5,11 @@ import net.fabricmc.api.Environment;
 
 @Environment(EnvType.CLIENT)
 public record NowPlaying(
-   String title, String artist, String album, long durationMs, long progressMs, boolean playing, long sampledAtNanos, String source, String artUrl
+   String title, String artist, String album, long durationMs, long progressMs, boolean playing, long sampledAtNanos, String source, String artUrl, String sessionId
 ) {
+   public NowPlaying(String title,String artist,String album,long durationMs,long progressMs,boolean playing,long sampledAtNanos,String source,String artUrl) {
+      this(title,artist,album,durationMs,progressMs,playing,sampledAtNanos,source,artUrl,source);
+   }
    public NowPlaying(String title, String artist, String album, long durationMs, long progressMs, boolean playing, long sampledAtNanos, String source) {
       this(title, artist, album, durationMs, progressMs, playing, sampledAtNanos, source, "");
    }
