@@ -52,6 +52,7 @@ public class NocturneClient implements ClientModInitializer {
       }
 
       ClientLifecycleEvents.CLIENT_STOPPING.register((ClientStopping)client -> {
+         dev.truwty.nocturne.maintenance.UpdateChecker.close();
          dev.truwty.nocturne.playback.Playback.close();
          dev.truwty.nocturne.gui.AlbumArtwork.close();
          SongAppearance.restore();
@@ -67,6 +68,7 @@ public class NocturneClient implements ClientModInitializer {
    }
 
    private static void tick(Minecraft mc) {
+      dev.truwty.nocturne.maintenance.UpdateChecker.tick();
       if (!SETTINGS.isEnabled() && ++playbackTicks % 10 == 0) LyricsService.INSTANCE.system.start();
       while(SCREENSHOT_CONTEXT_KEY.consumeClick())if(mc.screen==null&&mc.level!=null)dev.truwty.nocturne.accessibility.ContextProfiles.screenshot(!dev.truwty.nocturne.accessibility.ContextProfiles.screenshot());
       dev.truwty.nocturne.accessibility.Accessibility.tick(mc);

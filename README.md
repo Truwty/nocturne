@@ -13,7 +13,7 @@ Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + 
 ## Install
 
 1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Replace older Nocturne JARs with `nocturne-0.12.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-0.13.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
@@ -42,6 +42,12 @@ Open **N → Motion → Gameplay & accessibility** for Visibility, Motion, Reada
 - **Screenshots:** save a Screenshots profile, enable automatic profiles, then toggle **Screenshot context** before pressing F2. Its optional binding starts unbound under Minecraft Controls → Nocturne. Toggle again to exit; leaving the world clears it. F1 does not hide world lyrics unless you enable that visibility rule.
 
 **Apply photosensitivity-friendly preset** enables a persistent global lock: steady white-on-dark lyrics, backplates and outlines, with duplicate karaoke/next-line captions disabled and no Nocturne flashes, camera effects, particles, glow, chromatic animation, rain decoration or lingering lines. Saved context profiles cannot override this lock. Disabling the lock does not restore the previous preset; re-enable desired effects explicitly. This controls Nocturne's visuals only; Minecraft, shader packs and other mods keep their own visual settings.
+
+## Releases and maintenance
+
+Optional **Mod Menu 18.0.2** opens Studio through its config button. Open **N → Health → Releases & diagnostics** for opt-in update notifications, compatible-release changelogs, filtered diagnostic previews and local JSON export. All diagnostic copy actions now exclude personal song/player/server data, paths, arbitrary error text and credentials. No automatic downloads or diagnostic uploads run.
+
+CI gates fixed demo performance workloads, checks two clean release builds and compares Windows/Linux artifacts. See [supported Minecraft versions, update/privacy behavior and reproducible-build commands](SUPPORT.md).
 
 ## Tested compatibility
 

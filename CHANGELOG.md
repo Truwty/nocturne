@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.13.0-beta.1
+
+- Add optional Mod Menu config integration without bundling it or requiring it at runtime.
+- Add opt-in, bounded asynchronous update checks with semantic-version/channel/Minecraft filtering, toast/local chat notifications and trusted changelog links.
+- Replace shared diagnostics with a typed privacy allowlist; add preview, clipboard and local JSON export.
+- Gate warmed demo workloads in every renderer CI job and upload CPU percentiles/submission counts.
+- Add explicit version support, compatibility release manifests, deterministic archives, twice-clean-build verification, checksums and Windows/Linux byte comparisons.
+
 ## 0.12.0-beta.1
 
 - Add render-scoped Exploration, Combat, Menus and Screenshots profiles with searchable drafts, preview, undo/redo and explicit save/enable. Preserve global/per-song settings.

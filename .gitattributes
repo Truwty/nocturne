@@ -1,12 +1,9 @@
-* text=auto
-*.java text eol=lf
-*.json text eol=lf
-*.md text eol=lf
-*.py text eol=lf
-*.gradle text eol=lf
-*.yml text eol=lf
-*.ps1 text eol=crlf
-gradlew text eol=lf
-gradlew.bat text eol=crlf
+* text=auto eol=lf
 *.jar binary
+*.png binary
+*.jpg binary
+*.zip binary
 *.exe binary
+*.dll binary
+*.ps1 text eol=crlf
+gradlew.bat text eol=crlf

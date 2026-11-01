@@ -13,6 +13,9 @@
   "entrypoints": {
     "client": [
       "dev.truwty.nocturne.NocturneClient"
+    ],
+    "modmenu": [
+      "dev.truwty.nocturne.maintenance.ModMenuIntegration"
     ]
   },
   "mixins": [
@@ -31,5 +34,8 @@
     "homepage": "https://github.com/Truwty/nocturne",
     "sources": "https://github.com/Truwty/nocturne",
     "issues": "https://github.com/Truwty/nocturne/issues"
+  },
+  "suggests": {
+    "modmenu": ">=18.0.2"
   }
 }

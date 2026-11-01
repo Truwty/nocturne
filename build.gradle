@@ -15,6 +15,8 @@ loom {
 }
 
 dependencies {
+    compileOnly 'maven.modrinth:modmenu:18.0.2'
+    if (providers.gradleProperty('withModMenu').getOrElse('false') == 'true') runtimeOnly 'maven.modrinth:modmenu:18.0.2'
     minecraft 'com.mojang:minecraft:26.1.2'
     implementation 'net.fabricmc:fabric-loader:0.20.1'
     implementation 'net.fabricmc.fabric-api:fabric-api:0.155.3+26.1.2'
@@ -92,3 +94,24 @@ tasks.named('runClientGameTest') {
         }
     }
 }
+
+// Explicit archive rules also apply to sources and nested release JARs.
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+def supportManifest = layout.buildDirectory.file('release/nocturne-mc26.1.2.json')
+tasks.register('writeSupportManifest') {
+    inputs.property('releaseVersion', project.version.toString())
+    outputs.file(supportManifest)
+    doLast {
+        def out = supportManifest.get().asFile
+        out.parentFile.mkdirs()
+        out.setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([
+            schema: 1, version: project.version.toString(), minecraft: ['26.1.2'],
+            loader: 'fabric', environment: 'client', java: 25,
+            fabricLoaderMinimum: '0.20.1', fabricApiMinimum: '0.155.3+26.1.2'
+        ])) + '\n', 'UTF-8')
+    }
+}
+tasks.named('assemble') { dependsOn 'writeSupportManifest' }

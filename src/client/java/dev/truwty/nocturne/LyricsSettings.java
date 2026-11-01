@@ -81,6 +81,8 @@ public class LyricsSettings {
    public final BoolSetting debug;
    public final ColorSetting color;
    public final ColorSetting color2;
+   public final BoolSetting updateChecks=add(new BoolSetting("Automatic update checks",false));
+   public final BoolSetting previewUpdates=add(new BoolSetting("Include preview releases",false));
    public final BoolSetting contextProfiles=add(new BoolSetting("Automatic context profiles",false));
    public final BoolSetting hideChat=add(new BoolSetting("Hide lyrics in chat",true));
    public final BoolSetting hideInventory=add(new BoolSetting("Hide lyrics in containers",true));

@@ -225,26 +225,7 @@ public final class LyricsDebug {
    }
 
    public static String report() {
-      StringBuilder b = new StringBuilder("Nocturne Lyrics debug\n");
-      b.append("Mod version: ")
-         .append(FabricLoader.getInstance().getModContainer("nocturne").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("?"))
-         .append(" · OS: ")
-         .append(System.getProperty("os.name"))
-         .append(" · Java ")
-         .append(System.getProperty("java.version"))
-         .append('\n');
-
-      for (LyricsDebug.Row r : rows()) {
-         String tag = switch (r.level()) {
-            case 0 -> "[ok]  ";
-            case 1 -> "[!]   ";
-            case 2 -> "[X]   ";
-            default -> "      ";
-         };
-         b.append(tag).append(r.label()).append(": ").append(r.value()).append('\n');
-      }
-
-      return b.toString();
+      return dev.truwty.nocturne.maintenance.Diagnostics.report();
    }
 
    @Environment(EnvType.CLIENT)

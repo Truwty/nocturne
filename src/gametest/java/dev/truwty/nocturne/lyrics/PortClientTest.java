@@ -199,6 +199,8 @@ public final class PortClientTest implements FabricClientGameTest {
             interfaceChecks(context);
             performanceChecks(context);
             accessibilityChecks(context);
+            maintenanceChecks(context);
+            regressionChecks(context);
             context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
             for(int playbackTab=0;playbackTab<4;playbackTab++){
                 int tab=playbackTab;context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null,tab));context.waitTicks(5);
@@ -263,7 +265,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
                     ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
-                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,0),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,1),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,2),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3),()->new dev.truwty.nocturne.gui.ContextProfileEditorScreen(null,dev.truwty.nocturne.accessibility.GameplayContext.COMBAT))) {
+                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null),()->new dev.truwty.nocturne.gui.MaintenanceScreen(null),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,0),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,1),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,2),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3),()->new dev.truwty.nocturne.gui.ContextProfileEditorScreen(null,dev.truwty.nocturne.accessibility.GameplayContext.COMBAT))) {
                     context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
                 }
                 for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
@@ -285,6 +287,37 @@ public final class PortClientTest implements FabricClientGameTest {
             context.waitTicks(25);
             context.runOnClient(mc -> { if (!LyricsRenderer.active()) throw new AssertionError("Lyrics did not recover after reconnect"); });
         }
+    }
+
+    private static void maintenanceChecks(ClientGameTestContext context) {
+        dev.truwty.nocturne.maintenance.UpdateClientChecks.run(context);
+        context.setScreen(()->new StudioScreen(null,6));context.clickScreenButton("Releases & diagnostics");context.waitTicks(3);
+        context.clickScreenButton("Copy filtered diagnostics");
+        context.runOnClient(mc->{String report=mc.keyboardHandler.getClipboard();if(!report.contains("Technical allowlist")||report.contains("Neon Rain")||report.contains("Player0"))throw new AssertionError("Diagnostics filtering failed");});
+        context.clickScreenButton("Export filtered diagnostics");
+        context.runOnClient(mc->{try(var files=java.nio.file.Files.list(Studio.directory().resolve("diagnostics"))){if(files.noneMatch(p->p.getFileName().toString().endsWith(".json")))throw new AssertionError("No diagnostic file exported");}catch(java.io.IOException ex){throw new AssertionError(ex);}});
+        takeShot(context,"nocturne-maintenance");
+        if(net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("modmenu")) {
+            context.runOnClient(mc->{var entries=net.fabricmc.loader.api.FabricLoader.getInstance().getEntrypoints("modmenu",com.terraformersmc.modmenu.api.ModMenuApi.class);var integration=entries.stream().filter(e->e instanceof dev.truwty.nocturne.maintenance.ModMenuIntegration).findFirst().orElseThrow();var parent=mc.screen;mc.setScreen(integration.getModConfigScreenFactory().create(parent));if(!(mc.screen instanceof StudioScreen))throw new AssertionError("Mod Menu factory did not open Studio");mc.screen.onClose();if(mc.screen!=parent)throw new AssertionError("Mod Menu parent was not restored");});
+        }
+        NocturneClient.LOG.info("MAINTENANCE TEST PASSED: filtered clipboard/file export, screen bounds and optional Mod Menu entrypoint");
+    }
+    private static void regressionChecks(ClientGameTestContext context) {
+        var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
+        var results=new com.google.gson.JsonArray();
+        try(var input=PortClientTest.class.getResourceAsStream("/performance-budgets.json")) {
+            if(input==null)throw new IllegalStateException("Missing performance budgets");var budgets=com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(input,java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+            context.setScreen(()->null);
+            for(String scenario:java.util.List.of("steady-v1","decorated-v1")) {
+                context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.photosensitiveMode.set(false);s.reducedMotion.set(false);s.adaptiveEffects.set(false);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);s.topBar.set(false);s.cinematic.set(false);s.titleCard.set(false);s.nextLine.set(false);s.lyricConfidence.set(false);s.vocalCountdown.set(false);s.debug.set(false);s.performanceReadout.set(false);s.lingeringLimit.set(0.0);s.lyricOutline.set(false);s.lyricBackplate.set(false);s.battle.set(false);s.orbit.set(false);s.quality.set(1);s.audioReactive.set(false);s.beatPulse.set(false);s.shakeEffects.set(false);s.flashEffects.set(false);s.chroma.set(false);s.size.set(100.0);s.lyricFont.set(0);s.maxWords.set(12.0);s.particleLimit.set(48.0);s.glowPassLimit.set(32.0);s.cloudLayerLimit.set(16.0);boolean effects=scenario.equals("decorated-v1");s.animatedText.set(effects);s.particleEffects.set(effects);s.sparkles.set(effects);s.glow.set(effects);LyricsService.INSTANCE.startDemo();});
+                context.waitTicks(15);var probe=new dev.truwty.nocturne.performance.RegressionBudget();
+                for(int i=0;i<60;i++){context.waitTicks(1);probe.add(context.computeOnClient(mc->dev.truwty.nocturne.performance.RenderPerformance.snapshot()));}
+                results.add(probe.report(scenario,budgets.getAsJsonObject(scenario)));
+            }
+            context.runOnClient(mc->{for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));});
+            var root=new com.google.gson.JsonObject();root.addProperty("schema",1);root.addProperty("renderer",ShaderCompat.shaderPackOn()?"shader":"standard");root.add("scenarios",results);java.nio.file.Files.writeString(java.nio.file.Path.of("nocturne-performance.json"),new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root));
+            NocturneClient.LOG.info("PERFORMANCE REGRESSION CHECKS PASSED: {}",results);
+        }catch(java.io.IOException ex){throw new AssertionError(ex);}
     }
 
     private static void accessibilityChecks(ClientGameTestContext context){

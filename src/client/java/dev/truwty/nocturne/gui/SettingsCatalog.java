@@ -18,7 +18,7 @@ public final class SettingsCatalog {
 
     public static String category(Setting<?> s) {
         String n = s.name.toLowerCase(Locale.ROOT);
-        if(n.startsWith("hide lyrics")||n.contains("context profiles"))return "Interface";
+        if(n.contains("update checks")||n.contains("preview releases")||n.startsWith("hide lyrics")||n.contains("context profiles"))return "Interface";
         if (n.startsWith("ui ") || n.contains("settings style") || n.contains("controller"))
             return "Interface";
         if (n.contains("limit")||n.contains("effect detail")||n.contains("budget")||n.contains("frame time")||n.contains("performance"))return "Motion & performance";
