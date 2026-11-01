@@ -140,6 +140,8 @@ public final class Accessibility {
         s.orbit.set(false);
         s.battle.set(false);
         s.cinematic.set(false);
+        s.topBar.set(false);
+        s.nextLine.set(false);
         s.albumRain.set(false);
         s.colorMode.set(0);
         s.color.set(-1);
