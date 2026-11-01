@@ -120,7 +120,7 @@ public final class LyricWorkspaceScreen extends Screen {
     @Override public void extractBackground(GuiGraphicsExtractor g,int mx,int my,float delta){g.fill(0,0,width,height,0x88000000);}
     private void text(GuiGraphicsExtractor g,String text,int yy,int color){Draw.text(g,font,font.plainSubstrByWidth(text,w-32),x+16,yy,color,false);}
     @Override public void extractRenderState(GuiGraphicsExtractor g,int mx,int my,float delta){
-        Draw.round(g,x,y,w,h,12,Draw.withAlpha(s().uiBackground.argb(),Math.round(s().uiOpacity.f()*2.55f)));
+        Draw.round(g,x,y,w,h,12,Draw.alpha(s().uiBackground.argb(),s().uiOpacity.f()/100));
         text(g,"Nocturne / "+TABS[page],y+16,s().uiText.argb());super.extractRenderState(g,mx,my,delta);
         g.enableScissor(x+12,y+70,x+w-12,y+h-62);
         if(!hasLine()&&page<2)text(g,"Load lyrics in Studio first",body,s().uiText.argb());

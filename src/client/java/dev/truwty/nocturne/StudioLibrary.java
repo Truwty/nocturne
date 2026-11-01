@@ -114,6 +114,17 @@ public final class StudioLibrary {
         }
         return primary.secondary(translated,romanized);
     }
+    public synchronized java.util.List<Integer> recentColors() {
+        var stored=preset("recentColors","Palette");if(stored==null||!stored.has("colors")||!stored.get("colors").isJsonArray())return java.util.List.of();
+        var result=new java.util.ArrayList<Integer>();for(var color:stored.getAsJsonArray("colors")){if(result.size()==12)break;if(color.isJsonPrimitive()&&color.getAsJsonPrimitive().isNumber())result.add(color.getAsInt());}return java.util.List.copyOf(result);
+    }
+    public synchronized void rememberColor(int color)throws IOException {
+        var colors=new java.util.ArrayList<>(recentColors());colors.remove((Integer)color);colors.addFirst(color);while(colors.size()>12)colors.removeLast();
+        var values=new JsonObject();var array=new com.google.gson.JsonArray();colors.forEach(array::add);values.add("colors",array);preset("recentColors","Palette",values);
+    }
+    public synchronized boolean favorite(String group,String name){var entry=preset("favorites:"+group,name);return entry!=null&&entry.has("favorite")&&entry.get("favorite").isJsonPrimitive()&&entry.getAsJsonPrimitive("favorite").isBoolean()&&entry.get("favorite").getAsBoolean();}
+    public synchronized void favorite(String group,String name,boolean favorite)throws IOException{var entry=new JsonObject();entry.addProperty("favorite",favorite);preset("favorites:"+group,name,entry);}
+
     public synchronized void removePreset(String group,String name) throws IOException {group(group).remove(name);save();}
 
     public synchronized void preset(String group, String name, JsonObject settings) throws IOException {
@@ -122,10 +133,10 @@ public final class StudioLibrary {
     }
 
     public synchronized JsonObject preset(String group, String name) {
-        return group(group).has(name) ? group(group).getAsJsonObject(name).deepCopy() : null;
+        var value=group(group).get(name);return value!=null&&value.isJsonObject()?value.getAsJsonObject().deepCopy():null;
     }
 
-    public synchronized List<String> presets(String group) { return List.copyOf(group(group).keySet()); }
+    public synchronized List<String> presets(String group) { return group(group).entrySet().stream().filter(e->e.getValue().isJsonObject()).map(java.util.Map.Entry::getKey).toList(); }
 
     public synchronized String player() { return data.has("player") ? data.get("player").getAsString() : ""; }
     public synchronized void player(String id) throws IOException { data.addProperty("player", id); save(); }

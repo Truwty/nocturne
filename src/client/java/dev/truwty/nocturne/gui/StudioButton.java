@@ -12,6 +12,8 @@ public final class StudioButton extends Button {
     private long lastFrame;
     private StudioButton(int x, int y, int width, int height, Component label, OnPress action) {
         super(x, y, width, height, label, action, DEFAULT_NARRATION);
+        setTooltipDelay(java.time.Duration.ofMillis(450));
+        setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Enter / A: activate · Tab / D-pad: focus · Esc / B: back")));
     }
     public static Factory create(Component label, OnPress action) { return new Factory(label, action); }
     public static final class Factory {

@@ -4,6 +4,7 @@ import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.LyricsSettings;
 import dev.truwty.nocturne.gui.Anim;
 import dev.truwty.nocturne.gui.Draw;
+import dev.truwty.nocturne.gui.HudLayouts;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.api.EnvType;
@@ -35,8 +36,8 @@ public final class LyricsHud {
       lastNanos = now;
       LyricsSettings mod = NocturneClient.SETTINGS;
       Minecraft mc = Minecraft.getInstance();
-      if (mod != null && mc.player != null) {
-         boolean want = mod.isEnabled() && mod.cinematic.on() && LyricsRenderer.active();
+      if (mod != null && (mc.player != null || LyricsService.INSTANCE.now()!=null)) {
+         boolean want = mc.screen==null && mod.isEnabled() && mod.cinematic.on() && LyricsRenderer.active();
          bars = bars + ((want ? 1.0F : 0.0F) - bars) * (1.0F - (float)Math.exp(-dt * 3.5F));
          if (bars < 0.003F) {
             bars = 0.0F;
@@ -61,7 +62,7 @@ public final class LyricsHud {
                int col = mod.color.argb();
                String info = "♪ " + np.title() + "  ·  " + np.artist();
                info = Draw.trim(f, info, sw - 120);
-               long pos = Math.min(np.durationMs(), LyricsRenderer.clockMs());
+               long pos = Math.min(np.durationMs(), hudClock());
                String times = np.durationMs() > 0L ? " " + mmss(pos) + " / " + mmss(np.durationMs()) : "";
                int tw = Draw.width(f, info) + Draw.width(f, times);
                float ty = (h - 8) / 2.0F;
@@ -75,14 +76,16 @@ public final class LyricsHud {
             }
          }
 
-         karaokeBar(g, mc, mod, dt, sw, bars > 0.0F ? Math.round(Math.min(sh * 0.075F, 26.0F) * Anim.easeInOutCubic(bars)) : 0);
+         if(HudLayouts.current().node("Karaoke").visible())try(var scope=HudLayouts.begin(g,"Karaoke",sw,sh,Math.min(sw-16,370),32)) {
+            karaokeBar(g,mc,mod,dt,Math.min(sw-16,370),0);
+         }
          extras(g,mc,mod,sw,sh);
          float flash = LyricsRenderer.flash();
-         if (flash > 0.01F && mod.isEnabled()) {
+         if (mc.screen==null && flash > 0.01F && mod.isEnabled()) {
             g.fill(0, 0, sw, sh, Draw.alpha(-1, Math.min(0.12F, flash * 0.07F)));
          }
 
-         if (mod.debug.on()) {
+         if (mod.debug.on() && HudLayouts.current().node("Diagnostics").visible()) {
             debugPanel(g, mc.font, sw, sh);
          }
       }
@@ -105,8 +108,9 @@ public final class LyricsHud {
 
       int lineH = 10;
       int h = 18 + out.size() * lineH + 14;
-      float x0 = 6.0F;
-      float y0 = Math.min(34, Math.max(4, sh - h - 4));
+      try(var scope=HudLayouts.begin(g,"Diagnostics",sw,sh,w,h)) {
+      float x0 = 0.0F;
+      float y0 = 0.0F;
       Draw.roundF(g, x0, y0, w, h, 6.0F, -536147948);
       Draw.text(g, f, "Nocturne debug", x0 + 8.0F, y0 + 6.0F, -3561729, false);
       float y = y0 + 19.0F;
@@ -130,7 +134,8 @@ public final class LyricsHud {
          y += lineH;
       }
 
-      Draw.text(g, f, "Copy all of it: K -> Copy debug info", x0 + 8.0F, y + 3.0F, -9475459, false);
+      Draw.text(g, f, "Copy all of it: N -> Health -> Copy diagnostics", x0 + 8.0F, y + 3.0F, -9475459, false);
+      }
    }
 
    private static void karaokeBar(GuiGraphicsExtractor g, Minecraft mc, LyricsSettings mod, float dt, int sw, int top) {
@@ -155,7 +160,7 @@ public final class LyricsHud {
          float y0 = top + 5 - (1.0F - a) * 8.0F;
          Draw.roundF(g, x0, y0, w, h, 8.0F, Draw.alpha(-535688164, a));
          Draw.roundOutlineF(g, x0, y0, w, h, 8.0F, 1.0F, Draw.alpha(accent, 0.35F * a));
-         long pos = LyricsRenderer.clockMs();
+         long pos = hudClock();
          Draw.textRight(g, f, mmss(pos), x0 - 6.0F, y0 + 4.0F, Draw.alpha(-1, 0.8F * a), true);
          float spin = (float)(System.nanoTime() / 1.0E9 * (np.playing() ? 3 : 0));
          Draw.circle(g, x0 + 9.0F, y0 + h / 2.0F, 4.5F, Draw.alpha(accent, a));
@@ -249,21 +254,32 @@ public final class LyricsHud {
       }
    }
 
+   private static long hudClock(){
+      var mc=Minecraft.getInstance();var track=LyricsService.INSTANCE.now();
+      return mc.player!=null?LyricsRenderer.clockMs():track==null?0:Math.max(0,track.positionMs()+Math.round(NocturneClient.SETTINGS.offset.get()+dev.truwty.nocturne.Studio.songOffset(track)));
+   }
    private static void extras(GuiGraphicsExtractor g,Minecraft mc,LyricsSettings mod,int sw,int sh) {
       Lyrics lyrics=LyricsService.INSTANCE.lyrics();if(!mod.isEnabled()||lyrics==null)return;
-      long clock=LyricsRenderer.clockMs();int index=lyrics.indexAt(clock);int y=sh-52;
+      long clock=hudClock();int index=lyrics.indexAt(clock);var lines=new java.util.ArrayList<String>();
       if(index>=0 && index<lyrics.lines.size() && clock<lyrics.lines.get(index).end()) {
          var line=lyrics.lines.get(index);
-         if(mod.translation.on()&&!line.translation().isBlank()) {center(g,mc.font,line.translation(),sw,y,mod.uiText.argb());y+=12;}
-         if(mod.romanization.on()&&!line.romanization().isBlank())center(g,mc.font,line.romanization(),sw,y,Draw.alpha(mod.uiText.argb(),.7f));
+         if(mod.translation.on()&&!line.translation().isBlank())lines.add(line.translation());
+         if(mod.romanization.on()&&!line.romanization().isBlank())lines.add(line.romanization());
       }
+      block(g,mc.font,"Secondary",lines,sw,sh,mod.uiText.argb());
       long next=lyrics.nextVocal(clock);
-      if(mod.vocalCountdown.on()&&next>clock+999)center(g,mc.font,"Vocals in "+mmss(next-clock),sw,sh-72,mod.uiAccent.argb());
-      if(mod.lyricConfidence.on())center(g,mc.font,lyrics.confidence(),sw,sh-19,Draw.alpha(mod.uiText.argb(),.55f));
+      if(mod.vocalCountdown.on()&&next>clock+999)block(g,mc.font,"Countdown",List.of("Vocals in "+mmss(next-clock)),sw,sh,mod.uiAccent.argb());
+      if(mod.lyricConfidence.on())block(g,mc.font,"Confidence",List.of(lyrics.confidence()),sw,sh,Draw.alpha(mod.uiText.argb(),.65f));
    }
-   private static void center(GuiGraphicsExtractor g,Font font,String value,int sw,int y,int color) {
-      var text=LyricText.visual(Draw.lyric(value,false,NocturneClient.SETTINGS.lyricFont.get()));
-      int max=sw-24;g.enableScissor(12,y,sw-12,y+11);g.text(font,text,Math.max(12,(sw-font.width(text))/2),y,color,true);g.disableScissor();
+   private static void block(GuiGraphicsExtractor g,Font font,String id,List<String> lines,int sw,int sh,int color) {
+      if(lines.isEmpty()||!HudLayouts.current().node(id).visible())return;
+      var sequences=lines.stream().map(value->LyricText.visual(Draw.lyric(value,false,NocturneClient.SETTINGS.lyricFont.get()))).toList();
+      int width=Math.min(sw-16,sequences.stream().mapToInt(font::width).max().orElse(1)+4),height=lines.size()*12;
+      try(var scope=HudLayouts.begin(g,id,sw,sh,width,height)) {
+         g.enableScissor(0,0,width,height);
+         for(int i=0;i<sequences.size();i++){var text=sequences.get(i);g.text(font,text,(width-font.width(text))/2,i*12,i==0?color:Draw.alpha(color,.7f),true);}
+         g.disableScissor();
+      }
    }
    private static String mmss(long ms) {
       long s = ms / 1000L;

@@ -54,22 +54,38 @@ public final class Studio {
     public static void apply(String group, JsonObject values) { apply(group,values,true); }
     public static void adoptPlacement() { placement=NocturneClient.SETTINGS.follow.get(); }
     public static void apply(String group, JsonObject values, boolean persist) {
-        if (values == null) throw new IllegalArgumentException("Preset not found");
-        for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
-            if (!included(group, setting.name) || !values.has(setting.name)) continue;
-            var value = values.get(setting.name);
-            if (!value.isJsonPrimitive()) throw new IllegalArgumentException("Invalid preset value: " + setting.name);
-            if (setting instanceof dev.truwty.nocturne.setting.NumberSetting number) {
-                double n = value.getAsDouble();
-                if (!Double.isFinite(n) || n < number.min || n > number.max) throw new IllegalArgumentException("Out of range: " + setting.name);
-            } else if (setting instanceof dev.truwty.nocturne.setting.ColorSetting && !value.getAsString().matches("#[0-9a-fA-F]{8}")) throw new IllegalArgumentException("Invalid colour: " + setting.name);
-            else if (setting instanceof dev.truwty.nocturne.setting.ModeSetting mode && !mode.options.contains(value.getAsString())) throw new IllegalArgumentException("Unknown mode: " + setting.name);
-        }
+        validate(group, values);
         for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
             if (included(group, setting.name) && values.has(setting.name)) setting.load(values.get(setting.name));
         }
         if(persist) NocturneClient.SETTINGS.save();
     }
+
+    public static void validate(String group, JsonObject values) {
+        if (values == null) throw new IllegalArgumentException("Preset not found");
+        for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
+            if (!included(group, setting.name) || !values.has(setting.name)) continue;
+            var value = values.get(setting.name);
+            if (!value.isJsonPrimitive()) throw new IllegalArgumentException("Invalid preset value: " + setting.name);
+            if (setting instanceof dev.truwty.nocturne.setting.BoolSetting && !value.getAsJsonPrimitive().isBoolean())throw new IllegalArgumentException("Expected boolean: "+setting.name);
+            if (setting instanceof dev.truwty.nocturne.setting.NumberSetting number) {
+                if(!value.getAsJsonPrimitive().isNumber())throw new IllegalArgumentException("Expected number: "+setting.name);
+                double n = value.getAsDouble();
+                if (!Double.isFinite(n) || n < number.min || n > number.max) throw new IllegalArgumentException("Out of range: " + setting.name);
+            } else if (setting instanceof dev.truwty.nocturne.setting.ColorSetting && !value.getAsString().matches("#[0-9a-fA-F]{8}")) throw new IllegalArgumentException("Invalid colour: " + setting.name);
+            else if (setting instanceof dev.truwty.nocturne.setting.ModeSetting mode && !mode.options.contains(value.getAsString())) throw new IllegalArgumentException("Unknown mode: " + setting.name);
+        }
+    }
+    public static JsonObject defaults(String group) {
+        var result=new JsonObject();
+        for(var setting:NocturneClient.SETTINGS.settings)if(included(group,setting.name)) {
+            if(setting instanceof dev.truwty.nocturne.setting.ColorSetting)result.addProperty(setting.name,String.format("#%08X",setting.defaultValue));
+            else if(setting instanceof dev.truwty.nocturne.setting.ModeSetting mode)result.addProperty(setting.name,mode.options.get((Integer)setting.defaultValue));
+            else result.add(setting.name,new com.google.gson.Gson().toJsonTree(setting.defaultValue));
+        }
+        return result;
+    }
+    public static boolean accepts(String group,String name) {return included(group,name);}
 
     private static boolean included(String group, String name) {
         if(group.equals("song")) return name.startsWith("Editor ") || java.util.Set.of(

@@ -13,7 +13,7 @@ Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + 
 ## Install
 
 1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Replace older Nocturne JARs with `nocturne-0.8.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-0.9.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
@@ -44,7 +44,7 @@ The player page shows the lyric lookup status. Search alternatives or import a l
 
 ## Studio
 
-The seven tabs bring playback, lyric correction and visual editing into one interface. Small windows use scrolling; the coloured scrollbar and Scroll hint indicate additional controls. Advanced settings opens the Glass or classic settings interface. Buttons and sliders follow the selected theme, with keyboard focus and reduced-motion support.
+The seven tabs bring playback, lyric correction and visual editing into one interface. Small windows use scrolling; the coloured scrollbar and Scroll hint indicate additional controls. Search settings opens the complete settings catalog with category filters and search across names, categories and descriptions. Buttons and sliders use native Minecraft focus, narration and tooltips, with reduced-motion support.
 
 ### Player and apps
 
@@ -83,15 +83,41 @@ Text uses bidirectional shaping independently of Minecraft's UI language. The Un
 
 Edited documents and secondary layers survive restarts under the hashed song identifier in `config/nocturne/lyrics`. **Use automatic lyrics again** clears the primary manual override but retains optional language sidecars. Closing the workspace does not auto-save timing edits: use **Save lyrics** first.
 
-### Theme editor
+### Theme preview and full color picker
 
-Set background, accent and text using `#RRGGBB` fields. Adjust opacity, row spacing and interface font. Changes apply immediately, including to the Glass settings interface. Name a preset to save/load it; saved names are listed below. **Copy JSON / Paste JSON** shares themes through the clipboard. Imports validate colour, mode and numeric ranges before applying changes.
+**N → Theme → Live theme editor** opens a draft. Background, accent, text, opacity, spacing and font are shown in a live sample; the applied theme and saved settings remain unchanged until **Apply theme**. **Cancel** discards the draft. Midnight, Lagoon and Ember buttons also open previews before applying.
 
-### Placement editor
+![Live theme preview](docs/interface-theme.png)
 
-Choose one of seven placement modes, then **Edit in world**. Drag to move, rotate or resize; right-drag adjusts roll; the mouse wheel adjusts distance. Real lyrics remain visible behind the editor. Save or Escape retains the edit. Join a world and start music/the visual demo for a live preview.
+[Color picker screenshot](docs/interface-picker.png). Each color opens a saturation/brightness square, hue, saturation, brightness and opacity sliders, an alpha checkerboard and validated **#RRGGBB / #AARRGGBB** input. **Read hex** previews entered text; **Use color** returns it to the theme draft. The twelve most recent distinct colors persist across launches. All channels also have keyboard/controller-accessible sliders. The hue control uses degrees; opacity and other channels use percentages.
 
-Each placement mode maintains its own active transform profile. Named profiles and clipboard JSON provide additional save/share slots for that mode. Line anchors, edited transforms and rotations blend using frame-rate-independent smoothing. Transition duration is configurable.
+Draft **Undo/Redo** and **Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z** retain up to 60 changes. Applied themes have separate Undo theme / Redo theme controls on the Theme tab. Theme preview renders a sample rather than temporarily replacing global settings, so unrelated saves cannot persist an uncommitted preview.
+
+### Search and preset browser
+
+**Search settings** is always available in Studio's footer. Search by name, category or description, then filter by Lyrics & playback, Appearance, Placement, Motion & performance or Interface. Six results per page keep controls accessible. UI theme rows open the draft preview; numeric settings use sliders, colors open the picker, and toggles/modes/actions use native buttons. Hover or focus a control for its description and range.
+
+Theme, placement and HUD preset browsers provide name search, visual previews, persistent favorites, Save current, clipboard JSON import/export and Reset preview. **Apply preset** is separate from selection/import/reset. Imports are limited to 64 KiB and validate schema, category, value types, modes, ranges and colors before changing settings. Placement previews are schematic; the world editor provides the live game preview. Built-in palettes remain available without creating a named preset.
+
+### World placement and HUD layouts
+
+**N → Place → Edit in world** edits the world lyric transform. Drag to move, rotate or resize; right-drag changes roll and the wheel changes distance. Mouse drags are single undoable operations. Use the native Undo/Redo buttons or Ctrl+Z / Ctrl+Y. Alt+arrows or the controller's right stick nudge the selected transform mode. Each placement mode retains its own active transform profile; preset browsers provide additional named/shared slots.
+
+**N → Place → Drag HUD / gameplay & menu layouts** edits the karaoke/player bar, secondary language lines, vocal countdown, confidence and diagnostics. Drag a widget, toggle its visibility, change its scale, or align it to safe edges and the screen center. Snapping uses an 8-pixel grid plus screen/neighbor edges and centers, with live alignment guides. Elements are clamped to an 8-pixel safe margin and fit the viewport at different GUI scales. Dynamic text widths can change the box size while retaining its saved center.
+
+**H / Hide controls** temporarily hides the editor panels so elements underneath them can be dragged. **Alt+arrows** nudge by a pixel; Shift increases the step to ten pixels. The right stick also nudges the selected widget. Undo/Redo, Reset, visibility and scaling edit the draft; **Save layouts** saves both layout contexts. Cancel/Escape discards unsaved drafts.
+
+Gameplay and Menu layouts keep independent positions, scales, visibility and undo histories. Gameplay is used with no open screen; Menu is used whenever a screen is open, including the main menu when desktop metadata is available. Menu widgets default to hidden. Feature switches such as Karaoke bar, Show translation and Debug overlay still control whether content is available. The cinematic letterbox remains a full-screen decoration, and world/projected lyric placement remains in the separate world editor.
+
+HUD presets have an explicit **Target: Gameplay / Menu** control. Applying a preset from inside the HUD editor updates its draft; Save layouts is still required. Presets opened directly from Studio apply to the selected saved context. Recent colors, favorites, presets and layouts are stored under their own groups in `config/nocturne/library.json`.
+
+### Keyboard and controller navigation
+
+Tab / Shift+Tab moves native focus; Enter/Space activates buttons. Arrow keys adjust focused sliders; Enter toggles slider editing. Page Up/Down or scrolling reaches additional controls at small GUI scales. New editor buttons and sliders include hover/focus tooltips. Theme and placement history shortcuts avoid stealing text-field input.
+
+Nocturne includes navigation for [GLFW standard gamepads](https://www.glfw.org/docs/latest/input_guide.html#gamepad): D-pad up/down or the left stick moves focus; left/right adjusts/navigates; A activates, B goes back, bumpers scroll, X undoes and Y redoes. The right stick nudges HUD/world placement in the corresponding editor. Input is limited to Nocturne screens and has dead zones, repeat delays and screen-transition suppression. **Controller navigation** can be disabled in Theme/search. Native polling yields to Controlify or MidnightControls when installed to avoid duplicate input; those mods can also provide text entry. The built-in navigation does not add an on-screen keyboard or control Minecraft gameplay.
+
+Controller action dispatch/repeat behavior is automated-tested. Physical gamepad hardware has not been validated locally; mapping availability depends on the device, OS and GLFW mapping database.
 
 ### Motion, performance and accessibility
 

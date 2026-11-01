@@ -68,6 +68,7 @@ public class NocturneClient implements ClientModInitializer {
       }
 
       LyricsService.INSTANCE.system.audio(SETTINGS.audioReactive.on() && !SETTINGS.reducedMotion.on());
+      dev.truwty.nocturne.gui.StudioController.tick(mc);
       Studio.tick();
       SETTINGS.tickPreset();
       SongAppearance.tick();

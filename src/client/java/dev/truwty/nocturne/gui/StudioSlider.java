@@ -7,7 +7,7 @@ import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.network.chat.Component;
 
 public abstract class StudioSlider extends AbstractSliderButton {
-    protected StudioSlider(int x,int y,int width,int height,Component label,double value) { super(x,y,width,height,label,value); }
+    protected StudioSlider(int x,int y,int width,int height,Component label,double value) { super(x,y,width,height,label,value);setTooltipDelay(java.time.Duration.ofMillis(450));setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Enter / A: edit slider · Left/right: adjust · Tab / D-pad: next control"))); }
     @Override public void extractWidgetRenderState(GuiGraphicsExtractor g,int mx,int my,float delta) {
         var s=NocturneClient.SETTINGS;
         int text=Draw.alpha(s.uiText.argb(),active ? 1 : .35f);

@@ -137,7 +137,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.waitTicks(3);
                 takeShot(context, "nocturne-studio-" + page);
             }
-            context.runOnClient(mc -> {mc.getWindow().setWindowed(1280,960);mc.options.guiScale().set(2);mc.resizeGui();});
+            context.getInput().resizeWindow(1280,960);context.runOnClient(mc -> {mc.options.guiScale().set(2);mc.resizeGui();});
             context.runOnClient(mc -> {
                 var primary=Lyrics.parse("[00:01]<00:01>مرحبا <00:02>بالعالم<00:03>\n[00:04]\n[00:08]<00:08>שלום <00:09>עולם<00:10>\n[00:12]")
                     .secondary(Lyrics.parse("[00:01]Hello world\n[00:08]こんにちは世界"),Lyrics.parse("[00:01]marhaban bilalam"));
@@ -192,8 +192,11 @@ public final class PortClientTest implements FabricClientGameTest {
                     throw new AssertionError("Visibility recovery was not persisted through placement profile switching");
             });
             context.setScreen(() -> new StudioScreen(null, 3));
-            context.clickScreenButton("Lagoon"); context.waitTicks(3); takeShot(context, "nocturne-lagoon-theme");
+            context.clickScreenButton("Lagoon");
+            context.runOnClient(mc->{if(NocturneClient.SETTINGS.uiAccent.argb()==0xFF62E9D0)throw new AssertionError("Theme preview changed applied settings before Apply");});
+            takeShot(context,"nocturne-theme-preview");context.clickScreenButton("Apply theme");context.waitTicks(3);takeShot(context,"nocturne-lagoon-theme");
             context.runOnClient(mc -> { if (NocturneClient.SETTINGS.uiAccent.argb()!=0xFF62E9D0) throw new AssertionError("Theme shortcut did not apply"); });
+            interfaceChecks(context);
             context.setScreen(() -> new PlacementScreen(null));
             context.waitTicks(3);
             context.runOnClient(mc -> {
@@ -205,6 +208,9 @@ public final class PortClientTest implements FabricClientGameTest {
                 editor.mouseClicked(event, false); editor.mouseDragged(event, 25, -20); editor.mouseReleased(event);
                 if (settings.editorX.get() <= before) throw new AssertionError("Placement drag did not move lyrics");
             });
+            double dragged=context.computeOnClient(mc->NocturneClient.SETTINGS.editorX.get());
+            context.clickScreenButton("Undo");context.runOnClient(mc->{if(NocturneClient.SETTINGS.editorX.get()>=dragged)throw new AssertionError("Placement undo did not restore pre-drag transform");});
+            context.clickScreenButton("Redo");context.runOnClient(mc->{if(NocturneClient.SETTINGS.editorX.get()!=dragged)throw new AssertionError("Placement redo failed");});
             context.clickScreenButton("Rotate");
             context.runOnClient(mc -> {
                 var editor = mc.screen;
@@ -223,7 +229,7 @@ public final class PortClientTest implements FabricClientGameTest {
             });
             context.clickScreenButton("Reset");
             takeShot(context, "nocturne-placement-editor");
-            context.runOnClient(mc -> { mc.getWindow().setWindowed(640, 480); mc.options.guiScale().set(2); mc.resizeGui(); });
+            context.getInput().resizeWindow(640,480);context.runOnClient(mc -> { mc.options.guiScale().set(2); mc.resizeGui(); });
             context.waitTicks(10);
             for (int tab = 0; tab < 7; tab++) {
                 int page = tab;
@@ -237,12 +243,17 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc -> ScreenBounds.assertVisibleWidgetsFit(mc.screen));
             }
             takeShot(context, "nocturne-small-window");
-            context.runOnClient(mc -> { mc.getWindow().setWindowed(854, 480); mc.options.guiScale().set(1); mc.resizeGui(); });
+            context.getInput().resizeWindow(854,480);context.runOnClient(mc -> { mc.options.guiScale().set(1); mc.resizeGui(); });
             context.setScreen(() -> null);
             for(int guiScale:new int[]{1,2,3,4}) {
-                context.runOnClient(mc->{mc.getWindow().setWindowed(1280,960);mc.options.guiScale().set(guiScale);mc.resizeGui();});
+                context.getInput().resizeWindow(1280,960);context.runOnClient(mc->{mc.options.guiScale().set(guiScale);mc.resizeGui();});
                 context.setScreen(()->new StudioScreen(null,0));context.waitTicks(3);
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
+                    ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
+                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null))) {
+                    context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
+                }
                 for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
                     context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));
                     if(!tab.equals("History"))context.clickScreenButton(tab);
@@ -264,7 +275,54 @@ public final class PortClientTest implements FabricClientGameTest {
         }
     }
 
+    private static void interfaceChecks(ClientGameTestContext context) {
+        context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
+        context.setScreen(()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null));
+        int applied=context.computeOnClient(mc->NocturneClient.SETTINGS.uiAccent.argb());
+        context.clickScreenButton("Accent");
+        context.runOnClient(mc->{for(var child:mc.screen.children())if(child instanceof net.minecraft.client.gui.components.EditBox field){field.setValue("#8062E9D0");break;}});
+        context.clickScreenButton("Read hex");takeShot(context,"nocturne-color-picker");context.clickScreenButton("Use color");
+        context.runOnClient(mc->{if(NocturneClient.SETTINGS.uiAccent.argb()!=applied)throw new AssertionError("Color preview mutated global theme");});
+        context.clickScreenButton("Undo");context.clickScreenButton("Redo");context.clickScreenButton("Cancel");
+        context.runOnClient(mc->{if(NocturneClient.SETTINGS.uiAccent.argb()!=applied)throw new AssertionError("Theme cancel changed applied color");});
+        context.setScreen(()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"));
+        takeShot(context,"nocturne-preset-browser");context.clickScreenButton("Apply preset");
+        context.runOnClient(mc->{dev.truwty.nocturne.gui.StudioEdits.undo("themes");if(NocturneClient.SETTINGS.uiAccent.argb()!=applied)throw new AssertionError("Applied theme undo failed");dev.truwty.nocturne.gui.StudioEdits.redo("themes");dev.truwty.nocturne.gui.StudioEdits.undo("themes");
+            String exported=dev.truwty.nocturne.gui.PresetCodec.encode("themes","Test",Studio.snapshot("themes"));mc.keyboardHandler.setClipboard(exported);
+        });
+        context.runOnClient(mc->mc.screen.mouseScrolled(100,100,0,-12));context.clickScreenButton("Import JSON");context.clickScreenButton("Apply preset");
+        int background=context.computeOnClient(mc->NocturneClient.SETTINGS.uiBackground.argb());
+        context.runOnClient(mc->mc.keyboardHandler.setClipboard("{\"UI accent\":\"#FFAABBCC\"}"));
+        context.clickScreenButton("Import JSON");context.waitTicks(2);context.clickScreenButton("Apply preset");
+        context.runOnClient(mc->{if(NocturneClient.SETTINGS.uiAccent.argb()!=0xffaabbcc||NocturneClient.SETTINGS.uiBackground.argb()!=background)throw new AssertionError("Partial theme import lost other applied values");dev.truwty.nocturne.gui.StudioEdits.undo("themes");});
+        context.setScreen(()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null));
+        context.runOnClient(mc->{for(var child:mc.screen.children())if(child instanceof net.minecraft.client.gui.components.EditBox field){field.setValue("Distance");break;}});
+        context.waitTicks(3);takeShot(context,"nocturne-settings-search");
+        context.runOnClient(mc->{boolean found=mc.screen.children().stream().anyMatch(child->child instanceof net.minecraft.client.gui.components.AbstractWidget widget&&widget.getMessage().getString().startsWith("Distance:"));if(!found)throw new AssertionError("Settings search lost numeric setting");
+            mc.screen.setFocused((net.minecraft.client.gui.components.events.GuiEventListener)null);
+            dev.truwty.nocturne.gui.StudioController.dispatch(mc.screen,dev.truwty.nocturne.gui.ControllerRepeater.Action.NEXT);
+            if(mc.screen.getFocused()==null)throw new AssertionError("Controller navigation did not focus a native control");
+            dev.truwty.nocturne.gui.StudioController.dispatch(mc.screen,dev.truwty.nocturne.gui.ControllerRepeater.Action.NEXT);
+            dev.truwty.nocturne.gui.StudioController.dispatch(mc.screen,dev.truwty.nocturne.gui.ControllerRepeater.Action.ACCEPT);
+            if(mc.screen.children().stream().noneMatch(child->child instanceof net.minecraft.client.gui.components.AbstractWidget widget&&widget.getMessage().getString().equals("Lyrics & playback")))throw new AssertionError("Controller accept did not activate category filter");
+        });
+        context.setScreen(()->new dev.truwty.nocturne.gui.HudEditorScreen(null));context.clickScreenButton("Hide controls");
+        var initial=context.computeOnClient(mc->dev.truwty.nocturne.gui.HudLayouts.load("Gameplay").node("Karaoke"));
+        context.runOnClient(mc->{var screen=mc.screen;var box=initial.box(screen.width,screen.height,Math.min(screen.width-16,370),30);
+            var down=new net.minecraft.client.input.MouseButtonEvent(box.centerX(),box.centerY(),new net.minecraft.client.input.MouseButtonInfo(0,0));
+            var drag=new net.minecraft.client.input.MouseButtonEvent(box.centerX()-40,box.centerY()+120,new net.minecraft.client.input.MouseButtonInfo(0,0));
+            screen.mouseClicked(down,false);screen.mouseDragged(drag,-40,120);screen.mouseReleased(drag);
+        });
+        takeShot(context,"nocturne-hud-editor");context.clickScreenButton("Show controls");context.clickScreenButton("Undo");context.clickScreenButton("Redo");
+        context.clickScreenButton("Gameplay");context.clickScreenButton("Hidden");context.clickScreenButton("Save layouts");
+        context.runOnClient(mc->{var game=dev.truwty.nocturne.gui.HudLayouts.load("Gameplay").node("Karaoke");var menu=dev.truwty.nocturne.gui.HudLayouts.load("Menu").node("Karaoke");if(game.equals(initial))throw new AssertionError("HUD drag did not save");if(!menu.visible()||menu.x()!=.5)throw new AssertionError("Separate menu HUD layout did not save independently");});
+        context.setScreen(()->null);context.waitTicks(5);takeShot(context,"nocturne-moved-hud");
+        NocturneClient.LOG.info("INTERFACE TEST PASSED: theme preview/cancel/apply, picker hex/alpha, history, presets import/export, search, controller focus, HUD drag/snap/layout isolation");
+    }
+
     private static void takeShot(ClientGameTestContext context, String name) {
+        context.getInput().setCursorPos(0,0);
+        context.waitTicks(4);
         var loader = net.fabricmc.loader.api.FabricLoader.getInstance();
         if (loader.isModLoaded("sodium")) {
             // Fabric's screenshot utility re-renders outside Sodium's normal uniform lifecycle.

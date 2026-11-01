@@ -58,7 +58,7 @@ public final class StudioScreen extends Screen {
         for (var child : children().subList(contentStart, children().size())) {
             if (child instanceof net.minecraft.client.gui.components.AbstractWidget widget) widget.visible = widget.getY() >= y + 68 && widget.getY() + widget.getHeight() <= y + h - 48;
         }
-        button(x + 12, y + h - 29, 120, "Advanced settings", () -> minecraft.setScreen(s().guiStyle.get() == 1 ? new GlassLyricsScreen(this) : new LyricsScreen(this)));
+        button(x + 12, y + h - 29, 120, "Search settings", () -> minecraft.setScreen(new SettingsSearchScreen(this)));
         button(x + w - 76, y + h - 29, 64, "Done", this::onClose);
         recovery=null;
         if (page == 1) button(x + 140, y + h - 29, Math.max(40,w - 224), "Lyric workspace", () -> minecraft.setScreen(new LyricWorkspaceScreen(this)));
@@ -159,40 +159,24 @@ public final class StudioScreen extends Screen {
     private void select(String id) { io(() -> { Studio.library().player(id); service().system.select(id); rebuildWidgets(); }); }
 
     private void theme() {
-        var colours = List.of(s().uiBackground, s().uiAccent, s().uiText);
-        int cw = (w - 40) / 3;
-        for (int i = 0; i < colours.size(); i++) {
-            var colour = colours.get(i); int bx = x + 16 + i * (cw + 4);
-            EditBox box = new EditBox(font, bx, row + 12, cw, 20, Component.literal(colour.name));
-            box.setMaxLength(9); box.setValue(String.format("#%06X", colour.argb() & 0xFFFFFF));
-            box.setResponder(value -> { if (value.matches("#[0-9a-fA-F]{6}")) { colour.set(0xFF000000 | Integer.parseInt(value.substring(1), 16)); s().save(); } }); addRenderableWidget(box);
-        }
-        row += 42;
-        int paletteWidth = (w - 40) / 3;
-        String[] labels = {"Midnight", "Lagoon", "Ember"};
-        int[] backgrounds = {0xFF100E18, 0xFF0A191D, 0xFF211411};
-        int[] accents = {0xFFB77FFF, 0xFF62E9D0, 0xFFFFAC77};
-        for (int i=0;i<3;i++) { int palette=i;
-            button(x+16+i*(paletteWidth+4),row,paletteWidth,labels[i],()-> {
-                s().uiBackground.set(backgrounds[palette]); s().uiAccent.set(accents[palette]); s().uiText.set(0xFFF0EEF5); s().save(); rebuildWidgets();
-            });
-        }
-        row += 24; number(s().uiOpacity); number(s().uiSpacing); mode(s().uiFont);
-        presets("themes");
-    }
-    private void presets(String group) {
-        name = field(row, w - 180, "Preset name"); name.setMaxLength(48); name.setValue(presetValue); name.setResponder(value -> presetValue = value); row += 24;
-        int presetWidth = (w - 44) / 4;
-        button(x + 16, row, presetWidth, "Save preset", () -> io(() -> Studio.library().preset(group, name.getValue(), Studio.snapshot(group))));
-        button(x + 20 + presetWidth, row, presetWidth, "Load preset", () -> { Studio.apply(group, Studio.library().preset(group, name.getValue())); rebuildWidgets(); });
-        button(x + 24 + presetWidth * 2, row, presetWidth, "Copy JSON", () -> { minecraft.keyboardHandler.setClipboard(Studio.snapshot(group).toString()); notice = "Preset copied"; });
-        button(x + 28 + presetWidth * 3, row, presetWidth, "Paste JSON", () -> { String json = minecraft.keyboardHandler.getClipboard(); if (json.length() > 16384) throw new IllegalArgumentException("Preset too large"); Studio.apply(group, JsonParser.parseString(json).getAsJsonObject()); rebuildWidgets(); });
+        button(x+16,row,w-32,"Live theme editor",()->minecraft.setScreen(new ThemeEditorScreen(this)));row+=26;
+        int paletteWidth=(w-40)/3;String[] palettes={"Midnight","Lagoon","Ember"};
+        for(int i=0;i<palettes.length;i++){String palette=palettes[i];button(x+16+i*(paletteWidth+4),row,paletteWidth,palette,()->minecraft.setScreen(new ThemeEditorScreen(this,PresetBrowserScreen.palette(palette))));}row+=26;
+        button(x+16,row,(w-36)/2,"Undo theme",()->{StudioEdits.undo("themes");rebuildWidgets();});
+        button(x+20+(w-36)/2,row,(w-36)/2,"Redo theme",()->{StudioEdits.redo("themes");rebuildWidgets();});row+=26;
+        button(x+16,row,w-32,"Browse theme presets",()->minecraft.setScreen(new PresetBrowserScreen(this,"themes")));row+=26;
+        button(x+16,row,w-32,"Search interface settings",()->minecraft.setScreen(new SettingsSearchScreen(this)));row+=26;
+        toggle(s().controllerNavigation);
     }
     private void placement() {
         mode(s().follow);
-        button(x + 16, row, w - 32, "Edit in world: drag, rotate and resize", () -> minecraft.setScreen(new PlacementScreen(this))); row += 27;
-        number(s().distance); number(s().size);
-        presets("placement:" + s().follow.get());
+        button(x+16,row,w-32,"Edit in world: drag, rotate and resize",()->minecraft.setScreen(new PlacementScreen(this)));row+=24;
+        button(x+16,row,w-32,"Drag HUD / gameplay & menu layouts",()->minecraft.setScreen(new HudEditorScreen(this)));row+=27;
+        number(s().distance);number(s().size);
+        button(x+16,row,(w-36)/2,"Undo placement",()->StudioEdits.undo("placement"));
+        button(x+20+(w-36)/2,row,(w-36)/2,"Redo placement",()->StudioEdits.redo("placement"));row+=24;
+        button(x+16,row,w-32,"Browse placement presets",()->minecraft.setScreen(new PresetBrowserScreen(this,"placement:"+s().follow.get())));row+=24;
+        button(x+16,row,w-32,"Browse HUD presets",()->minecraft.setScreen(new PresetBrowserScreen(this,"hudLayouts")));
     }
     private void motion() {
         // Split into compact columns so keyboard-accessible controls remain on screen.
@@ -221,7 +205,7 @@ public final class StudioScreen extends Screen {
     }
     @Override public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) { g.fill(0, 0, width, height, 0x88000000); }
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
-        Draw.round(g, x, y, w, h, 12, Draw.withAlpha(s().uiBackground.argb(), Math.round(s().uiOpacity.f() * 2.55F)));
+        Draw.round(g, x, y, w, h, 12, Draw.alpha(s().uiBackground.argb(), s().uiOpacity.f()/100));
         Draw.text(g, font, "Nocturne", x + 16, y + 13, s().uiText.argb(), 1.25F, false);
         Draw.text(g, font, TABS[page] + " / Studio", x + 112, y + 16, Draw.alpha(s().uiText.argb(), .5f), false);
         Draw.rect(g, x + 16, y + 32, w - 32, 1, Draw.alpha(s().uiAccent.argb(), .3f));
@@ -245,10 +229,6 @@ public final class StudioScreen extends Screen {
         } else if (page == 2) {
             int appY=body+49;
             for(var app:shownPlayers) {text(g,app.diagnostic(),appY);appY+=42;}
-        } else if (page == 3) {
-            Draw.text(g, font, "Background", x + 16, body, s().uiText.argb(), false);
-            Draw.text(g, font, "Accent", x + 16 + (w - 40) / 3 + 4, body, s().uiText.argb(), false);
-            Draw.text(g, font, "Text", x + 16 + 2 * ((w - 40) / 3 + 4), body, s().uiText.argb(), false);
         } else if (page == 5) text(g, service().system.audioStatus() + " · Audio is local; no recording", body + 157);
         else if (page == 6) {
             int line = body;
@@ -261,12 +241,21 @@ public final class StudioScreen extends Screen {
         else if (page == 0) text(g,dev.truwty.nocturne.lyrics.LyricsRecovery.current().summary()+" · "+service().lyricsStatus(),y+h-44);
     }
     private void text(GuiGraphicsExtractor g, String value, int by) { Draw.text(g, font, font.plainSubstrByWidth(value, w - 32), x + 16, by, s().uiText.argb(), false); }
+    @Override public boolean keyPressed(KeyEvent event) {
+        if(event.key()==org.lwjgl.glfw.GLFW.GLFW_KEY_PAGE_UP||event.key()==org.lwjgl.glfw.GLFW.GLFW_KEY_PAGE_DOWN){mouseScrolled(0,0,0,event.key()==org.lwjgl.glfw.GLFW.GLFW_KEY_PAGE_UP?5:-5);return true;}
+        if(!(getFocused() instanceof EditBox)&&(event.modifiers()&org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL)!=0&&(page==3||page==4)){
+            String group=page==3?"themes":"placement";
+            if(event.key()==org.lwjgl.glfw.GLFW.GLFW_KEY_Z){if((event.modifiers()&org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT)!=0)StudioEdits.redo(group);else StudioEdits.undo(group);rebuildWidgets();return true;}
+            if(event.key()==org.lwjgl.glfw.GLFW.GLFW_KEY_Y){StudioEdits.redo(group);rebuildWidgets();return true;}
+        }
+        return super.keyPressed(event);
+    }
     @Override public boolean mouseScrolled(double mx, double my, double sx, double sy) {
         scroll = Math.clamp(scroll - (int)Math.round(sy * 24), 0, maxScroll());
         rebuildWidgets(); return true;
     }
     private int maxScroll() {
-        int contentHeight = page == 2 ? service().system.players().size() * 42 + 60 : page == 0 ? 104 : page == 1 ? 244 : page == 3 || page == 4 ? 224 : 204;
+        int contentHeight = page == 2 ? service().system.players().size() * 42 + 60 : page == 0 ? 104 : page == 1 ? 244 : page == 3 || page == 4 ? 230 : 204;
         return Math.max(0, contentHeight - (h - 116));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); minecraft.setScreen(parent); }

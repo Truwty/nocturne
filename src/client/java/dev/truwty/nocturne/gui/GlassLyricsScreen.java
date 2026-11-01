@@ -149,7 +149,7 @@ public class GlassLyricsScreen extends Screen {
 
    private int theme(int original) {
       return switch (original) {
-         case -536082412 -> Draw.withAlpha(this.s().uiBackground.argb(), Math.round(255 * this.s().uiOpacity.f() / 100));
+         case -536082412 -> Draw.alpha(this.s().uiBackground.argb(), this.s().uiOpacity.f() / 100);
          case -15200218 -> Draw.mix(this.s().uiBackground.argb(), this.s().uiAccent.argb(), 0.12F);
          case -4883457 -> this.s().uiAccent.argb();
          case -988421 -> this.s().uiText.argb();

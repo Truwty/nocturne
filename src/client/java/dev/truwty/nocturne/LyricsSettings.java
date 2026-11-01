@@ -30,6 +30,7 @@ public class LyricsSettings {
    private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("nocturne.json");
    public final List<Setting<?>> settings = new ArrayList<>();
    private boolean enabled = true;
+   public final BoolSetting controllerNavigation = add(new BoolSetting("Controller navigation",true));
    public final BoolSetting translation = add(new BoolSetting("Show translation", false));
    public final BoolSetting romanization = add(new BoolSetting("Show romanization", false));
    public final BoolSetting vocalCountdown = add(new BoolSetting("Vocal countdown", true));

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0-beta.1
+
+- Add non-destructive live theme previews, explicit Apply/Cancel, draft history and applied-theme undo/redo.
+- Add HSVA picker, saturation/value canvas, opacity checkerboard, validated RGB/ARGB hex input and twelve persistent recent colors.
+- Add searchable categorized settings with native controls, range descriptions and focus/hover tooltips.
+- Add preset browsers with schematic/theme/HUD previews, favorites, validated clipboard import/export and reset previews.
+- Add draggable HUD layouts with grid/neighbor snapping, alignment guides, safe margins, scale/visibility and separate gameplay/menu drafts.
+- Add placement drag/reset/wheel history, keyboard nudging and native gamepad navigation through the bundled GLFW API.
+- Render saved HUD placement/scale/visibility in game and menus; preserve global feature toggles and world/projected lyric placement.
+- Test the new models and actual Minecraft UI flows, including controller action dispatch and GUI-scale bounds. No physical controller certification is claimed.
+
+
 ## 0.8.0-beta.1
 
 - Add source word karaoke through safe Lyricsfile 1.0 parsing, Enhanced LRC and provider YRC/KLYRIC. Keep source, mixed, estimated and manually corrected timing distinguishable.
