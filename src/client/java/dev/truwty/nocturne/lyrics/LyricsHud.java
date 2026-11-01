@@ -163,8 +163,10 @@ public final class LyricsHud {
          long pos = hudClock();
          Draw.textRight(g, f, mmss(pos), x0 - 6.0F, y0 + 4.0F, Draw.alpha(-1, 0.8F * a), true);
          float spin = (float)(System.nanoTime() / 1.0E9 * (np.playing() ? 3 : 0));
+         if(!dev.truwty.nocturne.gui.AlbumArtwork.draw(g,(int)x0+2,(int)(y0+h/2)-7,14,a)) {
          Draw.circle(g, x0 + 9.0F, y0 + h / 2.0F, 4.5F, Draw.alpha(accent, a));
          Draw.circle(g, x0 + 9.0F + (float)Math.cos(spin) * 2.2F, y0 + h / 2.0F + (float)Math.sin(spin) * 2.2F, 1.1F, Draw.alpha(-1, 0.9F * a));
+         }
          float beat = LyricsRenderer.beatNow();
          double now = System.nanoTime() / 1.0E9;
 

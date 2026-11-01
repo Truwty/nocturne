@@ -32,13 +32,16 @@ public class NocturneClient implements ClientModInitializer {
    public static final Logger LOG = LoggerFactory.getLogger("Nocturne Lyrics");
    public static LyricsSettings SETTINGS;
    public static KeyMapping OPEN_KEY;
+   private static int playbackTicks;
 
    public void onInitializeClient() {
       SETTINGS = new LyricsSettings();
       SETTINGS.load();
       LyricsService.INSTANCE.system.select(Studio.library().player());
+      dev.truwty.nocturne.playback.Playback.initialize();
       Category category = Category.register(Identifier.fromNamespaceAndPath("nocturne", "main"));
       OPEN_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.open", Type.KEYSYM, 78, category));
+      dev.truwty.nocturne.playback.PlaybackKeys.register(category);
       ClientTickEvents.END_CLIENT_TICK.register(NocturneClient::tick);
       LevelRenderEvents.COLLECT_SUBMITS.register(LyricsRenderer::render);
       HudElementRegistry.addFirst(Identifier.fromNamespaceAndPath("nocturne", "cinema"), LyricsHud::render);
@@ -48,6 +51,8 @@ public class NocturneClient implements ClientModInitializer {
       }
 
       ClientLifecycleEvents.CLIENT_STOPPING.register((ClientStopping)client -> {
+         dev.truwty.nocturne.playback.Playback.close();
+         dev.truwty.nocturne.gui.AlbumArtwork.close();
          SongAppearance.restore();
          LyricsService.INSTANCE.stop();
          SETTINGS.save();
@@ -61,6 +66,8 @@ public class NocturneClient implements ClientModInitializer {
    }
 
    private static void tick(Minecraft mc) {
+      if (!SETTINGS.isEnabled() && ++playbackTicks % 10 == 0) LyricsService.INSTANCE.system.start();
+      dev.truwty.nocturne.playback.PlaybackKeys.tick(mc);
       while (OPEN_KEY.consumeClick()) {
          if (mc.screen == null) {
             mc.setScreen(settingsScreen(null));

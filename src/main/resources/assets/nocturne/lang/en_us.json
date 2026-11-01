@@ -1,4 +1,13 @@
 {
-	"key.category.nocturne.main": "Nocturne",
-	"key.nocturne.open": "Lyrics settings"
+  "key.category.nocturne.main": "Nocturne",
+  "key.nocturne.open": "Lyrics settings",
+  "key.nocturne.toggle": "Play / pause",
+  "key.nocturne.next": "Next track",
+  "key.nocturne.previous": "Previous track",
+  "key.nocturne.seek_back": "Seek back 10 seconds",
+  "key.nocturne.seek_forward": "Seek forward 10 seconds",
+  "key.nocturne.volume_down": "Player volume down 5%",
+  "key.nocturne.volume_up": "Player volume up 5%",
+  "key.nocturne.shuffle": "Toggle shuffle",
+  "key.nocturne.repeat": "Cycle repeat"
 }

@@ -19,6 +19,7 @@ public final class LyricsRecovery {
     public static Diagnosis current() {
         var s=dev.truwty.nocturne.NocturneClient.SETTINGS;
         var svc=LyricsService.INSTANCE;var n=svc.now();var lyrics=svc.lyrics();
+        if(n==null&&dev.truwty.nocturne.playback.PlaybackPreferences.cloud())return new Diagnosis(Action.RECONNECT,"Spotify account playback unavailable",dev.truwty.nocturne.playback.Playback.spotify().status(),"Open Spotify connection");
         boolean rendering=System.nanoTime()-LyricsDebug.lastRender<1_000_000_000L;
         long expected=n==null?0:n.positionMs()+Math.round(s.offset.get()+dev.truwty.nocturne.Studio.songOffset(n));
         int index=lyrics==null?-1:lyrics.indexAt(expected);

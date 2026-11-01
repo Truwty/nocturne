@@ -73,7 +73,7 @@ public final class LyricWorkspaceScreen extends Screen {
             button(x+16,body+164,(w-36)/2,"Word starts at playhead",()->{document.word(line,word,position(),selectedWord().end());rebuildWidgets();});
             button(x+20+(w-36)/2,body+164,(w-36)/2,"Word ends at playhead",()->{document.word(line,word,selectedWord().start(),position());rebuildWidgets();});
         }
-        button(x+16,body+245,w-32,"Seek player to selected line",()->{requireTrack();if(!LyricsService.INSTANCE.system.can("seek")||LyricsService.INSTANCE.demoPlaying())throw new IllegalStateException("This player does not support seeking");LyricsService.INSTANCE.system.command("seek",selected().start());});
+        button(x+16,body+245,w-32,"Seek player to selected line",()->{requireTrack();if(!dev.truwty.nocturne.playback.Playback.can("seek")||LyricsService.INSTANCE.demoPlaying())throw new IllegalStateException("This player does not support seeking");dev.truwty.nocturne.playback.Playback.command("seek",selected().start());});
     }
     private long position(){requireTrack();return LyricsService.INSTANCE.now().positionMs();}
     private void shift(long delta){document.line(line,selected().start()+delta,selected().end()+delta);rebuildWidgets();}

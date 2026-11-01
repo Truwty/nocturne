@@ -197,6 +197,16 @@ public final class PortClientTest implements FabricClientGameTest {
             takeShot(context,"nocturne-theme-preview");context.clickScreenButton("Apply theme");context.waitTicks(3);takeShot(context,"nocturne-lagoon-theme");
             context.runOnClient(mc -> { if (NocturneClient.SETTINGS.uiAccent.argb()!=0xFF62E9D0) throw new AssertionError("Theme shortcut did not apply"); });
             interfaceChecks(context);
+            context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
+            for(int playbackTab=0;playbackTab<4;playbackTab++){
+                int tab=playbackTab;context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null,tab));context.waitTicks(5);
+                context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                takeShot(context,"nocturne-playback-"+tab);
+            }
+            context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null));
+            context.clickScreenButton("Configure playback shortcuts…");context.waitTicks(3);
+            context.runOnClient(mc->{if(!(mc.screen instanceof net.minecraft.client.gui.screens.options.controls.KeyBindsScreen))throw new AssertionError("Playback keybind screen did not open");});
+            NocturneClient.LOG.info("PLAYBACK UI TEST PASSED: four integration pages, artwork texture, capability gating and native keybind configuration");
             context.setScreen(() -> new PlacementScreen(null));
             context.waitTicks(3);
             context.runOnClient(mc -> {
@@ -251,7 +261,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
                     ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
-                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null))) {
+                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3))) {
                     context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
                 }
                 for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {

@@ -64,7 +64,7 @@ function Await($op, [Type]$type) {
 [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType = WindowsRuntime] | Out-Null
 $mgr = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
 [NocturneInput]::Start()
-$pinned = ''; $audio = $false; $refresh = 0; $commandStatus = ''; $audioError = ''; $o = @{}
+$priorities = @('Spotify','Cider','YouTube Music','TIDAL','foobar'); $active = ''; $pinned = ''; $audio = $false; $refresh = 0; $commandStatus = ''; $audioError = ''; $o = @{}
 while ($true) {
     if ([NocturneInput]::Closed) { exit }
     try {
@@ -72,6 +72,7 @@ while ($true) {
             $cmd = $line | ConvertFrom-Json
             if ($cmd.action -eq 'quit') { exit }
             if ($cmd.action -eq 'select') { $pinned = [string]$cmd.app; $refresh = 0; continue }
+            if ($cmd.action -eq 'priorities') { $priorities = @($cmd.values); $refresh = 0; continue }
             if ($cmd.action -eq 'audio') { $audio = [bool]$cmd.enabled; continue }
             $target = @($mgr.GetSessions() | Where-Object { $_.SourceAppUserModelId -eq $cmd.target }) | Select-Object -First 1
             if (-not $target) { $commandStatus = 'Player disconnected'; continue }
@@ -82,6 +83,13 @@ while ($true) {
                     if ($info.Controls.IsPlayPauseToggleEnabled) { $ok = Await ($target.TryTogglePlayPauseAsync()) ([bool]) }
                     elseif ($info.PlaybackStatus -eq 'Playing') { $ok = Await ($target.TryPauseAsync()) ([bool]) }
                     else { $ok = Await ($target.TryPlayAsync()) ([bool]) }
+                }
+                'shuffle' { if ($target.GetPlaybackInfo().Controls.IsShuffleEnabled) { $ok = Await ($target.TryChangeShuffleActiveAsync([bool]([int64]$cmd.millis -ne 0))) ([bool]) } }
+                'repeat' {
+                    if ($target.GetPlaybackInfo().Controls.IsRepeatEnabled) {
+                        $mode = @('None','Track','List')[[Math]::Max(0,[Math]::Min(2,[int]$cmd.millis))]
+                        $ok = Await ($target.TryChangeAutoRepeatModeAsync([Windows.Media.MediaPlaybackAutoRepeatMode]::$mode)) ([bool])
+                    }
                 }
                 'next' { $ok = Await ($target.TrySkipNextAsync()) ([bool]) }
                 'previous' { $ok = Await ($target.TrySkipPreviousAsync()) ([bool]) }
@@ -98,11 +106,13 @@ while ($true) {
             $refresh = $now; $sessions = @($mgr.GetSessions()); $session = $null
             if ($pinned) { $session = $sessions | Where-Object { $_.SourceAppUserModelId -eq $pinned } | Select-Object -First 1 }
             else {
-                $session = $sessions | Where-Object { $_.SourceAppUserModelId -like '*Spotify*' -and $_.GetPlaybackInfo().PlaybackStatus -eq 'Playing' } | Select-Object -First 1
-                if (-not $session) { $session = $sessions | Where-Object { $_.GetPlaybackInfo().PlaybackStatus -eq 'Playing' } | Select-Object -First 1 }
-                if (-not $session) { $session = $sessions | Where-Object { $_.SourceAppUserModelId -like '*Spotify*' } | Select-Object -First 1 }
-                if (-not $session) { $session = $mgr.GetCurrentSession() }
+                $session = $sessions | Sort-Object @{Expression={if ($_.GetPlaybackInfo().PlaybackStatus -eq 'Playing') { 0 } else { 1 }}}, @{Expression={
+                    $rank = $priorities.Count
+                    for ($i = 0; $i -lt $priorities.Count; $i++) { if ($_.SourceAppUserModelId.IndexOf([string]$priorities[$i], [StringComparison]::OrdinalIgnoreCase) -ge 0) { $rank = $i; break } }
+                    $rank
+                }}, @{Expression={if ($_.SourceAppUserModelId -eq $active) { 0 } else { 1 }}}, SourceAppUserModelId | Select-Object -First 1
             }
+            $active = if ($session) { $session.SourceAppUserModelId } else { '' }
             $o = [ordered]@{ apps = @($sessions | ForEach-Object { $_.SourceAppUserModelId }); selected = $pinned; commandStatus = $commandStatus }
             try { $o.deviceId = [NocturneMeter]::DeviceId() } catch { $o.deviceId = '' }
             $o.sessions = @($sessions | ForEach-Object {
@@ -110,7 +120,7 @@ while ($true) {
                 try {
                     $info = $_.GetPlaybackInfo(); $c = $info.Controls; $entry.playing = $info.PlaybackStatus -eq 'Playing'
                     $entry.toggle = $c.IsPlayPauseToggleEnabled -or $c.IsPlayEnabled -or $c.IsPauseEnabled
-                    $entry.next = $c.IsNextEnabled; $entry.previous = $c.IsPreviousEnabled; $entry.seek = $c.IsPlaybackPositionEnabled
+                    $entry.shuffle = $c.IsShuffleEnabled; $entry.repeat = $c.IsRepeatEnabled; $entry.next = $c.IsNextEnabled; $entry.previous = $c.IsPreviousEnabled; $entry.seek = $c.IsPlaybackPositionEnabled
                 } catch { $entry.issue = 'Player did not provide playback capabilities' }
                 $entry
             })
@@ -122,6 +132,9 @@ while ($true) {
                 $o.updated = [int64]$tl.LastUpdatedTime.ToUnixTimeMilliseconds(); $o.now = $now
                 $o.playing = $pb.PlaybackStatus -eq 'Playing'; $o.app = $session.SourceAppUserModelId
                 $o.toggle = $controls.IsPlayPauseToggleEnabled -or ($o.playing -and $controls.IsPauseEnabled) -or ((-not $o.playing) -and $controls.IsPlayEnabled); $o.next = $controls.IsNextEnabled
+                $o.shuffle = $controls.IsShuffleEnabled; $o.repeat = $controls.IsRepeatEnabled
+                $o.shuffleActive = [bool]$pb.IsShuffleActive
+                $o.repeatMode = switch ([string]$pb.AutoRepeatMode) { 'Track' { 'track' } 'List' { 'context' } default { 'off' } }
                 $o.previous = $controls.IsPreviousEnabled; $o.seek = $controls.IsPlaybackPositionEnabled
             }
         }

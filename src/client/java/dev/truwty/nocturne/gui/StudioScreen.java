@@ -96,16 +96,17 @@ public final class StudioScreen extends Screen {
         row += 32;
         int bw = (w - 48) / 5;
         transport = List.of(
-            button(x + 16, row, bw, "Previous", () -> service().system.command("previous", 0)),
+            button(x + 16, row, bw, "Previous", () -> dev.truwty.nocturne.playback.Playback.command("previous", 0)),
             button(x + 20 + bw, row, bw, "-10s", () -> relativeSeek(-10000)),
-            button(x + 24 + bw * 2, row, bw, "Play / pause", () -> service().system.command("toggle", 0)),
+            button(x + 24 + bw * 2, row, bw, "Play / pause", () -> dev.truwty.nocturne.playback.Playback.command("toggle", 0)),
             button(x + 28 + bw * 3, row, bw, "+10s", () -> relativeSeek(10000)),
-            button(x + 32 + bw * 4, row, bw, "Next", () -> service().system.command("next", 0)));
+            button(x + 32 + bw * 4, row, bw, "Next", () -> dev.truwty.nocturne.playback.Playback.command("next", 0)));
         row += 24; seek = addRenderableWidget(new SeekSlider(x + 16, row, w - 32)); row += 24;
         int third = (w - 40) / 3;
         button(x + 16, row, third, "Lyrics: " + (s().isEnabled() ? "On" : "Off"), () -> { s().setEnabled(!s().isEnabled()); s().save(); rebuildWidgets(); });
         button(x + 20 + third, row, third, service().demoPlaying() ? "Stop demo" : "Visual demo", () -> { if (service().demoPlaying()) service().stopDemo(); else service().startDemo(); rebuildWidgets(); });
         button(x + 24 + third * 2, row, third, "Retry lyrics", () -> { service().refetch(); notice = "Looking for lyrics again"; });
+        row += 26;button(x+16,row,w-32,"Playback & integrations",()->minecraft.setScreen(new PlaybackScreen(this)));
     }
     private void repair() {
         var diagnosis=recoveryDiagnosis==null?dev.truwty.nocturne.lyrics.LyricsRecovery.current():recoveryDiagnosis;
@@ -113,7 +114,7 @@ public final class StudioScreen extends Screen {
             case ENABLE -> {s().setEnabled(true);s().save();}
             case RETRY -> service().refetch();
             case RESYNC -> service().resynchronize();
-            case RECONNECT -> {service().system.stop();service().system.start();}
+            case RECONNECT -> {if(dev.truwty.nocturne.playback.PlaybackPreferences.cloud())minecraft.setScreen(new PlaybackScreen(this,2));else{service().system.stop();service().system.start();}}
             default -> restoreVisible();
         }
         notice=diagnosis.detail();
@@ -124,11 +125,11 @@ public final class StudioScreen extends Screen {
         s().editorYaw.set(0.0); s().editorPitch.set(0.0); s().editorRoll.set(0.0); s().save(); io(Studio::savePlacement);
         notice = "Lyrics follow your view; compatible renderer enabled"; rebuildWidgets();
     }
-    private void relativeSeek(long delta) { NowPlaying track = service().now(); if (track != null) service().system.command("seek", track.positionMs() + delta); }
+    private void relativeSeek(long delta) { NowPlaying track = dev.truwty.nocturne.playback.Playback.current(); if (track != null) dev.truwty.nocturne.playback.Playback.command("seek", track.positionMs() + delta); }
 
     private void lyrics() {
         query = field(row, w - 116, "Artist and title"); query.setMaxLength(200);
-        NowPlaying track = service().now(); if (queryValue == null && track != null) queryValue = track.artist() + " " + track.title();
+        NowPlaying track = dev.truwty.nocturne.playback.Playback.current(); if (queryValue == null && track != null) queryValue = track.artist() + " " + track.title();
         query.setValue(queryValue == null ? "" : queryValue); query.setResponder(value -> queryValue = value);
         button(x + w - 92, row, 76, "Search", () -> { service().search(query.getValue()); resultPage = 0; }); row += 29;
         var candidates = service().candidates(); shownCandidates = candidates;
@@ -149,14 +150,15 @@ public final class StudioScreen extends Screen {
     private void offset(int delta) { io(() -> { NowPlaying now = service().now(); if (now == null) throw new IllegalStateException("Play a song first"); Studio.library().offset(now.key(), Studio.songOffset(now) + delta); }); }
 
     private void apps() {
-        button(x + 16, row, w - 32, "Auto: prefer playing Spotify, then other players", () -> select("")); row += 26;
+        button(x+16,row,w-32,"Player priorities & integrations",()->minecraft.setScreen(new PlaybackScreen(this,1)));row+=26;
+        button(x + 16, row, w - 32, "Auto: playing first, then your player priorities", () -> select("")); row += 26;
         var players = service().system.players(); shownPlayers = players;
         for (var app : players) {
             button(x + 16, row, w - 32, (service().system.selected().equals(app.id()) ? "Pinned: " : "Pin: ") + font.plainSubstrByWidth(app.label(), w - 85), () -> select(app.id())); row += 42;
         }
         button(x + 16, row + 4, w - 32, "Reconnect desktop media", () -> { service().system.stop(); service().system.start(); });
     }
-    private void select(String id) { io(() -> { Studio.library().player(id); service().system.select(id); rebuildWidgets(); }); }
+    private void select(String id) { io(() -> { dev.truwty.nocturne.playback.Playback.route(false); Studio.library().player(id); service().system.select(id); rebuildWidgets(); }); }
 
     private void theme() {
         button(x+16,row,w-32,"Live theme editor",()->minecraft.setScreen(new ThemeEditorScreen(this)));row+=26;
@@ -199,9 +201,9 @@ public final class StudioScreen extends Screen {
         if (page == 2 && !shownPlayers.equals(service().system.players())) rebuildWidgets();
         if (transport.size() == 5) {
             String[] actions = {"previous", "seek", "toggle", "seek", "next"};
-            for (int i = 0; i < 5; i++) transport.get(i).active = service().system.can(actions[i]) && !service().demoPlaying();
+            for (int i = 0; i < 5; i++) transport.get(i).active = dev.truwty.nocturne.playback.Playback.can(actions[i]) && !service().demoPlaying();
         }
-        if (seek != null) { seek.active = service().system.can("seek") && !service().demoPlaying(); seek.refresh(); }
+        if (seek != null) { seek.active = dev.truwty.nocturne.playback.Playback.can("seek") && !service().demoPlaying(); seek.refresh(); }
     }
     @Override public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float delta) { g.fill(0, 0, width, height, 0x88000000); }
     @Override public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float delta) {
@@ -219,15 +221,16 @@ public final class StudioScreen extends Screen {
             Draw.text(g, font, "Scroll ↓", x + 140, y + h - 23, s().uiText.argb(), false);
         }
         g.enableScissor(x + 12, y + 68, x + w - 12, y + h - 48);
-        NowPlaying track = service().now();
+        NowPlaying track = dev.truwty.nocturne.playback.Playback.current();
         if (page == 0) {
-            text(g, track == null ? "Start music in your desktop player" : track.title(), body);
+            AlbumArtwork.draw(g,x+w-45,body,28,1);
+            text(g, track == null ? "Start music in your desktop player" : font.plainSubstrByWidth(track.title(),w-80), body);
             text(g, track == null ? service().system.status() : track.artist() + " · " + track.source(), body + 18);
         } else if (page == 1) {
             text(g, track == null ? "No current song" : "Song offset: " + Math.round(Studio.songOffset(track)) + " ms · " + service().lyricsStatus(), body + 209);
             text(g, service().searchStatus(), body + 223);
         } else if (page == 2) {
-            int appY=body+49;
+            int appY=body+75;
             for(var app:shownPlayers) {text(g,app.diagnostic(),appY);appY+=42;}
         } else if (page == 5) text(g, service().system.audioStatus() + " · Audio is local; no recording", body + 157);
         else if (page == 6) {
@@ -263,12 +266,12 @@ public final class StudioScreen extends Screen {
     private final class SeekSlider extends StudioSlider {
         SeekSlider(int bx, int by, int width) { super(bx, by, width, 20, Component.literal("No track"), 0); }
         void refresh() {
-            NowPlaying track = service().now();
+            NowPlaying track = dev.truwty.nocturne.playback.Playback.current();
             if (track != null && !seeking) { value = track.durationMs() > 0 ? (double)track.positionMs() / track.durationMs() : 0; updateMessage(); }
         }
-        @Override protected void updateMessage() { NowPlaying track = service().now(); setMessage(Component.literal(track == null ? "No track" : Math.round(value * track.durationMs() / 1000) + " / " + track.durationMs() / 1000 + " s")); }
+        @Override protected void updateMessage() { NowPlaying track = dev.truwty.nocturne.playback.Playback.current(); setMessage(Component.literal(track == null ? "No track" : Math.round(value * track.durationMs() / 1000) + " / " + track.durationMs() / 1000 + " s")); }
         @Override protected void applyValue() { seeking = true; updateMessage(); }
-        private void commit() { NowPlaying track = service().now(); if (track != null) service().system.command("seek", Math.round(value * track.durationMs())); seeking = false; }
+        private void commit() { NowPlaying track = dev.truwty.nocturne.playback.Playback.current(); if (track != null) dev.truwty.nocturne.playback.Playback.command("seek", Math.round(value * track.durationMs())); seeking = false; }
         @Override public void onRelease(MouseButtonEvent event) { super.onRelease(event); commit(); }
         @Override public boolean keyPressed(KeyEvent event) { boolean handled = super.keyPressed(event); if (handled && seeking) commit(); return handled; }
     }

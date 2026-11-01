@@ -6,14 +6,14 @@
 
 </div>
 
-Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + Fabric**. Entirely client-side, with automatic desktop music detection. **No Spotify login, developer application, Client ID, or API token.**
+Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + Fabric**. Entirely client-side, with automatic desktop music detection. **Desktop detection needs no Spotify login or developer application.** An optional Spotify account connection adds device volume and queue controls.
 
 ![Nocturne Studio](docs/studio.png)
 
 ## Install
 
 1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Replace older Nocturne JARs with `nocturne-0.9.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-0.10.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
@@ -50,9 +50,25 @@ The seven tabs bring playback, lyric correction and visual editing into one inte
 
 Play/pause, next/previous, ±10-second seeking and a draggable timeline control the existing desktop player. Controls are disabled when that player does not advertise support, or while the visual demo is active. Rejected commands appear as a status message.
 
-Auto prefers playing Spotify, then another playing session, with paused/current-player fallback. The **Apps** tab lists detected Windows/Linux sessions. Pin a player to retain that selection, including while it is closed; Nocturne reconnects when it returns. Auto clears the pin. Reconnect restarts the media helper with the pin preserved.
+Auto chooses playing sessions first, then your ordered app-name priorities, keeps the current app on equal priority, and finally sorts by app ID. The **Apps** tab lists detected desktop sessions. Pin a player to retain that selection, including while it is closed; Nocturne reconnects when it returns. Auto clears the pin. Reconnect restarts the media helper with the pin preserved.
 
 Windows uses the bundled PowerShell/Windows media-session helper; no Python installation is required to use the mod. macOS uses Spotify/Music AppleScript integration and may require OS automation permission. Linux requires `playerctl` and MPRIS. Windows is validated locally; macOS/Linux transport integration remains unverified.
+
+### Playback and integrations
+
+![Nocturne playback controls](docs/playback.png)
+
+Open **N → Player → Playback & integrations**. Configure nine optional playback bindings in Minecraft's **Options → Controls → Key Binds → Nocturne**: play/pause, previous/next, seek ±10 seconds, player volume ±5%, shuffle and repeat. They start unbound and only fire with a world open and menus closed. They send local player commands, never server chat or gameplay packets.
+
+The **Controls** page shows artwork, volume, shuffle and repeat. Unsupported actions stay disabled; Windows media sessions support shuffle/repeat only when the app advertises them. Windows sessions do not expose queues or per-device volume, so these require the optional Spotify account route. macOS/Linux adapters currently expose transport controls only. Album covers come from the player's artwork URL or a matched Apple catalog result; missing artwork leaves the existing HUD icon. Downloads are limited to 4 MiB, decoded images to 2048² pixels, and uploaded textures to 128². **Preview artwork theme** opens a color draft; Apply saves it, Back cancels it.
+
+The **Players** page edits comma-separated app-name priorities (case-insensitive substring matching), resets defaults, or pins a detected app. Playing status outranks the list. A pin always wins and waits while that app is closed. Connecting an account alone does not switch playback away from desktop detection.
+
+The **Account** page provides optional [Spotify PKCE authorization](https://developer.spotify.com/documentation/web-api/tutorials/code-pkce-flow). Create your own app in the [Spotify developer dashboard](https://developer.spotify.com/dashboard), register the exact redirect `http://127.0.0.1:43869/callback`, enter its **public Client ID**, and choose Connect. No client secret is requested. After authorization, choose **Use Spotify account** and start playback on a Spotify device. Spotify playback permissions may require Premium and account access to that developer app; a 403 response explains this in the interface. Select **Use desktop detection** to return at any time.
+
+The **Queue** page loads up to 50 upcoming items, paginates them, skips the current track, and appends a `spotify:track:…` or `spotify:episode:…` URI. Spotify exposes no queue reordering/removal endpoint; those actions are not offered. Queue access requires the account route and an active supported device. Account volume targets that device, not Windows master volume.
+
+Credentials are stored separately under `config/nocturne/private`, encrypted with AES-GCM and restricted to the current filesystem owner. The encryption key is in that same private directory; this is local file protection, not an OS credential vault. Credentials never enter presets, general settings, diagnostic reports or exports. Disconnect deletes the local credential files; you can also revoke app access in Spotify. Network work runs on a dedicated worker, honors rate-limit retry delays, and expires stale playback state. Browser login listens only on IPv4 loopback, verifies state and PKCE, and times out after five minutes.
 
 ### Lyric correction
 

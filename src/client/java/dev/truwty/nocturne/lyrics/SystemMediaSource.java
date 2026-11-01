@@ -33,6 +33,15 @@ public final class SystemMediaSource {
    private volatile List<Player> players = List.of();
    private volatile Set<String> capabilities = Set.of();
    private volatile String activeId = "";
+   private volatile List<String> priorities = dev.truwty.nocturne.playback.PlayerSelection.DEFAULTS;
+   private volatile boolean shuffle;
+   private volatile String repeat = "off";
+   public boolean shuffle() { return shuffle; }
+   public String repeat() { return repeat; }
+   public void priorities(List<String> values) {
+      priorities=dev.truwty.nocturne.playback.PlayerSelection.validate(values);
+      var cmd=new JsonObject();cmd.addProperty("action","priorities");var array=new com.google.gson.JsonArray();priorities.forEach(array::add);cmd.add("values",array);send(cmd);
+   }
    private volatile String selectedId = "";
    private volatile String commandStatus = "";
    private volatile float peak;
@@ -52,7 +61,7 @@ public final class SystemMediaSource {
    public void select(String id) { selectedId = id; JsonObject cmd = new JsonObject(); cmd.addProperty("action", "select"); cmd.addProperty("app", id); send(cmd); }
    public void audio(boolean enabled) { if (enabled == audioEnabled) return; audioEnabled = enabled; JsonObject cmd = new JsonObject(); cmd.addProperty("action", "audio"); cmd.addProperty("enabled", enabled); send(cmd); }
    public void command(String action, long millis) {
-      if (!Set.of("toggle", "next", "previous", "seek").contains(action)) throw new IllegalArgumentException("Unknown transport command");
+      if (!Set.of("toggle", "next", "previous", "seek", "shuffle", "repeat").contains(action)) throw new IllegalArgumentException("Unknown transport command");
       if (!can(action)) { commandStatus = "This player does not support " + action; return; }
       JsonObject cmd = new JsonObject(); cmd.addProperty("action", action); cmd.addProperty("target", activeId); cmd.addProperty("millis", Math.max(0, millis));
       String targetId = activeId;
@@ -166,75 +175,38 @@ public final class SystemMediaSource {
    }
 
    private NowPlaying pollMac() throws IOException {
-      String[][] apps = new String[][]{{"Spotify", MAC_SPOTIFY, "Spotify app"}, {"Music", MAC_MUSIC, "Apple Music"}};
-      NowPlaying paused = null;
-
-      var available=new java.util.ArrayList<Player>();
-      for(var app:apps) if(run("pgrep","-x",app[0])!=null)available.add(new Player(app[0],app[2]));
-      players=List.copyOf(available);
-      capabilities = Set.of("toggle", "next", "previous", "seek");
-      for (String[] app : apps) {
-         if (!selectedId.isEmpty() && !selectedId.equals(app[0])) continue;
-         if (run("pgrep", "-x", app[0]) != null) {
-            String out = run("osascript", "-e", app[1]);
-            if (out != null && !out.isEmpty()) {
-               String[] f = out.split("\t", -1);
-               if (f.length >= 6 && !f[0].isBlank()) {
-                  boolean playing = f[5].trim().equalsIgnoreCase("playing");
-                  NowPlaying np = new NowPlaying(f[0], f[1], f[2], num(f[3]), num(f[4]), playing, System.nanoTime(), app[2], f.length > 6 ? f[6].trim() : "");
-                  if (playing) {
-                     activeId = app[0];
-                     return np;
-                  }
-
-                  if (paused == null) {
-                     paused = np;
-                  }
-               }
-            }
-         }
+      String[][] apps={{"Spotify",MAC_SPOTIFY,"Spotify app"},{"Music",MAC_MUSIC,"Apple Music"}};
+      var candidates=new java.util.HashMap<String,NowPlaying>();var detected=new java.util.ArrayList<Player>();
+      for(String[] app:apps) {
+         if(run("pgrep","-x",app[0])==null)continue;
+         String out=run("osascript","-e",app[1]);if(out==null||out.isBlank())continue;
+         String[] f=out.split("\t",-1);if(f.length<6||f[0].isBlank())continue;
+         boolean playing=f[5].trim().equalsIgnoreCase("playing");
+         detected.add(new Player(app[0],app[2],Set.of("toggle","next","previous","seek"),playing,"AppleScript transport; advanced controls unavailable"));
+         candidates.put(app[0],new NowPlaying(f[0],f[1],f[2],num(f[3]),num(f[4]),playing,System.nanoTime(),app[2],f.length>6?f[6].trim():"",app[0]));
       }
-
-      if (paused != null) activeId = paused.source().startsWith("Spotify") ? "Spotify" : "Music";
-      return paused;
+      players=List.copyOf(detected);Player selected=dev.truwty.nocturne.playback.PlayerSelection.choose(players,priorities,selectedId,activeId);
+      activeId=selected==null?"":selected.id();capabilities=selected==null?Set.of():selected.capabilities();return selected==null?null:candidates.get(selected.id());
    }
 
    private NowPlaying pollLinux() {
-      String out;
       try {
-         String listing = run("playerctl", "-l");
-         players = listing == null ? List.of() : listing.lines().map(id -> new Player(id, id)).toList();
-         capabilities = Set.of("toggle", "next", "previous", "seek");
-         out = run(
-            "playerctl",
-            "-p",
-            selectedId.isEmpty() ? "spotify,%any" : selectedId,
-            "metadata",
-            "--format",
-            "{{status}}\t{{xesam:title}}\t{{xesam:artist}}\t{{xesam:album}}\t{{mpris:length}}\t{{position}}\t{{playerName}}\t{{mpris:artUrl}}"
-         );
-      } catch (IOException e) {
-         this.status = "Linux: install playerctl for the system player (e.g. sudo apt install playerctl)";
-         return null;
-      }
-
-      if (this.status.startsWith("Linux")) {
-         this.status = "Listening to system media";
-      }
-
-      if (out != null && !out.isEmpty()) {
-         String[] f = out.split("\t", -1);
-         if (f.length >= 7 && !f[1].isBlank() && !f[0].equalsIgnoreCase("Stopped")) {
-            boolean playing = f[0].equalsIgnoreCase("Playing");
-            activeId = f[6];
-            String app = f[6].toLowerCase(Locale.ROOT).contains("spotify") ? "Spotify app" : "System";
-            return new NowPlaying(f[1], f[2], f[3], num(f[4]) / 1000L, num(f[5]) / 1000L, playing, System.nanoTime(), app, f.length > 7 ? f[7].trim() : "");
-         } else {
-            return null;
+         String listing=run("playerctl","-l");
+         var candidates=new java.util.HashMap<String,NowPlaying>();
+         var detected=new java.util.ArrayList<Player>();
+         if(listing!=null) for(String id:listing.lines().limit(32).toList()) {
+            String out=run("playerctl","-p",id,"metadata","--format","{{status}}\t{{xesam:title}}\t{{xesam:artist}}\t{{xesam:album}}\t{{mpris:length}}\t{{position}}\t{{playerName}}\t{{mpris:artUrl}}");
+            if(out==null)continue;
+            String[] f=out.split("\t",-1);if(f.length<7||f[1].isBlank()||f[0].equalsIgnoreCase("Stopped"))continue;
+            boolean playing=f[0].equalsIgnoreCase("Playing");
+            detected.add(new Player(id,id,Set.of("toggle","next","previous","seek"),playing,"Advanced controls not exposed by this adapter"));
+            candidates.put(id,new NowPlaying(f[1],f[2],f[3],num(f[4])/1000,num(f[5])/1000,playing,System.nanoTime(),f[6],f.length>7?f[7].trim():"",id));
          }
-      } else {
-         return null;
-      }
+         players=List.copyOf(detected);
+         Player selected=dev.truwty.nocturne.playback.PlayerSelection.choose(players,priorities,selectedId,activeId);
+         activeId=selected==null?"":selected.id();capabilities=selected==null?Set.of():selected.capabilities();
+         return selected==null?null:candidates.get(selected.id());
+      } catch(IOException ex) {capabilities=Set.of();players=List.of();status="Linux: install playerctl to detect desktop players";return null;}
    }
 
    public String status() {
@@ -289,6 +261,7 @@ public final class SystemMediaSource {
                         catch (IOException ex) { NocturneClient.LOG.debug("Media command pipe closed", ex); }
                      });
                      select(selectedId);
+                     priorities(priorities);
                      JsonObject audio = new JsonObject(); audio.addProperty("action", "audio"); audio.addProperty("enabled", audioEnabled); send(audio);
                      this.reader = new Thread(() -> this.readLoop(p), "Nocturne system media");
                      this.reader.setDaemon(true);
@@ -346,8 +319,10 @@ public final class SystemMediaSource {
                         players = List.copyOf(list);
                      }
                      var controls = new java.util.HashSet<String>();
-                     for (String action : List.of("toggle", "next", "previous", "seek")) if (o.has(action) && o.get(action).getAsBoolean()) controls.add(action);
+                     for (String action : List.of("toggle", "next", "previous", "seek", "shuffle", "repeat")) if (o.has(action) && o.get(action).getAsBoolean()) controls.add(action);
                      capabilities = Set.copyOf(controls);
+                     shuffle = o.has("shuffleActive") && o.get("shuffleActive").getAsBoolean();
+                     repeat = o.has("repeatMode") ? o.get("repeatMode").getAsString() : "off";
                      activeId = o.has("app") ? o.get("app").getAsString() : "";
                      commandStatus = o.has("commandStatus") ? o.get("commandStatus").getAsString() : "";
                      float rawPeak = o.has("peak") ? o.get("peak").getAsFloat() : 0;
@@ -378,7 +353,7 @@ public final class SystemMediaSource {
       var result=new java.util.ArrayList<Player>();
       for(var value:o.getAsJsonArray("sessions")) {
          var app=value.getAsJsonObject(); var caps=new java.util.HashSet<String>();
-         for(String action:List.of("toggle","seek","next","previous")) if(app.has(action)&&app.get(action).getAsBoolean())caps.add(action);
+         for(String action:List.of("toggle","seek","next","previous","shuffle","repeat")) if(app.has(action)&&app.get(action).getAsBoolean())caps.add(action);
          String id=app.get("id").getAsString();
          result.add(new Player(id,id,Set.copyOf(caps),app.has("playing")&&app.get("playing").getAsBoolean(),app.has("issue")?app.get("issue").getAsString():""));
       }

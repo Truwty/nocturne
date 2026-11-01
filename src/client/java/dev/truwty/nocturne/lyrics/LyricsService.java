@@ -64,7 +64,7 @@ public final class LyricsService {
       return title.equals("advertisement") || title.equals("advertising") || title.equals("spotify advertisement") || title.equals("ad");
    }
    public synchronized void resynchronize() {
-      NowPlaying sample=system.latest();
+      NowPlaying sample=dev.truwty.nocturne.playback.Playback.sample(system.latest());
       if(sample!=null) { update(sample); playbackRevision++; playbackStatus="Playback resynchronized"; }
    }
    private volatile List<LyricSearch.Candidate> candidates = List.of();
@@ -129,6 +129,15 @@ public final class LyricsService {
    private volatile String lyricsStatus = "";
    private volatile String loadingKey = "";
    private volatile int albumColor;
+   public record Artwork(String key,byte[] png) { public Artwork { png=png.clone(); } @Override public byte[] png(){return png.clone();} }
+   private volatile Artwork artwork;
+   private static final Artwork DEMO_ART=demoArtwork();
+   private static Artwork demoArtwork(){
+      var image=new BufferedImage(128,128,BufferedImage.TYPE_INT_ARGB);
+      for(int y=0;y<128;y++)for(int x=0;x<128;x++){double radius=Math.hypot(x-64,y-64);int color=0xFF110E20;if(radius<46&&radius>20)color=0xFFB878ED;if(radius<36&&radius>26)color=0xFF5E3B89;if(Math.abs(x-y)<2)color=0xFFE7C4FF;image.setRGB(x,y,color);}
+      try{var bytes=new java.io.ByteArrayOutputStream();ImageIO.write(image,"png",bytes);return new Artwork("demo",bytes.toByteArray());}catch(IOException ex){throw new ExceptionInInitializerError(ex);}
+   }
+   public Artwork artwork(){if(demoPlaying())return DEMO_ART;var a=artwork;var track=now();return track!=null&&a!=null&&a.key().equals(track.key())?a:null;}
    private volatile String artKey = "";
    private volatile NowPlaying demoNow;
    private volatile Lyrics demoLyrics;
@@ -201,10 +210,8 @@ public final class LyricsService {
    private void poll() {
       try {
          NowPlaying sample = null;
-         if (SystemMediaSource.supported()) {
-            this.system.start();
-            sample = this.system.latest();
-         }
+         if (SystemMediaSource.supported()) this.system.start();
+         sample = dev.truwty.nocturne.playback.Playback.sample(this.system.latest());
 
          this.update(sample);
       } catch (Exception e) {
@@ -315,6 +322,7 @@ public final class LyricsService {
 
    private void fetchArt(NowPlaying np) {
       this.albumColor = 0;
+      this.artwork = null;
       String given = np.artUrl();
       this.artKey = np.key();
       String key = np.key();
@@ -328,12 +336,16 @@ public final class LyricsService {
             }
 
             HttpRequest req = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8L)).GET().build();
-            byte[] bytes = HTTP.send(req, BodyHandlers.ofByteArray()).body();
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(bytes));
+            var response=HTTP.send(req,dev.truwty.nocturne.playback.BoundedBody.handler(4194304));
+            if(response.statusCode()!=200)return;
+            byte[] bytes=response.body();
+            byte[] thumbnail=dev.truwty.nocturne.playback.ArtworkImage.thumbnail(bytes);
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(thumbnail));
+            if(key.equals(this.artKey)) this.artwork=new Artwork(key,thumbnail);
             if (img != null) {
                c = mainColor(img);
             }
-         } catch (Throwable e) {
+         } catch (Exception e) {
             NocturneClient.LOG.debug("Album colour failed", e);
             LyricsDebug.note("Album colour failed: " + e);
          }
@@ -360,7 +372,9 @@ public final class LyricsService {
                      if (art.startsWith("https://")) {
                         String name = o.has("trackName") && o.get("trackName").isJsonPrimitive() ? o.get("trackName").getAsString() : "";
                         String n = name.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
-                        if (!n.isEmpty() && (n.contains(want) || want.contains(n))) {
+                        String matchedArtist=o.has("artistName")?o.get("artistName").getAsString().toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", ""):"";
+                        String wantedArtist=artist.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
+                        if (!n.isEmpty() && (n.contains(want) || want.contains(n)) && !wantedArtist.isEmpty() && (matchedArtist.contains(wantedArtist)||wantedArtist.contains(matchedArtist)) && !matchedArtist.isEmpty()) {
                            return art;
                         }
                      }

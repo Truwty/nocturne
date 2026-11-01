@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0-beta.1
+
+- Add nine configurable, initially unbound gameplay playback shortcuts in native Minecraft Controls.
+- Add explicit playing/priority/sticky/ID desktop selection rules, editable priorities and strict app pins.
+- Display bounded album-art textures in Studio and the karaoke HUD; preview and apply artwork-derived theme colors.
+- Add advertised Windows shuffle/repeat controls and optional Spotify device volume, queue, shuffle and repeat.
+- Add opt-in Spotify PKCE authorization with loopback/state validation, refresh tokens, private encrypted storage, backoff and disconnect cleanup; desktop detection remains default.
+- Add four integration pages with capability gating and explicit desktop/account routing.
+- Test selection, artwork limits, PKCE persistence, mocked API errors and real isolated Windows shuffle/repeat. Live Spotify account and macOS/Linux controls remain unverified.
+
 ## 0.9.0-beta.1
 
 - Add non-destructive live theme previews, explicit Apply/Cancel, draft history and applied-theme undo/redo.

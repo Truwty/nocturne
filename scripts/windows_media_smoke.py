@@ -10,7 +10,7 @@ import time
 import wave
 
 from winrt.windows.foundation import Uri
-from winrt.windows.media import MediaPlaybackType, MediaPlaybackStatus as Status
+from winrt.windows.media import MediaPlaybackAutoRepeatMode, MediaPlaybackType, MediaPlaybackStatus as Status
 from winrt.windows.media import SystemMediaTransportControlsTimelineProperties, SystemMediaTransportControlsButton as Button
 from winrt.windows.media.control import GlobalSystemMediaTransportControlsSessionManager as Manager
 from winrt.windows.media.core import MediaSource
@@ -58,6 +58,14 @@ async def main() -> None:
         def seek(sender, args) -> None:
             state["position"] = args.requested_playback_position.total_seconds() * 1000
 
+        controls.shuffle_enabled = False
+        controls.auto_repeat_mode = MediaPlaybackAutoRepeatMode.NONE
+        def shuffle(sender, args) -> None:
+            controls.shuffle_enabled = args.requested_shuffle_enabled
+        def repeat(sender, args) -> None:
+            controls.auto_repeat_mode = args.requested_auto_repeat_mode
+        shuffle_token = controls.add_shuffle_enabled_change_requested(shuffle)
+        repeat_token = controls.add_auto_repeat_mode_change_requested(repeat)
         button_token = controls.add_button_pressed(pressed)
         seek_token = controls.add_playback_position_change_requested(seek)
         publish()
@@ -132,6 +140,15 @@ async def main() -> None:
             await wait_state(lambda data: data.get("title") == "Nocturne fixture 1")
             await command("toggle")
             await wait_state(lambda data: data.get("playing") is True)
+            await command("priorities", values=[fixture_id, "Spotify"])
+            await command("shuffle", millis=1)
+            await wait_state(lambda data: data.get("shuffleActive") is True)
+            await command("repeat", millis=1)
+            await wait_state(lambda data: data.get("repeatMode") == "track")
+            await command("repeat", millis=2)
+            await wait_state(lambda data: data.get("repeatMode") == "context")
+            await command("repeat", millis=0)
+            await wait_state(lambda data: data.get("repeatMode") == "off")
             await command("audio", enabled=True)
             await wait_state(lambda data: data.get("audioAvailable") is True)
             await command("select", app="nocturne-test-missing-player")
@@ -146,13 +163,15 @@ async def main() -> None:
             )
             process.stdin.close()
             await asyncio.wait_for(process.wait(), 10)
-            print("WINDOWS MEDIA TEST PASSED: selection, pause, seek, next, previous, resume, output meter, strict pin, reconnect and parent EOF shutdown")
+            print("WINDOWS MEDIA TEST PASSED: selection, pause, seek, next, previous, resume, shuffle, repeat modes, priorities, output meter, strict pin, reconnect and parent EOF shutdown")
         finally:
             state["running"] = False
             await ticking
             if process is not None and process.returncode is None:
                 process.terminate()
                 await process.wait()
+            controls.remove_shuffle_enabled_change_requested(shuffle_token)
+            controls.remove_auto_repeat_mode_change_requested(repeat_token)
             controls.remove_button_pressed(button_token)
             controls.remove_playback_position_change_requested(seek_token)
             controls.is_enabled = False

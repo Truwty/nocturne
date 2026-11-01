@@ -85,6 +85,7 @@ public class LyricsSettings {
    public final BoolSetting flashEffects = add(new BoolSetting("Flash effects", false));
    public final BoolSetting shakeEffects = add(new BoolSetting("Shake effects", false));
    public final BoolSetting highContrast = add(new BoolSetting("High contrast lyrics", false));
+   public final BoolSetting artworkDisplay = add(new BoolSetting("Album artwork", true));
    public final BoolSetting audioReactive = add(new BoolSetting("Desktop audio reactive", false));
    public final NumberSetting audioGain = add(new NumberSetting("Audio sensitivity", 1.5, 0.2, 5, 0.1, "x"));
    public final ModeSetting quality = add(new ModeSetting("Effect quality", 1, "Lightweight", "Balanced", "Ultra"));

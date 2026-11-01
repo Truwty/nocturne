@@ -61,3 +61,13 @@ Controller coverage uses the same action-dispatch path as native GLFW input plus
 HUD defaults hide optional widgets while menus are open; each context is configurable. Safe margins refer to the screen edge, not every other mod's overlay. User placement can overlap other HUD content; alignment guides and the editor provide the correction. Cinematic bars and world/projected lyric geometry are not 2D draggable HUD widgets.
 
 Local 0.9 runs passed on vanilla plus Fabulously Optimized/Complementary/Stratum and Adrenaline/Derivative/Stratum, with real shader/resource activation asserted. The final screenshot pass uses Fabric's framebuffer-resize hook and waits for rendered frames before capture, avoiding stale/distorted captures after GUI resizing. CI repeats Windows packaging and the four pinned renderer profiles for the release commit.
+
+## Playback/integrations upgrade (0.10)
+
+113 JUnit cases: 112 pass offline and one live lyric-catalog case is opt-in. New tests cover deterministic player ranking/pins/ties, PKCE challenge/state/callback validation, credential encryption/corruption/deletion, artwork byte/dimension limits and thumbnails, Spotify playback decoding/capability isolation, refresh-token retention, mocked volume/shuffle/repeat/queue endpoints, 403 messages, 429 backoff and disconnect cleanup. API fixtures run on an isolated loopback server with dummy credentials; no Spotify account is authorized by the tests.
+
+The isolated muted Windows SMTC fixture passed real pause/resume, seek, previous/next, shuffle, repeat off/track/list, priority command acceptance, strict missing pins, output metering and EOF shutdown. Only the fixture session is targeted. Native Minecraft checks visit all four integration pages, open the real keybind screen, render original demo artwork and check widget bounds at GUI scales 1–4; resource reload/world reconnect coverage remains enabled.
+
+Actual Spotify browser consent, Premium/account eligibility and remote device behavior require an authorized account and remain unverified. macOS AppleScript and Linux playerctl commands remain unverified on those operating systems. Queue and device volume are implemented for the optional Spotify account route; desktop media detection remains the default. Windows advertises shuffle/repeat per app; an app can still reject an advertised command. No unsupported queue reordering/removal or Windows master-volume substitution is offered.
+
+Local 0.10 vanilla and Fabulously Optimized + Complementary Reimagined r5.9.3 + Stratum 128x runs passed, including asserted shader/resource activation, the new integration pages, resource reload and world reconnection. CI repeats Windows packaging and the four pinned renderer profiles on the release commit.

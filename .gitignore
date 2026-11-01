@@ -10,3 +10,6 @@ bridge/dist/
 bridge/build/
 *.spec
 src/main/resources/native/*.exe
+
+# Local authentication data must never enter source control.
+**/nocturne/private/
