@@ -197,6 +197,7 @@ public final class PortClientTest implements FabricClientGameTest {
             takeShot(context,"nocturne-theme-preview");context.clickScreenButton("Apply theme");context.waitTicks(3);takeShot(context,"nocturne-lagoon-theme");
             context.runOnClient(mc -> { if (NocturneClient.SETTINGS.uiAccent.argb()!=0xFF62E9D0) throw new AssertionError("Theme shortcut did not apply"); });
             interfaceChecks(context);
+            performanceChecks(context);
             context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
             for(int playbackTab=0;playbackTab<4;playbackTab++){
                 int tab=playbackTab;context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null,tab));context.waitTicks(5);
@@ -261,7 +262,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
                     ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
-                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3))) {
+                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null))) {
                     context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
                 }
                 for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
@@ -283,6 +284,17 @@ public final class PortClientTest implements FabricClientGameTest {
             context.waitTicks(25);
             context.runOnClient(mc -> { if (!LyricsRenderer.active()) throw new AssertionError("Lyrics did not recover after reconnect"); });
         }
+    }
+
+    private static void performanceChecks(ClientGameTestContext context){
+        var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
+        context.setScreen(()->null);
+        context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.adaptiveEffects.set(false);s.performanceReadout.set(true);s.glowPassLimit.set(0.0);s.cloudLayerLimit.set(0.0);s.particleLimit.set(0.0);s.lingeringLimit.set(0.0);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);s.glow.set(true);s.sparkles.set(true);LyricsService.INSTANCE.startDemo();});
+        context.waitTicks(45);
+        context.runOnClient(mc->{var frame=dev.truwty.nocturne.performance.RenderPerformance.snapshot();if(frame.glow()!=0||frame.cloud()!=0||frame.particles()!=0||frame.trails()!=0)throw new AssertionError("Zero effect budgets were exceeded");if(frame.text()==0)throw new AssertionError("Budget reduction hid the core lyrics");if(!Double.isFinite(frame.cpuMs())||frame.cpuMs()<=0)throw new AssertionError("Invalid CPU metric");});
+        takeShot(context,"nocturne-performance-hud");context.setScreen(()->new StudioScreen(null,5));context.clickScreenButton("Performance & budgets");context.waitTicks(5);takeShot(context,"nocturne-performance");
+        context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));});
+        NocturneClient.LOG.info("PERFORMANCE TEST PASSED: hard zero budgets, preserved lyric text, CPU metrics, live readout and settings bounds");
     }
 
     private static void interfaceChecks(ClientGameTestContext context) {

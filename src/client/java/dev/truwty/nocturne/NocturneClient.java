@@ -74,7 +74,12 @@ public class NocturneClient implements ClientModInitializer {
          }
       }
 
-      LyricsService.INSTANCE.system.audio(SETTINGS.audioReactive.on() && !SETTINGS.reducedMotion.on());
+      boolean background=mc.getWindow().isIconified()||!mc.isWindowActive();
+      LyricsService.INSTANCE.activity(background,mc.isPaused());
+      dev.truwty.nocturne.playback.Playback.spotify().activity(background,mc.isPaused());
+      if(!SETTINGS.isEnabled())LyricsService.INSTANCE.system.activity(background?3000:2000);
+      var song=dev.truwty.nocturne.playback.Playback.current();
+      LyricsService.INSTANCE.system.audio(!background&&!mc.isPaused()&&song!=null&&song.playing()&&SETTINGS.audioReactive.on() && !SETTINGS.reducedMotion.on());
       dev.truwty.nocturne.gui.StudioController.tick(mc);
       Studio.tick();
       SETTINGS.tickPreset();

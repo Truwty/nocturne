@@ -20,6 +20,7 @@ public final class SettingsCatalog {
         String n = s.name.toLowerCase(Locale.ROOT);
         if (n.startsWith("ui ") || n.contains("settings style") || n.contains("controller"))
             return "Interface";
+        if (n.contains("limit")||n.contains("effect detail")||n.contains("budget")||n.contains("frame time")||n.contains("performance"))return "Motion & performance";
         if (n.startsWith("editor ")
                 || n.contains("placement")
                 || n.equals("distance")
@@ -64,7 +65,18 @@ public final class SettingsCatalog {
                                         : s instanceof BoolSetting
                                                 ? "Toggle this option"
                                                 : "Run this action";
-        return category(s) + " · " + detail;
+        String purpose=switch(s.name){
+            case "Adaptive effect budgets"->" · Reduce decorations after sustained slow frames; recover gradually";
+            case "Target frame time"->" · Set 1000 / your target FPS: 16.7 ms for 60 FPS, 33.3 ms for 30 FPS";
+            case "Glow pass limit"->" · Maximum extra glow text passes per frame; primary text is preserved";
+            case "Cloud lettering layer limit"->" · Maximum decorative cloud puffs and text copies per frame";
+            case "Particle limit"->" · Shared cap for sparks, mist and flying battle words; quality may lower it";
+            case "Lingering line limit"->" · Maximum retained previous lines; zero keeps only the current line";
+            case "Distance effect detail", "Full effect detail distance"->" · Fade decorative detail toward the lyric render distance";
+            case "Performance readout"->" · CPU-side elapsed submission time and geometry counters; move Diagnostics in the HUD editor";
+            default->"";
+        };
+        return category(s) + " · " + detail+purpose;
     }
 
     public static List<Setting<?>> search(

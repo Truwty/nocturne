@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0-beta.1
+
+- Add smoothed adaptive effect budgets with fast reductions, gradual recovery and a configurable frame-time target.
+- Add independent particle, glow-pass, cloud-lettering and lingering-line limits; scale distant decoration while preserving core lyrics.
+- Reduce decoration, environment sampling, media polling and audio metering while paused, backgrounded or without music; skip minimized lyric submissions.
+- Add a live performance/budget screen and movable Diagnostics HUD readout for CPU-side elapsed submission time and geometry counters.
+- Cache up to 24 compressed covers / 4 MiB for 24 hours, retaining one GPU texture. Cancel superseded catalog/image downloads and obsolete lyric/search work.
+- Test controller hysteresis, hard budgets, cache eviction/expiry, real HTTP cancellation and native UI/rendering. Keep new Studio controls reachable at small GUI scales.
+
 ## 0.10.0-beta.1
 
 - Add nine configurable, initially unbound gameplay playback shortcuts in native Minecraft Controls.

@@ -50,6 +50,11 @@ public final class LyricsService {
          @Override protected boolean removeEldestEntry(Map.Entry<String, CachedLyrics> entry) { return size() > 128; }
       });
    private volatile long retryLyricsAt;
+   private volatile boolean background,lowActivity;
+   private volatile long nextPoll;
+   public void activity(boolean background,boolean paused){if(background!=this.background||paused!=lowActivity){this.background=background;lowActivity=paused;if(background)cancelArt();else nextArtAttempt=0;nextPoll=0;}}
+   private java.util.concurrent.Future<?> lyricRequest;
+   private void cancelLookup(){if(lyricRequest!=null){lyricRequest.cancel(true);lyricRequest=null;}}
    private PersistentLyricsCache disk;
    private volatile long playbackRevision;
    private volatile String playbackStatus = "Waiting for playback";
@@ -75,15 +80,17 @@ public final class LyricsService {
    private volatile long lookupGeneration;
    public List<LyricSearch.Candidate> candidates() { return candidates; }
    public String searchStatus() { return searchStatus; }
-   public void search(String query) {
+   private java.util.concurrent.Future<?> searchRequest;
+   private synchronized void cancelSearch(){searchRevision++;if(searchRequest!=null)searchRequest.cancel(true);searchRequest=null;candidates=List.of();searchTrack="";searchStatus="Search for the current title and artist";}
+   public synchronized void search(String query) {
       NowPlaying track = now();
       if (track == null) { searchStatus = "Play a song first"; return; }
-      long request = ++searchRevision;
+      cancelSearch();long request = ++searchRevision;
       searchTrack = track.key(); candidates = List.of(); searchStatus = "Searching LRCLIB...";
-      exec.execute(() -> {
-         try { var result = LyricSearch.search(query); if (request == searchRevision) { candidates = result; searchStatus = candidates.isEmpty() ? "No synchronized matches" : "Choose a match to save for this song"; } }
-         catch (InterruptedException ex) { Thread.currentThread().interrupt(); searchStatus = "Search cancelled"; }
-         catch (Exception ex) { searchStatus = "Search failed: " + ex.getMessage(); NocturneClient.LOG.debug("Manual lyric search failed", ex); }
+      searchRequest=exec.submit(() -> {
+         try { var result = LyricSearch.search(query); synchronized(this){if (request == searchRevision) { candidates = result; searchStatus = candidates.isEmpty() ? "No synchronized matches" : "Choose a match to save for this song"; }} }
+         catch (InterruptedException ex) { Thread.currentThread().interrupt(); if(request==searchRevision)searchStatus = "Search cancelled"; }
+         catch (Exception ex) { if(request==searchRevision)searchStatus = "Search failed: " + ex.getMessage(); NocturneClient.LOG.debug("Manual lyric search failed", ex); }
       });
    }
    public void choose(LyricSearch.Candidate candidate) throws IOException {
@@ -120,7 +127,7 @@ public final class LyricsService {
       }
       NowPlaying current = this.now;
       if (current != null && current.key().equals(track.key())) {
-         lookupGeneration++; loadingKey = "local:" + (++revision); retryLyricsAt = 0; lyrics = local; lyricsStatus = "Local / selected lyrics";
+         cancelLookup();lookupGeneration++; loadingKey = "local:" + (++revision); retryLyricsAt = 0; lyrics = local; lyricsStatus = "Local / selected lyrics";
       }
    }
    private ScheduledFuture<?> task;
@@ -200,7 +207,8 @@ public final class LyricsService {
          this.task.cancel(false);
       }
 
-      this.task = null;
+      this.task = null;nextPoll=0;
+      cancelLookup();cancelSearch();cancelArt();
       this.system.stop();
       this.now = null;
       this.loadingKey = ""; lookupGeneration++;
@@ -208,12 +216,17 @@ public final class LyricsService {
    }
 
    private void poll() {
+      long nowMs=System.currentTimeMillis();if(nowMs<nextPoll)return;
+      NowPlaying previous=this.now;
+      long interval=background?3000:previous==null?2000:lowActivity||!previous.playing()?1500:500;
+      nextPoll=nowMs+interval;system.activity((int)interval);
       try {
          NowPlaying sample = null;
          if (SystemMediaSource.supported()) this.system.start();
          sample = dev.truwty.nocturne.playback.Playback.sample(this.system.latest());
 
          this.update(sample);
+         if(sample!=null&&!background&&artwork==null&&nowMs>=nextArtAttempt&&(artRequest==null||artRequest.isDone()))fetchArt(sample);
       } catch (Exception e) {
          NocturneClient.LOG.debug("Lyrics poll failed", e);
       }
@@ -222,6 +235,7 @@ public final class LyricsService {
    synchronized void update(NowPlaying sample) {
       NowPlaying old = this.now;
       if(sample!=null && advertisement(sample)) {
+         cancelLookup();cancelSearch();cancelArt();
          this.now=sample; this.lyrics=null; this.loadingKey=""; lookupGeneration++; this.retryLyricsAt=0;
          lyricsStatus="Advertisement: waiting for music"; playbackStatus="Advertisement";
          if(old==null || !old.key().equals(sample.key())) playbackRevision++;
@@ -230,6 +244,7 @@ public final class LyricsService {
       String transition=PlaybackSync.transition(old,sample);
       if(!transition.isBlank()) { playbackRevision++;playbackStatus=transition; }
       if (sample == null) {
+         cancelLookup();if(artRequest!=null)cancelArt();
          this.now = null; this.lyrics=null;
          playbackStatus="Player disconnected";
          loadingKey = ""; lookupGeneration++;
@@ -245,6 +260,7 @@ public final class LyricsService {
             if (old == null || !old.key().equals(sample.key())) this.fetchArt(sample);
          }
       }
+      var displayed=now();if(searchRequest!=null&&(displayed==null||!displayed.key().equals(searchTrack)))cancelSearch();
       if (sample != null && retryLyricsAt > 0 && System.nanoTime() >= retryLyricsAt) {
          retryLyricsAt = 0;
          fetchLyrics(sample);
@@ -264,6 +280,7 @@ public final class LyricsService {
    }
 
    private synchronized void fetchLyrics(NowPlaying np) {
+      cancelLookup();
       if (now == null || !now.key().equals(np.key()) || now.durationMs()!=np.durationMs()) return;
       try {
          Lyrics local = Studio.library().local(np.key());
@@ -292,7 +309,7 @@ public final class LyricsService {
       } else {
          this.lyrics = null;
          this.lyricsStatus = "Finding lyrics...";
-         this.exec.execute(() -> this.lookup(np, key, plain, 0, generation));
+         lyricRequest=this.exec.submit(() -> this.lookup(np, key, plain, 0, generation));
       }
    }
 
@@ -305,7 +322,7 @@ public final class LyricsService {
          if(generation!=lookupGeneration || !key.equals(loadingKey))return;
          if(found==null && !finder.reached && attempt<1) {
             lyricsStatus="Can't reach the lyrics sites, trying again...";
-            exec.schedule(()->lookup(np,key,plain,attempt+1,generation),10,TimeUnit.SECONDS);return;
+            lyricRequest=exec.schedule(()->lookup(np,key,plain,attempt+1,generation),10,TimeUnit.SECONDS);return;
          }
          if(found==null || (found.lyrics()!=null && found.lyrics().lines.isEmpty()))found=new LyricsFinder.Result(null,"No lyrics found for this song");
          if(found.lyrics()!=null || "Instrumental".equals(found.status())) {
@@ -320,78 +337,24 @@ public final class LyricsService {
       }
    }
 
-   private void fetchArt(NowPlaying np) {
-      this.albumColor = 0;
-      this.artwork = null;
-      String given = np.artUrl();
-      this.artKey = np.key();
-      String key = np.key();
-      this.exec.execute(() -> {
-         int c = 0;
-
-         try {
-            String url = given != null && given.startsWith("https://") ? given : itunesArt(np);
-            if (url == null || !key.equals(this.artKey)) {
-               return;
-            }
-
-            HttpRequest req = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofSeconds(8L)).GET().build();
-            var response=HTTP.send(req,dev.truwty.nocturne.playback.BoundedBody.handler(4194304));
-            if(response.statusCode()!=200)return;
-            byte[] bytes=response.body();
-            byte[] thumbnail=dev.truwty.nocturne.playback.ArtworkImage.thumbnail(bytes);
-            BufferedImage img = ImageIO.read(new ByteArrayInputStream(thumbnail));
-            if(key.equals(this.artKey)) this.artwork=new Artwork(key,thumbnail);
-            if (img != null) {
-               c = mainColor(img);
-            }
-         } catch (Exception e) {
-            NocturneClient.LOG.debug("Album colour failed", e);
-            LyricsDebug.note("Album colour failed: " + e);
-         }
-
-         if (key.equals(this.artKey)) {
-            this.albumColor = c;
-         }
-      });
+   private ArtworkLoader artLoader;
+   private synchronized ArtworkLoader artLoader(){if(artLoader==null)artLoader=new ArtworkLoader(HTTP,exec);return artLoader;}
+   private java.util.concurrent.CompletableFuture<dev.truwty.nocturne.performance.ArtworkCache.Entry> artRequest;
+   private volatile long nextArtAttempt;
+   public String artworkCacheStatus(){return artLoader().cached()+" / 24 covers · "+artLoader().cachedBytes()/1024+" / 4096 KiB";}
+   private synchronized void cancelArt(){artRequest=null;if(artLoader!=null)artLoader.cancel();artKey="";artwork=null;albumColor=0;}
+   private synchronized void fetchArt(NowPlaying np) {
+      if(background)return;
+      this.albumColor=0;this.artwork=null;this.artKey=np.key();nextArtAttempt=System.currentTimeMillis()+30000;
+      var request=artLoader().load(np);artRequest=request;
+      request.whenComplete((entry,error)->{synchronized(this){
+         if(request!=artRequest)return;
+         if(error!=null){if(!(error instanceof java.util.concurrent.CancellationException))NocturneClient.LOG.debug("Album artwork unavailable",error);return;}
+         if(entry!=null){albumColor=entry.color();artwork=new Artwork(np.key(),entry.png());}
+      }});
    }
 
-   private static String itunesArt(NowPlaying np) {
-      String artist = np.artist() == null ? "" : np.artist().split(",")[0].trim();
-      String title = np.title();
-      if (title != null && !title.isBlank()) {
-         JsonElement res = get("https://itunes.apple.com/search?media=music&entity=song&limit=5&term=" + enc((artist + " " + title).trim()));
-         if (res != null && res.isJsonObject() && res.getAsJsonObject().has("results")) {
-            String want = title.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
-
-            for (JsonElement e : res.getAsJsonObject().getAsJsonArray("results")) {
-               if (e.isJsonObject()) {
-                  JsonObject o = e.getAsJsonObject();
-                  if (o.has("artworkUrl100") && o.get("artworkUrl100").isJsonPrimitive()) {
-                     String art = o.get("artworkUrl100").getAsString().replace("100x100", "300x300");
-                     if (art.startsWith("https://")) {
-                        String name = o.has("trackName") && o.get("trackName").isJsonPrimitive() ? o.get("trackName").getAsString() : "";
-                        String n = name.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
-                        String matchedArtist=o.has("artistName")?o.get("artistName").getAsString().toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", ""):"";
-                        String wantedArtist=artist.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", "");
-                        if (!n.isEmpty() && (n.contains(want) || want.contains(n)) && !wantedArtist.isEmpty() && (matchedArtist.contains(wantedArtist)||wantedArtist.contains(matchedArtist)) && !matchedArtist.isEmpty()) {
-                           return art;
-                        }
-                     }
-                  }
-               }
-            }
-
-            return null;
-         } else {
-            return null;
-         }
-      } else {
-         return null;
-      }
-   }
-
-   private static int mainColor(BufferedImage img) {
+   static int mainColor(BufferedImage img) {
       double r = 0.0;
       double g = 0.0;
       double b = 0.0;
@@ -440,20 +403,6 @@ public final class LyricsService {
       }
 
       return new float[]{h, max == 0 ? 0.0F : d / max, max / 255.0F};
-   }
-
-   private static JsonElement get(String url) {
-      try {
-         HttpRequest req = HttpRequest.newBuilder(URI.create(url))
-            .timeout(Duration.ofSeconds(8L))
-            .header("User-Agent", "Nocturne Lyrics (Minecraft client mod)")
-            .GET()
-            .build();
-         HttpResponse<String> res = HTTP.send(req, BodyHandlers.ofString());
-         return res.statusCode() != 200 ? null : JsonParser.parseString(res.body());
-      } catch (Exception e) {
-         return null;
-      }
    }
 
    private static String enc(String s) {

@@ -13,7 +13,7 @@ Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + 
 ## Install
 
 1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Replace older Nocturne JARs with `nocturne-0.10.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-0.11.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
@@ -136,6 +136,19 @@ Nocturne includes navigation for [GLFW standard gamepads](https://www.glfw.org/d
 Controller action dispatch/repeat behavior is automated-tested. Physical gamepad hardware has not been validated locally; mapping availability depends on the device, OS and GLFW mapping database.
 
 ### Motion, performance and accessibility
+
+![Performance panel during zero-budget verification](docs/performance.png)
+
+Open **N → Motion → Performance & budgets** for the live panel and limits. The adaptive controller uses a smoothed frame interval, reduces decoration budgets after sustained overload, and restores detail gradually. The default target is 16.7 ms (60 FPS); use 33.3 ms for a 30 FPS cap. Disable adaptation to retain your configured ceilings. It reduces effects, rather than changing Minecraft's FPS settings or promising a fixed frame rate.
+
+Particle count, extra glow text passes, decorative cloud lettering layers and lingering lines have independent limits. The existing quality preset can lower particle/glow ceilings further. Adaptive detail scales these limits between 20% and 100% while active; paused playback, a paused game or a background window suppresses optional decoration. Current lyric text is retained. A shared particle cap includes sparks, mist and flying battle words. Distant anchors lose glow/cloud copies and particle detail smoothly, starting at the configurable full-detail distance; the existing render-distance cull still applies.
+
+**Performance readout** adds a movable HUD overlay using the **Diagnostics** widget in the HUD editor. The full panel and copied diagnostics include CPU-side submission time, particle/lingering counts, text submissions, custom meshes and their submitted vertices, projected commands and consumed glow/cloud layers. The high-resolution timer measures elapsed time in Nocturne's render preparation, custom-geometry callbacks and HUD extraction. It does not measure GPU execution, Minecraft's later font batching, whole-game frame CPU usage or background network workers. The display reports the previous completed frame; its frame interval includes the rest of the game.
+
+No-music frames skip effect layout/preparation. Desktop lyric/media polling runs at 500 ms while playing, 1.5 seconds while paused, 2 seconds without music and 3 seconds in the background; Spotify account polling uses 2/5/10 seconds for active/idle/background operation. Background means unfocused or minimized. Audio metering stops while paused, backgrounded or without music. Minimized windows skip lyric geometry submission. Re-entering the game restores active polling, with any remaining network response delay.
+
+Artwork thumbnails use an in-memory LRU cache capped at **24 covers / 4 MiB**, expiring after **24 hours**. It stores compressed 128² PNGs and colors, while the renderer retains one GPU texture. Catalog responses are limited to 256 KiB and images to 4 MiB / 2048² decoded pixels. Track changes, service stop and background transitions cancel obsolete artwork HTTP futures; stale completions cannot update the cover or theme color. Automatic lyric lookups and manual searches are interrupted when superseded or stopped. No cache file is added to exported presets.
+
 
 - Independent flash and shake switches, both off by default.
 - Reduced motion suppresses flash, camera beat zoom, animated styling, particles and ambient animation.

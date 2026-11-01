@@ -64,7 +64,7 @@ function Await($op, [Type]$type) {
 [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType = WindowsRuntime] | Out-Null
 $mgr = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
 [NocturneInput]::Start()
-$priorities = @('Spotify','Cider','YouTube Music','TIDAL','foobar'); $active = ''; $pinned = ''; $audio = $false; $refresh = 0; $commandStatus = ''; $audioError = ''; $o = @{}
+$priorities = @('Spotify','Cider','YouTube Music','TIDAL','foobar'); $active = ''; $interval = 500; $pinned = ''; $audio = $false; $refresh = 0; $commandStatus = ''; $audioError = ''; $o = @{}
 while ($true) {
     if ([NocturneInput]::Closed) { exit }
     try {
@@ -73,6 +73,7 @@ while ($true) {
             if ($cmd.action -eq 'quit') { exit }
             if ($cmd.action -eq 'select') { $pinned = [string]$cmd.app; $refresh = 0; continue }
             if ($cmd.action -eq 'priorities') { $priorities = @($cmd.values); $refresh = 0; continue }
+            if ($cmd.action -eq 'activity') { $interval = [Math]::Max(500,[Math]::Min(3000,[int]$cmd.interval)); continue }
             if ($cmd.action -eq 'audio') { $audio = [bool]$cmd.enabled; continue }
             $target = @($mgr.GetSessions() | Where-Object { $_.SourceAppUserModelId -eq $cmd.target }) | Select-Object -First 1
             if (-not $target) { $commandStatus = 'Player disconnected'; continue }
@@ -102,7 +103,7 @@ while ($true) {
             $refresh = 0
         }
         $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-        if ($now - $refresh -ge 500) {
+        if ($now - $refresh -ge $interval) {
             $refresh = $now; $sessions = @($mgr.GetSessions()); $session = $null
             if ($pinned) { $session = $sessions | Where-Object { $_.SourceAppUserModelId -eq $pinned } | Select-Object -First 1 }
             else {
@@ -138,6 +139,7 @@ while ($true) {
                 $o.previous = $controls.IsPreviousEnabled; $o.seek = $controls.IsPlaybackPositionEnabled
             }
         }
+        $o.pollInterval = $interval
         $o.now = $now
         $o.peak = 0.0; $o.audioAvailable = $false
         if ($audio) {
@@ -153,5 +155,5 @@ while ($true) {
         [Console]::Out.Flush()
         Start-Sleep -Milliseconds 500
     }
-    Start-Sleep -Milliseconds $(if ($audio) { 50 } else { 250 })
+    Start-Sleep -Milliseconds $(if ($audio) { 50 } elseif ($interval -gt 500) { 500 } else { 250 })
 }

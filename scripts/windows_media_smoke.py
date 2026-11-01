@@ -130,6 +130,8 @@ async def main() -> None:
             for capability in ("toggle", "next", "previous", "seek"):
                 if not initial.get(capability):
                     raise RuntimeError(f"Fixture did not advertise {capability}")
+            await command("activity", interval=1500)
+            await wait_state(lambda data: data.get("pollInterval") == 1500)
             await command("toggle")
             await wait_state(lambda data: data.get("playing") is False)
             await command("seek", millis=30000)
@@ -163,7 +165,7 @@ async def main() -> None:
             )
             process.stdin.close()
             await asyncio.wait_for(process.wait(), 10)
-            print("WINDOWS MEDIA TEST PASSED: selection, pause, seek, next, previous, resume, shuffle, repeat modes, priorities, output meter, strict pin, reconnect and parent EOF shutdown")
+            print("WINDOWS MEDIA TEST PASSED: selection, pause, seek, next, previous, resume, shuffle, repeat modes, priorities, idle polling, output meter, strict pin, reconnect and parent EOF shutdown")
         finally:
             state["running"] = False
             await ticking

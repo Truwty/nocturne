@@ -2,6 +2,7 @@ package dev.truwty.nocturne.lyrics;
 
 import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.Studio;
+import dev.truwty.nocturne.performance.RenderPerformance;
 import dev.truwty.nocturne.FrameMotion;
 import dev.truwty.nocturne.LyricsSettings;
 import dev.truwty.nocturne.gui.Anim;
@@ -56,7 +57,6 @@ public final class LyricsRenderer {
    private static final int RED = -50325;
    private static final int CYAN = -12850945;
    private static final int SHADOW = -16053740;
-   private static final int MAX_TRAIL = 6;
    private static final List<LyricsRenderer.Spark> SPARKS = new ArrayList<>();
    private static final List<LyricsRenderer.Mist> MIST = new ArrayList<>();
    private static final List<LyricsRenderer.BattleWord> BATTLE = new ArrayList<>();
@@ -126,7 +126,7 @@ public final class LyricsRenderer {
    private static float editorX, editorY, editorYaw, editorPitch, editorRoll, audioEnvelope;
    private static int particleBudget() {
       LyricsSettings mod = NocturneClient.SETTINGS;
-      return mod.reducedMotion.on() ? 0 : Math.min(mod.particleLimit.i(), mod.quality.get() == 0 ? 20 : mod.quality.get() == 1 ? 48 : 180);
+      return mod.reducedMotion.on() ? 0 : RenderPerformance.particles(Math.min(mod.particleLimit.i(), mod.quality.get() == 0 ? 20 : mod.quality.get() == 1 ? 48 : 180));
    }
    private static float impact;
    private static float flash;
@@ -222,10 +222,14 @@ public final class LyricsRenderer {
    }
 
    public static void render(LevelRenderContext ctx) {
+      long start=RenderPerformance.time();RenderPerformance.begin(Minecraft.getInstance());
+      try {renderContents(ctx);}finally{RenderPerformance.counts(SPARKS.size()+MIST.size()+BATTLE.size(),TRAIL.size());RenderPerformance.addTime(start);}
+   }
+   private static void renderContents(LevelRenderContext ctx) {
       long nowN = System.nanoTime();
       float dt = lastNanos == 0L ? 0.016F : Math.min(0.1F, (float)(nowN - lastNanos) / 1.0E9F);
       lastNanos = nowN;
-      if (NocturneClient.SETTINGS == null || !NocturneClient.SETTINGS.reducedMotion.on()) time += dt;
+      if (NocturneClient.SETTINGS == null || !NocturneClient.SETTINGS.reducedMotion.on()) {if(!RenderPerformance.idle())time += dt;}
       culled = false;
       impact = impact * (float)Math.exp(-dt * 7.0F);
       flash = flash * (float)Math.exp(-dt * 10.0F);
@@ -235,17 +239,21 @@ public final class LyricsRenderer {
       LyricsDebug.frame();
       LyricsSettings mod = NocturneClient.SETTINGS;
       Minecraft mc = Minecraft.getInstance();
+      if(mc.getWindow().isIconified()){reset();return;}
+      while(TRAIL.size()>RenderPerformance.lingering(mod.lingeringLimit.i()))TRAIL.removeFirst();
+      if(RenderPerformance.idle()){SPARKS.clear();MIST.clear();BATTLE.clear();}
       if (mod != null && mod.isEnabled() && mc.player != null) {
+         if(LyricsService.INSTANCE.now()==null||LyricsService.INSTANCE.lyrics()==null){reset();songKey="";return;}
          float rate = 5 / mod.transition.f();
          editorX = FrameMotion.approach(editorX, mod.editorX.f(), rate, dt);
          editorY = FrameMotion.approach(editorY, mod.editorY.f(), rate, dt);
          editorYaw = FrameMotion.angle(editorYaw, (float)Math.toRadians(mod.editorYaw.get()), rate, dt);
          editorPitch = FrameMotion.angle(editorPitch, (float)Math.toRadians(mod.editorPitch.get()), rate, dt);
          editorRoll = FrameMotion.angle(editorRoll, (float)Math.toRadians(mod.editorRoll.get()), rate, dt);
-         float targetAudio = mod.audioReactive.on() && !mod.reducedMotion.on() ? LyricsService.INSTANCE.system.peak() * mod.audioGain.f() : 0;
+         float targetAudio = !RenderPerformance.idle() && mod.audioReactive.on() && !mod.reducedMotion.on() ? LyricsService.INSTANCE.system.peak() * mod.audioGain.f() : 0;
          audioEnvelope = FrameMotion.approach(audioEnvelope, Math.clamp(targetAudio, 0, 1), targetAudio > audioEnvelope ? 20 : 5, dt);
-         while (SPARKS.size() + MIST.size() > particleBudget()) {
-            if (!MIST.isEmpty()) MIST.removeLast(); else SPARKS.removeLast();
+         while (SPARKS.size() + MIST.size() + BATTLE.size() > particleBudget()) {
+            if (!MIST.isEmpty()) MIST.removeLast(); else if(!SPARKS.isEmpty())SPARKS.removeLast();else BATTLE.removeLast();
          }
 
          NowPlaying np = LyricsService.INSTANCE.now();
@@ -272,7 +280,7 @@ public final class LyricsRenderer {
             boolean world = modeNow != 2;
             boolean turn = mod.faceYou.on();
             float linger = world ? mod.linger.f() : 0.0F;
-            boolean battleNow = mod.battle.on() && combat > 0;
+            boolean battleNow = !RenderPerformance.idle() && particleBudget()>0 && mod.battle.on() && combat > 0;
             float partial = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
             Vec3 look = mc.player.getViewVector(partial);
             double d = mod.distance.get();
@@ -309,7 +317,7 @@ public final class LyricsRenderer {
                title = new LyricsRenderer.Place(desired);
             }
 
-            if (mod.cloudDrift.on() && !mod.reducedMotion.on()) {
+            if (!RenderPerformance.idle() && mod.cloudDrift.on() && !mod.reducedMotion.on()) {
                Vec3 wind = new Vec3(dt * 0.6, 0.0, 0.0);
                if (current != null && current.place.kind == 2) {
                   current.place.at = current.place.at.add(wind);
@@ -494,6 +502,7 @@ public final class LyricsRenderer {
                      notes(ps, out, font, cam, at(current), mod, scale, Anim.clamp01(gapAge / 0.5F) * out01, mode);
                   } else if (battleNow) {
                      battleHits(mc, cam, current, pos, mod, I, partial);
+                     if(SPARKS.size()+MIST.size()+BATTLE.size()>=particleBudget())drawLine(ps,out,font,cam,current,pos,true,1,mod,scale,I,mode);
                   } else {
                      drawLine(ps, out, font, cam, current, pos, true, 1.0F, mod, scale, I, mode);
                      if (mod.nextLine.on() && (modeNow == 1 || modeNow == 2) && current.index + 1 < ly.lines.size()) {
@@ -694,14 +703,7 @@ public final class LyricsRenderer {
    private static void finish(LyricsRenderer.Shown s, float linger) {
       s.ended = 0.0F;
       TRAIL.add(s);
-      int lingering = 0;
-
-      for (int i = TRAIL.size() - 1; i >= 0; i--) {
-         LyricsRenderer.Shown t = TRAIL.get(i);
-         if (++lingering > 6) {
-            t.ended = Math.max(t.ended, linger);
-         }
-      }
+      while(TRAIL.size()>RenderPerformance.lingering(NocturneClient.SETTINGS.lingeringLimit.i()))TRAIL.removeFirst();
    }
 
    private static void makeRoom(LyricsRenderer.Shown fresh, LyricsSettings mod) {
@@ -727,7 +729,7 @@ public final class LyricsRenderer {
       long now = System.nanoTime();
       if (level == environmentLevel && now < nextEnvironment) return;
       environmentLevel = level;
-      nextEnvironment = now + 100_000_000L;
+      nextEnvironment = now + (RenderPerformance.idle()?1_000_000_000L:100_000_000L);
       if (level != null) {
          try {
             Float ch = (Float)level.environmentAttributes().getValue(EnvironmentAttributes.CLOUD_HEIGHT, cam);
@@ -902,10 +904,12 @@ public final class LyricsRenderer {
             int inner = Draw.alpha(color, alpha);
             int mid = Draw.alpha(color, alpha * 0.55F);
             int outer = color & 16777215;
-            int seg = NocturneClient.SETTINGS.quality.get() == 0 ? 8 : NocturneClient.SETTINGS.quality.get() == 1 ? 12 : 16;
+            int seg = RenderPerformance.detail()<.5||NocturneClient.SETTINGS.quality.get()==0?8:RenderPerformance.detail()<.8||NocturneClient.SETTINGS.quality.get()==1?12:16;
+            RenderPerformance.mesh(seg*16);
             ps.pushPose();
             ps.translate(0.0F, 0.0F, z);
             out.submitCustomGeometry(ps, RenderTypes.debugFilledBox(), (pose, buf) -> {
+               long geometryStart=RenderPerformance.time();try{
                for (int i = 0; i < seg; i++) {
                   float c0 = CIRCLE_COS[seg][i], s0 = CIRCLE_SIN[seg][i];
                   float c1 = CIRCLE_COS[seg][i+1], s1 = CIRCLE_SIN[seg][i+1];
@@ -930,6 +934,7 @@ public final class LyricsRenderer {
                      buf.addVertex(pose, f ? hx1 : hx0, f ? hy1 : hy0, 0.0F).setColor(mid);
                   }
                }
+               }finally{RenderPerformance.addTime(geometryStart);}
             });
             ps.popPose();
          }
@@ -941,6 +946,7 @@ public final class LyricsRenderer {
 
       for (int i = 0; i <= cols; i++) {
          for (int row = 0; row < 2; row++) {
+            if(!RenderPerformance.cloud())return;
             float t = (float)i / cols;
             float x = -hw + t * 2.0F * hw + (hash(seed + i * 3.1F + row) - 0.5F) * 6.0F + (float)Math.sin(time * 0.7F + i + row) * 1.2F;
             float y = (row == 0 ? -hh * 0.35F : hh * 0.35F)
@@ -976,6 +982,7 @@ public final class LyricsRenderer {
       readNow = -1.0F;
       ps.pushPose();
       face(ps, cam, pl, 0.0F, scale);
+      if(culled){ps.popPose();readNow=saveRead;return;}
       if (live && beat > 0.01F) {
          float b = 1.0F + 0.04F * beat;
          ps.scale(b, b, 1.0F);
@@ -1035,12 +1042,12 @@ public final class LyricsRenderer {
                   width = font.width(comp);
                   float left = w.cx() - w.width() * w.sc() / 2.0F;
                   cx = left + width * w.sc() / 2.0F;
-                  if (live && wr < 1.0F) {
+                  if (live && wr < 1.0F && RenderPerformance.cloud()) {
                      float pen = left + width * w.sc();
                      puff(ps, out, pen, w.cy(), 2.2F, -1, 0.6F * a, 0.2F);
                      mistTimer = mistTimer + frameDt;
 
-                     while (mistTimer > 0.03F && SPARKS.size() + MIST.size() < particleBudget()) {
+                     while (mistTimer > 0.03F && SPARKS.size() + MIST.size() + BATTLE.size() < particleBudget()) {
                         mistTimer -= 0.03F;
                         LyricsRenderer.Mist m = new LyricsRenderer.Mist();
                         m.place = pl;
@@ -1058,9 +1065,9 @@ public final class LyricsRenderer {
                   }
                }
 
-               int puffs = style == 1 ? 2 : 4;
+               int puffs = RenderPerformance.layers(style == 1 ? 2 : 4);
 
-               for (int k = 0; k < puffs; k++) {
+               for (int k = 0; k < puffs && RenderPerformance.cloud(); k++) {
                   float hx = (hash(seed + k * 1.9F) - 0.5F) * width * sc;
                   float hy = (hash(seed * 1.3F + k * 2.7F) - 0.5F) * 6.0F;
                   float r = (4.0F + hash(seed + k * 5.1F) * 4.0F) * w.sc() * (0.6F + 0.4F * form) + breakup * 8.0F;
@@ -1071,7 +1078,7 @@ public final class LyricsRenderer {
 
                float spread = (1.0F - form) * 4.0F + breakup * 9.0F;
 
-               for (int k = 0; k < 8; k++) {
+               for (int k = 0; k < RenderPerformance.layers(8) && RenderPerformance.cloud(); k++) {
                   double ang = k * Math.PI / 4.0 + seed;
                   float ox = (float)Math.cos(ang) * (1.1F + spread);
                   float oy = (float)Math.sin(ang) * (1.1F + spread) * 0.7F;
@@ -1144,6 +1151,7 @@ public final class LyricsRenderer {
    }
 
    private static void spawnBattle(Minecraft mc, Vec3 cam, LyricsRenderer.Placed w, int color, LyricsSettings mod, float I, float partial) {
+      if(SPARKS.size()+MIST.size()+BATTLE.size()>=particleBudget())return;
       Vec3 look = mc.player.getViewVector(partial);
       Vec3 anchor = target != null ? target.getEyePosition(partial).add(0.0, -0.25, 0.0) : cam.add(look.scale(4.5));
       Vec3 toA = anchor.subtract(cam);
@@ -1266,7 +1274,7 @@ public final class LyricsRenderer {
    }
 
    private static void burst(LyricsRenderer.Place place, float x, float y, int width, int col, int count, float I) {
-      for (int i = 0; i < count && SPARKS.size() + MIST.size() < particleBudget(); i++) {
+      for (int i = 0; i < count && SPARKS.size() + MIST.size() + BATTLE.size() < particleBudget(); i++) {
          LyricsRenderer.Spark sp = new LyricsRenderer.Spark();
          sp.place = place;
          sp.x = x + (RNG.nextFloat() - 0.5F) * width;
@@ -1618,7 +1626,7 @@ public final class LyricsRenderer {
       if (mod.sparkles.on()) {
          int count = w.big() ? Math.round(9.0F * Math.max(0.6F, I)) : (hype ? 3 : 0);
 
-         for (int i = 0; i < count && SPARKS.size() + MIST.size() < particleBudget(); i++) {
+         for (int i = 0; i < count && SPARKS.size() + MIST.size() + BATTLE.size() < particleBudget(); i++) {
             LyricsRenderer.Spark sp = new LyricsRenderer.Spark();
             sp.place = at(s);
             sp.x = w.cx() + (RNG.nextFloat() - 0.5F) * w.width();
@@ -1790,6 +1798,7 @@ public final class LyricsRenderer {
       Vec3 at = place.pos();
       LyricsSettings settings = NocturneClient.SETTINGS;
       Vec3 relative = at.subtract(cam);
+      RenderPerformance.distance(relative.length());
       culled = relative.lengthSqr() > settings.renderDistance.get() * settings.renderDistance.get();
       Minecraft client = Minecraft.getInstance();
       if (client.player != null && relative.lengthSqr() > 4 && relative.normalize().dot(client.player.getViewVector(1)) < -0.2) culled = true;
@@ -1855,7 +1864,7 @@ public final class LyricsRenderer {
       int glowColor,
       DisplayMode mode
    ) {
-      if (!(alpha <= 0.01F)) {
+      if (!culled && !(alpha <= 0.01F)) {
          LyricsSettings settings = NocturneClient.SETTINGS;
          if (settings.reducedMotion.on()) { rotDeg = 0; chroma = 0; sc = 1; }
          if (settings.quality.get() == 0) glow = 0;
@@ -1879,7 +1888,7 @@ public final class LyricsRenderer {
          }
 
          if (glow > 0.01F) {
-            for (int i = 1; i <= (NocturneClient.SETTINGS.quality.get() == 2 ? 2 : 1); i++) {
+            for (int i = 1; i <= RenderPerformance.layers(NocturneClient.SETTINGS.quality.get() == 2 ? 2 : 1) && RenderPerformance.glow(); i++) {
                float g = 1.0F + i * 0.09F;
                ps.pushPose();
                ps.translate(0.0F, 0.0F, -0.35F * i);
@@ -1889,7 +1898,7 @@ public final class LyricsRenderer {
             }
          }
 
-         if (chroma > 0.05F) {
+         if (chroma > 0.05F && RenderPerformance.detail()>.55) {
             ps.pushPose();
             ps.translate(-chroma, 0.0F, -0.15F);
             text(ps, out, x, y, s, false, mode, Draw.alpha(-50325, alpha * 0.6F));
@@ -1907,6 +1916,7 @@ public final class LyricsRenderer {
 
    private static void text(PoseStack ps, SubmitNodeCollector out, float x, float y, FormattedCharSequence s, boolean shadow, DisplayMode mode, int color) {
       if (!culled && Draw.visible(color)) {
+         RenderPerformance.text();
          if (hud) {
             HudLyrics.text(ps.last().pose(), x, y, s, shadow, color);
          } else {
@@ -1921,7 +1931,9 @@ public final class LyricsRenderer {
          if (hud) {
             HudLyrics.quad(ps.last().pose(), x0, y0, x1, y1, c);
          } else {
+            RenderPerformance.mesh(8);
             out.submitCustomGeometry(ps, RenderTypes.debugFilledBox(), (pose, buf) -> {
+               long geometryStart=RenderPerformance.time();try{
                buf.addVertex(pose, x0, y0, 0.0F).setColor(c);
                buf.addVertex(pose, x1, y0, 0.0F).setColor(c);
                buf.addVertex(pose, x1, y1, 0.0F).setColor(c);
@@ -1930,6 +1942,7 @@ public final class LyricsRenderer {
                buf.addVertex(pose, x1, y1, 0.0F).setColor(c);
                buf.addVertex(pose, x1, y0, 0.0F).setColor(c);
                buf.addVertex(pose, x0, y0, 0.0F).setColor(c);
+               }finally{RenderPerformance.addTime(geometryStart);}
             });
          }
       }

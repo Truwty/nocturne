@@ -23,13 +23,9 @@ public final class LyricSearch {
         if (query.isBlank() || query.length() > 200) throw new IllegalArgumentException("Search needs 1–200 characters");
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://lrclib.net/api/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)))
             .timeout(Duration.ofSeconds(12)).header("User-Agent", "Nocturne/0.8 (Minecraft lyric correction)").GET().build();
-        HttpResponse<java.io.InputStream> response = HTTP.send(request, HttpResponse.BodyHandlers.ofInputStream());
-        try (var input = response.body()) {
-            if (response.statusCode() != 200) throw new IOException("Lyric search returned HTTP " + response.statusCode());
-            byte[] bytes = input.readNBytes(2_097_153);
-            if (bytes.length > 2_097_152) throw new IOException("Lyric search response is too large");
-            return parse(new String(bytes, StandardCharsets.UTF_8));
-        }
+        var response=HTTP.send(request,dev.truwty.nocturne.playback.BoundedBody.handler(2_097_152));
+        if(response.statusCode()!=200)throw new IOException("Lyric search returned HTTP "+response.statusCode());
+        return parse(new String(response.body(),StandardCharsets.UTF_8));
     }
     static List<Candidate> parse(String json) {
         List<Candidate> result = new ArrayList<>();

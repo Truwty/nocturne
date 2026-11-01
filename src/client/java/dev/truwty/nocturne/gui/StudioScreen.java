@@ -187,6 +187,7 @@ public final class StudioScreen extends Screen {
         number(s().transition); number(s().size); x = left + w + 16; row = body;
         toggle(s().audioReactive); number(s().audioGain); mode(s().quality); number(s().particleLimit); number(s().renderDistance);
         button(x + 16, row, w - 32, "Apply lightweight preset", () -> { s().quality.set(0); s().particleLimit.set(20.0); s().glow.set(false); s().chroma.set(false); s().cloudDrift.set(false); s().save(); rebuildWidgets(); });
+        row+=26;button(x+16,row,w-32,"Performance & budgets",()->minecraft.setScreen(new PerformanceScreen(this)));
         x = left; w = widthBefore;
     }
     private void health() {
@@ -258,7 +259,7 @@ public final class StudioScreen extends Screen {
         rebuildWidgets(); return true;
     }
     private int maxScroll() {
-        int contentHeight = page == 2 ? service().system.players().size() * 42 + 60 : page == 0 ? 104 : page == 1 ? 244 : page == 3 || page == 4 ? 230 : 204;
+        int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 134 : page == 1 ? 244 : page == 3 || page == 4 ? 230 : 204;
         return Math.max(0, contentHeight - (h - 116));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); minecraft.setScreen(parent); }

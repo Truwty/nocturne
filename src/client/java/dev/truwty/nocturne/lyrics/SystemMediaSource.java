@@ -44,6 +44,9 @@ public final class SystemMediaSource {
    }
    private volatile String selectedId = "";
    private volatile String commandStatus = "";
+   private volatile int pollInterval=500;
+   public void activity(int millis){int value=Math.clamp(millis,500,3000);if(value==pollInterval)return;pollInterval=value;sendActivity();}
+   private void sendActivity(){var cmd=new JsonObject();cmd.addProperty("action","activity");cmd.addProperty("interval",pollInterval);send(cmd);}
    private volatile float peak;
    private volatile boolean audioAvailable;
    private volatile boolean audioEnabled;
@@ -138,7 +141,7 @@ public final class SystemMediaSource {
                }
 
                try {
-                  Thread.sleep(700L);
+                  Thread.sleep(pollInterval);
                } catch (InterruptedException e) {
                   return;
                }
@@ -261,7 +264,7 @@ public final class SystemMediaSource {
                         catch (IOException ex) { NocturneClient.LOG.debug("Media command pipe closed", ex); }
                      });
                      select(selectedId);
-                     priorities(priorities);
+                     priorities(priorities);sendActivity();
                      JsonObject audio = new JsonObject(); audio.addProperty("action", "audio"); audio.addProperty("enabled", audioEnabled); send(audio);
                      this.reader = new Thread(() -> this.readLoop(p), "Nocturne system media");
                      this.reader.setDaemon(true);

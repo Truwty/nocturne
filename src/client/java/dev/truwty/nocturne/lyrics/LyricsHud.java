@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.lyrics;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.performance.RenderPerformance;
 import dev.truwty.nocturne.LyricsSettings;
 import dev.truwty.nocturne.gui.Anim;
 import dev.truwty.nocturne.gui.Draw;
@@ -31,11 +32,22 @@ public final class LyricsHud {
    }
 
    public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
+      RenderPerformance.hudBegin();long start=RenderPerformance.time();try{renderContents(g,delta);}finally{RenderPerformance.addTime(start);RenderPerformance.hudEnd();}
+   }
+   private static void renderContents(GuiGraphicsExtractor g, DeltaTracker delta) {
       long now = System.nanoTime();
       float dt = lastNanos == 0L ? 0.016F : Math.min(0.1F, (float)(now - lastNanos) / 1.0E9F);
       lastNanos = now;
       LyricsSettings mod = NocturneClient.SETTINGS;
       Minecraft mc = Minecraft.getInstance();
+      if(mod!=null&&mod.performanceReadout.on()&&!mod.debug.on()&&mc.screen==null&&HudLayouts.current().node("Diagnostics").visible()){
+         int width=Math.min(g.guiWidth()-16,500);
+         try(var scope=HudLayouts.begin(g,"Diagnostics",g.guiWidth(),g.guiHeight(),width,28)){
+            g.fill(0,0,width,28,0xCF100E18);
+            g.text(mc.font,mc.font.plainSubstrByWidth(RenderPerformance.timing(),width-8),4,4,0xFFE8D5FF,false);
+            g.text(mc.font,mc.font.plainSubstrByWidth(RenderPerformance.geometry(),width-8),4,16,-1,false);
+         }
+      }
       if (mod != null && (mc.player != null || LyricsService.INSTANCE.now()!=null)) {
          boolean want = mc.screen==null && mod.isEnabled() && mod.cinematic.on() && LyricsRenderer.active();
          bars = bars + ((want ? 1.0F : 0.0F) - bars) * (1.0F - (float)Math.exp(-dt * 3.5F));

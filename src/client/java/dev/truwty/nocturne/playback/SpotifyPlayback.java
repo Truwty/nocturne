@@ -57,9 +57,11 @@ public final class SpotifyPlayback implements AutoCloseable {
     private volatile String status = "Not connected";
     private volatile String queueStatus = "Refresh to load the Spotify queue";
     private volatile HttpServer callback;
-    private volatile boolean enabled, closed;
+    private volatile boolean enabled, closed, background, paused;
+    public void activity(boolean background,boolean paused){if(this.background!=background||this.paused!=paused){this.background=background;this.paused=paused;nextPoll=0;}}
     private volatile long loginGeneration;
-    private long nextPoll, retryAt;
+    private volatile long nextPoll;
+    private long retryAt;
 
     public SpotifyPlayback(PrivateTokenStore store) {
         this(
@@ -134,7 +136,7 @@ public final class SpotifyPlayback implements AutoCloseable {
             Runnable action = commands.poll();
             if (action != null) action.run();
             if (enabled && credentials != null && System.currentTimeMillis() >= nextPoll) {
-                nextPoll = System.currentTimeMillis() + 2000;
+                nextPoll = System.currentTimeMillis() + (background?10000:paused||state==null||!state.track().playing()?5000:2000);
                 JsonObject json = request("GET", "me/player", null);
                 state = json == null ? null : decode(json);
                 if (state != null) status = "Connected · " + state.device();

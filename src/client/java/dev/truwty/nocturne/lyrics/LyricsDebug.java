@@ -82,6 +82,8 @@ public final class LyricsDebug {
          return out;
       }
 
+      out.add(new LyricsDebug.Row(INFO,"Performance",dev.truwty.nocturne.performance.RenderPerformance.timing()));
+      out.add(new LyricsDebug.Row(INFO,"Geometry",dev.truwty.nocturne.performance.RenderPerformance.geometry()));
       NowPlaying np = svc.now();
       Lyrics ly = svc.lyrics();
       String status = svc.lyricsStatus();

@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.lyrics;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.performance.RenderPerformance;
 import dev.truwty.nocturne.gui.Draw;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.util.ArrayList;
@@ -91,7 +92,7 @@ public final class HudLyrics {
          POOL.add(c);
       }
 
-      used++;
+      used++;RenderPerformance.projected();
       c.kind = kind;
       c.order = used;
       c.pose.set(pose);
@@ -131,6 +132,9 @@ public final class HudLyrics {
    }
 
    public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
+      long start=RenderPerformance.time();try{renderContents(g,delta);}finally{RenderPerformance.addTime(start);}
+   }
+   private static void renderContents(GuiGraphicsExtractor g, DeltaTracker delta) {
       if (ready && used != 0) {
          Minecraft mc = Minecraft.getInstance();
          Font font = mc.font;

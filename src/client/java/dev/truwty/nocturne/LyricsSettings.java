@@ -89,6 +89,14 @@ public class LyricsSettings {
    public final BoolSetting audioReactive = add(new BoolSetting("Desktop audio reactive", false));
    public final NumberSetting audioGain = add(new NumberSetting("Audio sensitivity", 1.5, 0.2, 5, 0.1, "x"));
    public final ModeSetting quality = add(new ModeSetting("Effect quality", 1, "Lightweight", "Balanced", "Ultra"));
+   public final BoolSetting adaptiveEffects = add(new BoolSetting("Adaptive effect budgets",true));
+   public final BoolSetting distanceEffects = add(new BoolSetting("Distance effect detail",true));
+   public final BoolSetting performanceReadout = add(new BoolSetting("Performance readout",false));
+   public final NumberSetting effectTargetMs = add(new NumberSetting("Target frame time",16.7,4.2,50,.1," ms"));
+   public final NumberSetting glowPassLimit = add(new NumberSetting("Glow pass limit",128,0,512,8," / frame"));
+   public final NumberSetting cloudLayerLimit = add(new NumberSetting("Cloud lettering layer limit",64,0,256,8," / frame"));
+   public final NumberSetting lingeringLimit = add(new NumberSetting("Lingering line limit",6,0,6,1,""));
+   public final NumberSetting effectNearDistance = add(new NumberSetting("Full effect detail distance",12,2,64,2," blocks"));
    public final NumberSetting particleLimit = add(new NumberSetting("Particle limit", 90, 0, 180, 10, ""));
    public final NumberSetting renderDistance = add(new NumberSetting("Lyric render distance", 64, 8, 256, 8, " blocks"));
    public final NumberSetting transition = add(new NumberSetting("Transition duration", 0.45, 0.1, 2, 0.05, "s"));
