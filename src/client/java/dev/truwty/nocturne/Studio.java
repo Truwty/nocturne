@@ -26,6 +26,7 @@ public final class Studio {
 
     public static void tick() {
         int next = NocturneClient.SETTINGS.follow.get();
+        if (SongAppearance.active()) { placement=next; return; }
         if (next == placement) return;
         try {
             if (placement >= 0) library().preset("placement:" + placement, "Active", snapshot("placement"));
@@ -39,7 +40,7 @@ public final class Studio {
         } catch (IOException ex) { placement = next; NocturneClient.LOG.warn("Placement profile could not be saved", ex); }
     }
     public static void savePlacement() throws IOException {
-        library().preset("placement:" + NocturneClient.SETTINGS.follow.get(), "Active", snapshot("placement"));
+        if (!SongAppearance.active()) library().preset("placement:" + NocturneClient.SETTINGS.follow.get(), "Active", snapshot("placement"));
     }
 
     public static JsonObject snapshot(String group) {
@@ -50,7 +51,9 @@ public final class Studio {
         return result;
     }
 
-    public static void apply(String group, JsonObject values) {
+    public static void apply(String group, JsonObject values) { apply(group,values,true); }
+    public static void adoptPlacement() { placement=NocturneClient.SETTINGS.follow.get(); }
+    public static void apply(String group, JsonObject values, boolean persist) {
         if (values == null) throw new IllegalArgumentException("Preset not found");
         for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
             if (!included(group, setting.name) || !values.has(setting.name)) continue;
@@ -65,10 +68,16 @@ public final class Studio {
         for (Setting<?> setting : NocturneClient.SETTINGS.settings) {
             if (included(group, setting.name) && values.has(setting.name)) setting.load(values.get(setting.name));
         }
-        NocturneClient.SETTINGS.save();
+        if(persist) NocturneClient.SETTINGS.save();
     }
 
     private static boolean included(String group, String name) {
+        if(group.equals("song")) return name.startsWith("Editor ") || java.util.Set.of(
+            "Preset","Placement","Animation","Intensity","Lyrics font","Distance","Size","Colour mode","Colour","Second colour",
+            "Glow","Chromatic split","Sparkles","Impact shake + flash","Cinematic bars","Beat zoom","Turn to face you","Words on the floor",
+            "Reduced motion","Flash effects","Shake effects","High contrast lyrics","Transition duration","Words per line","Lines stay for",
+            "Show through walls","Show next line","Karaoke bar","Song title intro","Auto readability","Beat pulse","Album colour rain","Battle words when fighting","Smart placement","Keep up when running","Orbit you in F5 front view","Orbit speed",
+            "Effect quality","Particle limit","Cloud style","Drift with the clouds","Clouds follow time of day").contains(name);
         return group.equals("themes") ? name.startsWith("UI ") :
             name.startsWith("Editor ") || name.equals("Distance") || name.equals("Size");
     }

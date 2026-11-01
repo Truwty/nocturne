@@ -13,7 +13,7 @@ Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + 
 ## Install
 
 1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Replace older Nocturne JARs with `nocturne-0.7.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-0.8.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
@@ -58,11 +58,30 @@ Windows uses the bundled PowerShell/Windows media-session helper; no Python inst
 
 The **Lyrics** tab searches LRCLIB for alternative synchronized matches. Select a result to keep that correction for the current song. If the song changed during a search, selection is rejected to avoid saving the wrong correction.
 
-Import a UTF-8 `.lrc` or enhanced-LRC file by entering its full path and choosing **Import LRC**. Files must be at most 1 MiB and contain timestamps. Imports and chosen matches take priority over online lookup and work offline. **Use automatic lyrics again** removes that song's override.
+Import a UTF-8 `.lrc` or enhanced-LRC file by entering its full path and choosing **Import**. Files must be at most 1 MiB and contain timestamps. Imports and chosen matches take priority over online lookup and work offline. **Use automatic lyrics again** removes that song's override.
 
 **Earlier / Later / Reset offset** saves a separate timing adjustment for each song. Positive offsets show lyrics earlier. The original global offset remains available under Detailed settings.
 
-Lyrics are stored as hashed track identifiers under `config/nocturne/lyrics/`. Presets, offsets and the pinned player are kept in `config/nocturne/library.json`; general settings remain in `config/nocturne.json`. Writes use temporary files and atomic replacement when supported. A malformed library is preserved and becomes read-only with an error message until repaired.
+Lyrics are stored as hashed track identifiers under `config/nocturne/lyrics/`. Presets, offsets and the pinned player are kept in `config/nocturne/library.json`; general settings remain in `config/nocturne.json`. Writes use temporary files and atomic replacement when supported. A malformed library is preserved and recovered from a valid backup where available; Health reports recovery or blocked writes.
+
+### Lyric workspace
+
+![Nocturne timing workspace](docs/lyric-workspace.png)
+
+Open **N → Lyrics → Lyric workspace**. Its four tabs provide:
+
+- **History:** browse previous/upcoming lines, follow the current playback line, and open a line in the timing editor.
+- **Timing:** edit line and word start/end timestamps in milliseconds, shift lines ±50 ms, tap boundaries to the raw player position, or drag the selected word's handles on the playback timeline. Gold marks the playhead. Undo/redo retains 40 edits; **Save lyrics** persists the document for this track. Seeking is available only when the desktop player supports it. Scroll to reach all controls on smaller GUI scales.
+- **Languages:** independently toggle optional translation and romanization lines beneath the world display. Available provider language layers are retained. Import synchronized UTF-8 LRC sidecars for either language layer; lines match within 500 ms. Missing translations are left empty. These controls do not call a machine-translation service.
+- **Song style:** save the current placement, font, size, colours and effects for this song. Profiles apply automatically on track changes; the global appearance is restored afterward and remains separate when settings are saved. Save the profile again after editing it, or remove it to return to global appearance.
+
+Word karaoke uses source timestamps from Enhanced LRC, the LRCLIB `lyricsfile` field ([Lyricsfile 1.0 draft](https://github.com/tranxuanthang/lyricsfile/blob/main/SPECIFICATION.md)), or NetEase YRC/KLYRIC when supplied. Legacy line-only LRC and unsynchronized text retain **estimated word timing**, shown explicitly in the confidence label. Manually imported/corrected documents and mixed timing are labelled separately. Providers do not offer word timing or secondary languages for every song.
+
+Enhanced LRC imports, the renderer, local documents and the editor preserve timed text segments, including spaces and multilingual segments. **Copy Enhanced LRC** exports timing text to the clipboard. The local JSON document additionally retains independent word ends, language layers and provenance; Enhanced LRC cannot represent every overlapping end time. Estimated exports include Nocturne provenance headers so reimport does not silently upgrade estimates to source timing. Translation/romanization each have a separate LRC clipboard export.
+
+Text uses bidirectional shaping independently of Minecraft's UI language. The Unicode lyric font uses Minecraft's broad Unifont fallback for Arabic, Hebrew, CJK and other scripts; actual glyph coverage still depends on installed resource packs. Word layout follows visual bidirectional order while timing retains logical word indices. Optional vocal countdowns cover known intros/instrumental gaps; no gap is invented when the source has only continuous line timing. Confidence and countdown switches are in Languages or Advanced settings.
+
+Edited documents and secondary layers survive restarts under the hashed song identifier in `config/nocturne/lyrics`. **Use automatic lyrics again** clears the primary manual override but retains optional language sidecars. Closing the workspace does not auto-save timing edits: use **Save lyrics** first.
 
 ### Theme editor
 
@@ -82,7 +101,7 @@ Each placement mode maintains its own active transform profile. Named profiles a
 - Lightweight, Balanced and Ultra quality levels change glow passes and cap particles at 20, 48 and 180 respectively. Additional particle limits and distance/behind-camera culling bound effects work.
 - Apply lightweight preset disables expensive glow/chromatic/cloud drift effects together.
 
-The original world effects remain: seven placements, eight animations, twelve visual presets, four lyric fonts, chromatic split, sparkles, cinematic bars, battle words, cloud lettering, optional through-wall rendering and rain tinting.
+The original world effects remain: seven placements, eight animations, twelve visual presets, five lyric fonts (including Unicode), chromatic split, sparkles, cinematic bars, battle words, cloud lettering, optional through-wall rendering and rain tinting.
 
 ### Optional audio reaction
 

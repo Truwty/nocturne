@@ -22,7 +22,7 @@ public final class LyricSearch {
     public static List<Candidate> search(String query) throws IOException, InterruptedException {
         if (query.isBlank() || query.length() > 200) throw new IllegalArgumentException("Search needs 1–200 characters");
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://lrclib.net/api/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)))
-            .timeout(Duration.ofSeconds(12)).header("User-Agent", "Nocturne/0.5 (Minecraft lyric correction)").GET().build();
+            .timeout(Duration.ofSeconds(12)).header("User-Agent", "Nocturne/0.8 (Minecraft lyric correction)").GET().build();
         HttpResponse<java.io.InputStream> response = HTTP.send(request, HttpResponse.BodyHandlers.ofInputStream());
         try (var input = response.body()) {
             if (response.statusCode() != 200) throw new IOException("Lyric search returned HTTP " + response.statusCode());
@@ -35,11 +35,8 @@ public final class LyricSearch {
         List<Candidate> result = new ArrayList<>();
         for (JsonElement value : JsonParser.parseString(json).getAsJsonArray()) {
             var item = value.getAsJsonObject();
-            if (item.has("syncedLyrics") && !item.get("syncedLyrics").isJsonNull()) {
-                String lrc = item.get("syncedLyrics").getAsString();
-                if (!Lyrics.parse(lrc).lines.isEmpty()) result.add(new Candidate(item.get("trackName").getAsString(),
-                    item.get("artistName").getAsString(), item.get("duration").getAsDouble(), lrc));
-            }
+            Lyrics parsed=LyricsFormats.fromRecord(item);
+            if(parsed!=null)result.add(new Candidate(item.get("trackName").getAsString(),item.get("artistName").getAsString(),item.get("duration").getAsDouble(),parsed.enhancedLrc()));
             if (result.size() == 30) break;
         }
         return List.copyOf(result);

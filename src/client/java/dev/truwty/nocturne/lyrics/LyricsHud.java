@@ -76,6 +76,7 @@ public final class LyricsHud {
          }
 
          karaokeBar(g, mc, mod, dt, sw, bars > 0.0F ? Math.round(Math.min(sh * 0.075F, 26.0F) * Anim.easeInOutCubic(bars)) : 0);
+         extras(g,mc,mod,sw,sh);
          float flash = LyricsRenderer.flash();
          if (flash > 0.01F && mod.isEnabled()) {
             g.fill(0, 0, sw, sh, Draw.alpha(-1, Math.min(0.12F, flash * 0.07F)));
@@ -181,10 +182,10 @@ public final class LyricsHud {
             int n = words.size();
             float[] wx = new float[n];
             float[] ww = new float[n];
-            float space = Draw.width(f, " ");
+            float space = line.explicitSpacing()?0:Draw.width(f, " ");
             float x = 0.0F;
 
-            for (int i = 0; i < n; i++) {
+            for (int i : LyricText.order(words,java.util.stream.IntStream.range(0,n).boxed().toList())) {
                wx[i] = x;
                ww[i] = Draw.width(f, words.get(i).text());
                x += ww[i] + space;
@@ -228,6 +229,10 @@ public final class LyricsHud {
             for (int i = 0; i < n; i++) {
                int c = i == cur ? -15594978 : (i < cur ? -218103809 : 1946157055);
                Draw.text(g, f, words.get(i).text(), ox + wx[i], ty, Draw.alpha(c, a), false);
+               if(i==ci) { float progress=words.get(i).progress(pos); boolean rtl=!new java.text.Bidi(words.get(i).text(),java.text.Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT).baseIsLeftToRight();
+                  int length=Math.round(ww[i]*progress);int left=Math.round(ox+wx[i]);
+                  g.fill(rtl?left+Math.round(ww[i])-length:left,Math.round(ty+9),rtl?left+Math.round(ww[i]):left+length,Math.round(ty+10),accent);
+               }
             }
 
             if (idx + 1 < ly.lines.size()) {
@@ -244,6 +249,22 @@ public final class LyricsHud {
       }
    }
 
+   private static void extras(GuiGraphicsExtractor g,Minecraft mc,LyricsSettings mod,int sw,int sh) {
+      Lyrics lyrics=LyricsService.INSTANCE.lyrics();if(!mod.isEnabled()||lyrics==null)return;
+      long clock=LyricsRenderer.clockMs();int index=lyrics.indexAt(clock);int y=sh-52;
+      if(index>=0 && index<lyrics.lines.size() && clock<lyrics.lines.get(index).end()) {
+         var line=lyrics.lines.get(index);
+         if(mod.translation.on()&&!line.translation().isBlank()) {center(g,mc.font,line.translation(),sw,y,mod.uiText.argb());y+=12;}
+         if(mod.romanization.on()&&!line.romanization().isBlank())center(g,mc.font,line.romanization(),sw,y,Draw.alpha(mod.uiText.argb(),.7f));
+      }
+      long next=lyrics.nextVocal(clock);
+      if(mod.vocalCountdown.on()&&next>clock+999)center(g,mc.font,"Vocals in "+mmss(next-clock),sw,sh-72,mod.uiAccent.argb());
+      if(mod.lyricConfidence.on())center(g,mc.font,lyrics.confidence(),sw,sh-19,Draw.alpha(mod.uiText.argb(),.55f));
+   }
+   private static void center(GuiGraphicsExtractor g,Font font,String value,int sw,int y,int color) {
+      var text=LyricText.visual(Draw.lyric(value,false,NocturneClient.SETTINGS.lyricFont.get()));
+      int max=sw-24;g.enableScissor(12,y,sw-12,y+11);g.text(font,text,Math.max(12,(sw-font.width(text))/2),y,color,true);g.disableScissor();
+   }
    private static String mmss(long ms) {
       long s = ms / 1000L;
       return s / 60L + ":" + (s % 60L < 10L ? "0" : "") + s % 60L;

@@ -13,6 +13,9 @@ public final class Lyrics {
    public final long beatMs;
    public final long beatOrigin;
    public final boolean estimated;
+   public final boolean manual;
+   private final String confidenceLabel;
+   private final List<long[]> vocalRanges;
    private static final Pattern TIME = Pattern.compile("\\[(\\d+):(\\d+(?:[.:]\\d+)?)]");
    private static final Pattern WORD_TIME = Pattern.compile("<(\\d+):(\\d+(?:[.:]\\d+)?)>");
 
@@ -20,9 +23,10 @@ public final class Lyrics {
       this(lines, false);
    }
 
-   private Lyrics(List<Lyrics.Line> lines, boolean estimated) {
-      this.lines = lines;
-      this.estimated = estimated;
+   private Lyrics(List<Lyrics.Line> lines, boolean estimated) { this(lines,estimated,false); }
+   private Lyrics(List<Lyrics.Line> lines, boolean estimated,boolean manual) {
+      this.lines = List.copyOf(lines);
+      this.estimated = estimated; this.manual=manual;
       List<Long> gaps = new ArrayList<>();
       long first = -1L;
       long prev = -1L;
@@ -60,6 +64,17 @@ public final class Lyrics {
 
       this.beatMs = beat;
       this.beatOrigin = Math.max(0L, first);
+      long total=lines.stream().flatMap(l->l.words().stream()).count(),timed=lines.stream().flatMap(l->l.words().stream()).filter(Word::sourceTimed).count();
+      String timing=lines.isEmpty()?"No lyrics":estimated?"Estimated line timing":total>0&&timed==total?"Word synchronized":timed>0?"Mixed word timing / some estimates":"Line synchronized / word timing estimated";
+      confidenceLabel=manual?"Manually supplied / corrected · "+timing:timing;
+      var ranges=new ArrayList<long[]>();
+      for(var line:lines){boolean authored=!line.words().isEmpty()&&line.words().stream().allMatch(Word::sourceTimed);
+         long a=authored?line.words().getFirst().start():line.start(),b=authored?line.words().stream().mapToLong(Word::end).max().orElse(line.end()):line.end();
+         ranges.add(new long[]{a,b});}
+      ranges.sort(java.util.Comparator.comparingLong(a->a[0]));var merged=new ArrayList<long[]>();
+      for(var range:ranges){if(!merged.isEmpty()&&merged.getLast()[1]>=range[0])merged.getLast()[1]=Math.max(merged.getLast()[1],range[1]);else merged.add(range);}
+      vocalRanges=List.copyOf(merged);
+
    }
 
    static Lyrics restored(List<Line> lines, boolean estimated) { return new Lyrics(List.copyOf(lines), estimated); }
@@ -74,12 +89,21 @@ public final class Lyrics {
    }
 
    private static long ms(String min, String sec) {
-      return Long.parseLong(min) * 60000L + Math.round(Double.parseDouble(sec.replace(':', '.')) * 1000.0);
+      double seconds=Double.parseDouble(sec.replace(':','.'));
+      long minutes=Long.parseLong(min);
+      if(!Double.isFinite(seconds)||seconds<0||seconds>=60||minutes>1440)throw new IllegalArgumentException("Invalid LRC timestamp");
+      long result=minutes*60000L+Math.round(seconds*1000);
+      if(result>86_400_000)throw new IllegalArgumentException("LRC exceeds 24 hours");return result;
    }
 
    public static Lyrics parse(String lrc) {
+      if(lrc==null || lrc.length()>1_048_576)throw new IllegalArgumentException("LRC must be smaller than 1 MiB");
+      long offset=0;
+      Matcher offsetTag=Pattern.compile("(?im)^\\s*\\[offset:([+-]?\\d+)]").matcher(lrc);
+      if(offsetTag.find())offset=Long.parseLong(offsetTag.group(1));
+      if(Math.abs(offset)>300000)throw new IllegalArgumentException("LRC offset exceeds five minutes");
       @Environment(EnvType.CLIENT)
-      record Raw(long t, String body) {
+      record Raw(long t, long origin, String body) {
       }
 
       List<Raw> raws = new ArrayList<>();
@@ -97,11 +121,13 @@ public final class Lyrics {
             String body = row.substring(end).trim();
 
             for (long t : times) {
-               raws.add(new Raw(t, body));
+               if(raws.size()>=10000)throw new IllegalArgumentException("Too many lyric lines");
+               raws.add(new Raw(t,times.getFirst(),body));
             }
          }
       }
 
+      final long timeOffset=offset;
       raws.sort((a, b) -> Long.compare(a.t, b.t));
       List<Lyrics.Line> lines = new ArrayList<>();
 
@@ -110,11 +136,15 @@ public final class Lyrics {
          long next = i + 1 < raws.size() ? raws.get(i + 1).t : r.t + 5000L;
          String plain = WORD_TIME.matcher(r.body).replaceAll("").replaceAll("\\s+", " ").trim();
          if (!plain.isEmpty()) {
-            lines.add(new Lyrics.Line(r.t, next, plain, words(r.body, plain, r.t, next)));
+            long delta=r.t-r.origin;
+            var ws=words(r.body,plain,r.origin,next-delta).stream().map(w->new Word(w.text(),w.start()+delta,w.end()+delta,w.sourceTimed())).toList();
+            lines.add(new Lyrics.Line(r.t, Math.max(next,ws.stream().mapToLong(Word::end).max().orElse(next)), plain, ws));
          }
       }
 
-      return new Lyrics(lines);
+      if(timeOffset!=0)lines=lines.stream().map(l->new Line(Math.max(0,l.start()+timeOffset),Math.max(0,l.end()+timeOffset),l.text(),l.words().stream().map(w->new Word(w.text(),Math.max(0,w.start()+timeOffset),Math.max(0,w.end()+timeOffset),w.sourceTimed())).toList())).toList();
+      if(lrc.contains("[nocturne:word-estimates]"))lines=lines.stream().map(l->new Line(l.start(),l.end(),l.text(),l.words().stream().map(w->new Word(w.text(),w.start(),w.end(),false)).toList())).toList();
+      return new Lyrics(lines,lrc.contains("[nocturne:estimated]"),lrc.contains("[nocturne:manual]"));
    }
 
    public static Lyrics fromPlain(String text, long durationMs) {
@@ -189,9 +219,9 @@ public final class Lyrics {
          int last;
          for (last = -1; m.find(); last = m.end()) {
             if (last >= 0) {
-               texts.add(body.substring(last, m.start()).trim());
+               texts.add(body.substring(last,m.start()));
             } else if (m.start() > 0 && !body.substring(0, m.start()).isBlank()) {
-               texts.add(body.substring(0, m.start()).trim());
+               texts.add(body.substring(0,m.start()));
                marks.add(new long[]{start});
             }
 
@@ -199,7 +229,7 @@ public final class Lyrics {
             marks.add(new long[]{lastT});
          }
 
-         texts.add(body.substring(Math.max(0, last)).trim());
+         texts.add(body.substring(Math.max(0,last)));
 
          for (int i = 0; i < marks.size() && i < texts.size(); i++) {
             String t = texts.get(i);
@@ -207,11 +237,8 @@ public final class Lyrics {
                long ws = marks.get(i)[0];
                long we = i + 1 < marks.size() ? marks.get(i + 1)[0] : Math.min(end, ws + 800L);
 
-               for (String piece : t.split(" ")) {
-                  if (!piece.isEmpty()) {
-                     out.add(new Lyrics.Word(piece, ws, we));
-                  }
-               }
+               if(ws<start || we<ws)throw new IllegalArgumentException("Word timestamps must be ordered and inside the line");
+               out.add(new Lyrics.Word(t,ws,we,true));
             }
          }
 
@@ -262,34 +289,73 @@ public final class Lyrics {
                StringBuilder text = new StringBuilder();
 
                for (Lyrics.Word w : ws) {
-                  text.append(text.isEmpty() ? "" : " ").append(w.text());
+                  text.append(text.isEmpty() || l.explicitSpacing() ? "" : " ").append(w.text());
                }
 
-               out.add(new Lyrics.Line(start, end, text.toString(), List.copyOf(ws)));
+               out.add(new Lyrics.Line(start, end, text.toString(), List.copyOf(ws),l.translation(),l.romanization()));
                from += size;
             }
          }
       }
 
-      return new Lyrics(out, this.estimated);
+      return new Lyrics(out, this.estimated,this.manual);
+   }
+
+   public Lyrics manuallyCorrected() {return new Lyrics(lines,estimated,true);}
+   public String confidence() {return confidenceLabel;}
+   public long nextVocal(long position) {
+      int low=0,high=vocalRanges.size();
+      while(low<high){int mid=(low+high)>>>1;if(vocalRanges.get(mid)[1]<=position)low=mid+1;else high=mid;}
+      return low<vocalRanges.size()&&vocalRanges.get(low)[0]>position?vocalRanges.get(low)[0]:-1;
+   }
+   public Lyrics secondary(Lyrics translation,Lyrics romanization) {
+      return new Lyrics(lines.stream().map(l->new Line(l.start(),l.end(),l.text(),l.words(),matchSecondary(translation,l.start(),l.translation()),matchSecondary(romanization,l.start(),l.romanization()))).toList(),estimated,manual);
+   }
+   private static String matchSecondary(Lyrics source,long start,String fallback) {
+      if(source==null)return fallback;
+      return source.lines.stream().filter(l->Math.abs(l.start()-start)<=500).min(java.util.Comparator.comparingLong(l->Math.abs(l.start()-start))).map(Line::text).orElse(fallback);
+   }
+   public Lyrics corrected(List<Line> lines) {return new Lyrics(lines,estimated,true);}
+   private static String stamp(long ms,boolean word) {
+      return (word?"<":"[")+String.format(java.util.Locale.ROOT,"%02d:%02d.%03d",ms/60000,ms/1000%60,ms%1000)+(word?">":"]");
+   }
+   public String enhancedLrc() {
+      StringBuilder out=new StringBuilder(manual?"[nocturne:manual]\n":"");
+      if(estimated)out.append("[nocturne:estimated]\n");
+      if(lines.stream().flatMap(l->l.words().stream()).anyMatch(w->!w.sourceTimed()))out.append("[nocturne:word-estimates]\n");
+      for(int i=0;i<lines.size();i++) {
+         var line=lines.get(i);out.append(stamp(line.start(),false));
+         if(!line.words().isEmpty()) {
+            for(int j=0;j<line.words().size();j++) {var word=line.words().get(j);out.append(stamp(word.start(),true)).append(word.text());if(!line.explicitSpacing()&&j+1<line.words().size())out.append(' ');}
+            out.append(stamp(line.words().getLast().end(),true));
+         } else out.append(line.text());
+         out.append('\n');
+         if(i+1==lines.size()||line.end()<lines.get(i+1).start())out.append(stamp(line.end(),false)).append('\n');
+      }
+      return out.toString();
+   }
+   public String secondaryLrc(boolean romanized) {
+      var out=new StringBuilder();
+      for(var line:lines) {String text=romanized?line.romanization():line.translation();if(!text.isBlank())out.append(stamp(line.start(),false)).append(text).append('\n');}
+      return out.toString();
    }
 
    public int indexAt(long pos) {
-      int idx = -1;
-      int i = 0;
-
-      while (i < this.lines.size() && this.lines.get(i).start <= pos) {
-         idx = i++;
-      }
-
-      return idx;
+      int low=0,high=lines.size();
+      while(low<high){int mid=(low+high)>>>1;if(lines.get(mid).start()<=pos)low=mid+1;else high=mid;}
+      return low-1;
    }
 
    @Environment(EnvType.CLIENT)
-   public record Line(long start, long end, String text, List<Lyrics.Word> words) {
+   public record Line(long start,long end,String text,List<Word> words,String translation,String romanization) {
+      public Line(long start,long end,String text,List<Word> words) {this(start,end,text,words,"","");}
+      public boolean explicitSpacing() {return words.stream().map(Word::text).collect(java.util.stream.Collectors.joining()).strip().equals(text.strip());}
+      public Line {translation=translation==null?"":translation;romanization=romanization==null?"":romanization;words=List.copyOf(words);}
    }
 
    @Environment(EnvType.CLIENT)
-   public record Word(String text, long start, long end) {
+   public record Word(String text,long start,long end,boolean sourceTimed) {
+      public Word(String text,long start,long end) {this(text,start,end,false);}
+      public float progress(long position) {return Math.clamp((float)(position-start)/Math.max(1,end-start),0,1);}
    }
 }

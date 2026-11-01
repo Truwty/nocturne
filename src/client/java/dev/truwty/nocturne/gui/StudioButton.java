@@ -35,7 +35,7 @@ public final class StudioButton extends Button {
         Draw.roundOutline(g,getX(),getY(),width,height,4,Draw.alpha(accent,active ? 0.22f+hover*0.55f : 0.08f));
         if (isFocused()) Draw.rect(g,getX()+1,getY()+5,2,height-10,accent);
         var font=Minecraft.getInstance().font;
-        var label=net.minecraft.locale.Language.getInstance().getVisualOrder(font.substrByWidth(getMessage(),Math.max(1,width-12)));
+        var label=dev.truwty.nocturne.lyrics.LyricText.visual(Component.literal(font.substrByWidth(getMessage(),Math.max(1,width-12)).getString()).withStyle(getMessage().getStyle()));
         g.text(font,label,getX()+(width-font.width(label))/2,getY()+(height-8)/2,Draw.alpha(text,active ? 1 : 0.35f),false);
     }
 }

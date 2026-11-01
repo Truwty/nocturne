@@ -80,7 +80,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc -> NocturneClient.SETTINGS.follow.set(mode));
                 context.waitTicks(12);
             }
-            for (int font = 0; font < 4; font++) {
+            for (int font = 0; font < 5; font++) {
                 final int mode = font;
                 context.runOnClient(mc -> NocturneClient.SETTINGS.lyricFont.set(mode));
                 context.waitTicks(12);
@@ -137,6 +137,51 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.waitTicks(3);
                 takeShot(context, "nocturne-studio-" + page);
             }
+            context.runOnClient(mc -> {mc.getWindow().setWindowed(1280,960);mc.options.guiScale().set(2);mc.resizeGui();});
+            context.runOnClient(mc -> {
+                var primary=Lyrics.parse("[00:01]<00:01>مرحبا <00:02>بالعالم<00:03>\n[00:04]\n[00:08]<00:08>שלום <00:09>עולם<00:10>\n[00:12]")
+                    .secondary(Lyrics.parse("[00:01]Hello world\n[00:08]こんにちは世界"),Lyrics.parse("[00:01]marhaban bilalam"));
+                LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(),primary);
+                NocturneClient.SETTINGS.translation.set(true);NocturneClient.SETTINGS.romanization.set(true);
+                NocturneClient.SETTINGS.lyricFont.set(4);
+            });
+            for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
+                context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));
+                if(!tab.equals("History"))context.clickScreenButton(tab);
+                context.waitTicks(4);context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                takeShot(context,"nocturne-workspace-"+tab.replace(' ','-'));
+            }
+            context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));context.clickScreenButton("Timing");
+            context.clickScreenButton("Line +50 ms");context.clickScreenButton("Save lyrics");
+            context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics().lines.getFirst().start()!=1050)throw new AssertionError("Timing editor did not save correction");});
+            context.clickScreenButton("Undo");context.clickScreenButton("Save lyrics");
+            context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics().lines.getFirst().start()!=1000)throw new AssertionError("Timing editor undo did not restore bounds");});
+            context.runOnClient(mc->{
+                var screen=mc.screen;screen.mouseScrolled(100,100,0,-100);
+                int panelW=Math.min(650,screen.width-16),panelH=Math.min(406,screen.height-16);
+                int panelX=(screen.width-panelW)/2,panelY=(screen.height-panelH)/2;
+                int scroll=Math.max(0,285-(panelH-138));
+                double mx=panelX+20+1000*(panelW-40)/5000, my=panelY+76-scroll+219;
+                var down=new net.minecraft.client.input.MouseButtonEvent(mx,my,new net.minecraft.client.input.MouseButtonInfo(0,0));
+                var drag=new net.minecraft.client.input.MouseButtonEvent(mx+7,my,new net.minecraft.client.input.MouseButtonInfo(0,0));
+                if(!screen.mouseClicked(down,false))throw new AssertionError("Timeline did not accept word boundary");
+                screen.mouseDragged(drag,7,0);screen.mouseReleased(drag);
+            });
+            context.clickScreenButton("Save lyrics");
+            context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics().lines.getFirst().words().getFirst().start()<=1000)throw new AssertionError("Timeline boundary drag did not save word timing");mc.screen.mouseScrolled(100,100,0,100);});
+            context.clickScreenButton("Undo");context.clickScreenButton("Save lyrics");
+            context.runOnClient(mc->{
+                try {
+                    var settings=NocturneClient.SETTINGS;settings.size.set(110.0);var baseline=Studio.snapshot("song");
+                    dev.truwty.nocturne.SongAppearance.save(LyricsService.INSTANCE.now());settings.size.set(150.0);
+                    dev.truwty.nocturne.SongAppearance.save(LyricsService.INSTANCE.now());
+                    if(!dev.truwty.nocturne.SongAppearance.active()||settings.size.get()!=150)throw new AssertionError("Song appearance did not apply");
+                    var persisted=Studio.snapshot("song");dev.truwty.nocturne.SongAppearance.persistGlobal(persisted);
+                    if(persisted.get("Size").getAsDouble()!=110)throw new AssertionError("Song appearance overwrote global config");
+                    dev.truwty.nocturne.SongAppearance.remove(LyricsService.INSTANCE.now());
+                    if(settings.size.get()!=110||dev.truwty.nocturne.SongAppearance.active())throw new AssertionError("Global appearance did not restore");
+                }catch(java.io.IOException ex){throw new AssertionError(ex);}
+            });
             context.setScreen(() -> new StudioScreen(null, 0));
             context.runOnClient(mc -> { NocturneClient.SETTINGS.editorX.set(8.0); NocturneClient.SETTINGS.follow.set(0); });
             context.clickScreenButton("Restore visible lyrics");
@@ -197,6 +242,11 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc->{mc.getWindow().setWindowed(1280,960);mc.options.guiScale().set(guiScale);mc.resizeGui();});
                 context.setScreen(()->new StudioScreen(null,0));context.waitTicks(3);
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
+                for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
+                    context.setScreen(()->new dev.truwty.nocturne.gui.LyricWorkspaceScreen(null));
+                    if(!tab.equals("History"))context.clickScreenButton(tab);
+                    context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
+                }
             }
             context.setScreen(()->null);
             var reload = context.computeOnClient(mc -> mc.reloadResourcePacks());

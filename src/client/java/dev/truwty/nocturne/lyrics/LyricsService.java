@@ -102,7 +102,17 @@ public final class LyricsService {
       Studio.library().clearLyrics(track.key());
       if (demoPlaying()) demoLyrics = Lyrics.parse(DEMO_LRC); else refetch();
    }
+   public void saveEdited(NowPlaying expected,Lyrics document) throws IOException {
+      NowPlaying current=now();if(current==null||!current.key().equals(expected.key()))throw new IOException("Song changed; reopen the lyric editor");
+      Studio.library().saveDocument(current.key(),document);applyLocal(current,document.manuallyCorrected());
+   }
+   public synchronized void importSecondary(Path file,boolean romanized) throws IOException {
+      var current=now();var primary=lyrics();if(current==null||primary==null)throw new IOException("Load the main lyrics first");
+      Studio.library().importSecondary(current.key(),file,romanized);var updated=Studio.library().secondary(current.key(),primary);
+      if(demoPlaying())demoLyrics=updated;else lyrics=updated;
+   }
    synchronized void applyLocal(NowPlaying track, Lyrics local) {
+      local=local.manuallyCorrected();
       NowPlaying demo = this.demoNow;
       if (demo != null && demo.key().equals(track.key())) {
          this.demoLyrics = local;
@@ -270,6 +280,7 @@ public final class LyricsService {
       }
       if (hit != null) {
          this.lyrics = hit.lyrics();
+         if(this.lyrics!=null)try {this.lyrics=Studio.library().secondary(np.key(),this.lyrics);}catch(IOException ex){NocturneClient.LOG.warn("Secondary lyrics unavailable",ex);}
          this.lyricsStatus = hit.status();
       } else {
          this.lyrics = null;
@@ -294,6 +305,10 @@ public final class LyricsService {
             cache.put(key,new CachedLyrics(found,System.currentTimeMillis()));
             try {diskCache().write(key,found);}catch(IOException ex){NocturneClient.LOG.warn("Could not persist lyrics",ex);}
          } else retryLyricsAt=System.nanoTime()+TimeUnit.SECONDS.toNanos(60);
+         if(found.lyrics()!=null) {
+            try {found=new LyricsFinder.Result(Studio.library().secondary(np.key(),found.lyrics()),found.status());}
+            catch(IOException ex) {NocturneClient.LOG.warn("Secondary lyrics unavailable",ex);}
+         }
          lyrics=found.lyrics();lyricsStatus=found.status();
       }
    }

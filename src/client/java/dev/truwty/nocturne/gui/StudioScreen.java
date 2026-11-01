@@ -61,6 +61,7 @@ public final class StudioScreen extends Screen {
         button(x + 12, y + h - 29, 120, "Advanced settings", () -> minecraft.setScreen(s().guiStyle.get() == 1 ? new GlassLyricsScreen(this) : new LyricsScreen(this)));
         button(x + w - 76, y + h - 29, 64, "Done", this::onClose);
         recovery=null;
+        if (page == 1) button(x + 140, y + h - 29, Math.max(40,w - 224), "Lyric workspace", () -> minecraft.setScreen(new LyricWorkspaceScreen(this)));
         if (page == 0) recovery=button(x + 140, y + h - 29, Math.max(40, w - 224), "Restore visible lyrics", this::repair);
         if (notice.isBlank() && !Studio.library().problem().isBlank()) notice = Studio.library().problem();
         tick();
@@ -139,8 +140,8 @@ public final class StudioScreen extends Screen {
         button(x + 16, row, 60, "Back", () -> { resultPage = Math.max(0, resultPage - 1); rebuildWidgets(); });
         button(x + 80, row, 60, "More", () -> { if ((resultPage + 1) * 3 < service().candidates().size()) resultPage++; rebuildWidgets(); });
         button(x + 144, row, w - 160, "Use automatic lyrics again", () -> io(() -> service().clearLocal())); row += 29;
-        file = field(row, w - 116, "Full path to a UTF-8 .lrc file"); file.setValue(fileValue); file.setResponder(value -> fileValue = value);
-        button(x + w - 92, row, 76, "Import LRC", () -> io(() -> service().importLocal(Path.of(file.getValue())))); row += 29;
+        file = field(row, w - 116, "Full path to UTF-8 .lrc or Lyricsfile .yaml"); file.setValue(fileValue); file.setResponder(value -> fileValue = value);
+        button(x + w - 92, row, 76, "Import", () -> io(() -> service().importLocal(Path.of(file.getValue())))); row += 29;
         button(x + 16, row, 90, "Earlier 0.1s", () -> offset(100));
         button(x + 110, row, 90, "Later 0.1s", () -> offset(-100));
         button(x + 204, row, 90, "Reset offset", () -> io(() -> { NowPlaying now = service().now(); if (now != null) Studio.library().offset(now.key(), 0); }));

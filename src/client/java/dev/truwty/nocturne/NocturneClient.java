@@ -48,6 +48,7 @@ public class NocturneClient implements ClientModInitializer {
       }
 
       ClientLifecycleEvents.CLIENT_STOPPING.register((ClientStopping)client -> {
+         SongAppearance.restore();
          LyricsService.INSTANCE.stop();
          SETTINGS.save();
          try { Studio.savePlacement(); } catch (java.io.IOException ex) { LOG.warn("Could not save placement", ex); }
@@ -69,6 +70,7 @@ public class NocturneClient implements ClientModInitializer {
       LyricsService.INSTANCE.system.audio(SETTINGS.audioReactive.on() && !SETTINGS.reducedMotion.on());
       Studio.tick();
       SETTINGS.tickPreset();
+      SongAppearance.tick();
       if (SETTINGS.isEnabled()) {
          SETTINGS.onTick(mc);
          LyricsRenderer.tick(mc);

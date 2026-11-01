@@ -30,6 +30,10 @@ public class LyricsSettings {
    private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("nocturne.json");
    public final List<Setting<?>> settings = new ArrayList<>();
    private boolean enabled = true;
+   public final BoolSetting translation = add(new BoolSetting("Show translation", false));
+   public final BoolSetting romanization = add(new BoolSetting("Show romanization", false));
+   public final BoolSetting vocalCountdown = add(new BoolSetting("Vocal countdown", true));
+   public final BoolSetting lyricConfidence = add(new BoolSetting("Lyric confidence", true));
    public final NumberSetting cacheDays = add(new NumberSetting("Lyric cache expiry",30,1,90,1," days"));
    private JsonObject preservedConfig = new JsonObject();
    private String configNotice = "";
@@ -179,6 +183,7 @@ public class LyricsSettings {
             s.add(st.name, st.save());
          }
 
+         SongAppearance.persistGlobal(s);
          root.add("settings", s);
          Files.createDirectories(FILE.getParent());
          ConfigRecovery.save(FILE, GSON.toJson(root));
@@ -322,6 +327,8 @@ public class LyricsSettings {
 
       return b.toString();
    }
+
+   public void adoptPreset() { appliedPreset=preset.get();presetSnapshot=snapshot(); }
 
    public boolean tickPreset() {
       int p = this.preset.get();

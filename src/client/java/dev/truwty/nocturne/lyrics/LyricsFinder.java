@@ -38,7 +38,7 @@ final class LyricsFinder {
    private static final Pattern NOISE = Pattern.compile(
       "(?i)\\b(official\\s+(music\\s+)?(video|audio|lyric video|visualizer)|lyrics?\\s+video|lyrics?|audio|hd|hq|4k|mv|m/v|explicit|clean)\\b"
    );
-   private static final Pattern CREDIT = Pattern.compile(
+   static final Pattern CREDIT = Pattern.compile(
       "^\\s*(作词|作曲|编曲|制作人|制作|混音|母带|和声|吉他|贝斯|鼓|录音|监制|出品|发行|统筹|词|曲|lyrics by|composed by|produced by|written by|arranged by|mixed by|mastered by|composer|lyricist|producer)\\s*[:：].*",
       2
    );
@@ -236,9 +236,8 @@ final class LyricsFinder {
                         p.instrumental = true;
                      }
 
-                     String sl = str(o, "syncedLyrics");
-                     if (sl != null && diff < bestSynced) {
-                        Lyrics l = Lyrics.parse(sl);
+                     Lyrics l = synced(o);
+                     if (l != null && diff < bestSynced) {
                         if (!l.lines.isEmpty()) {
                            p.synced = l;
                            bestSynced = diff;
@@ -262,15 +261,7 @@ final class LyricsFinder {
       }
    }
 
-   private static Lyrics synced(JsonObject o) {
-      String s = str(o, "syncedLyrics");
-      if (s == null) {
-         return null;
-      }
-
-      Lyrics l = Lyrics.parse(s);
-      return l.lines.isEmpty() ? null : l;
-   }
+   private static Lyrics synced(JsonObject o) {return LyricsFormats.fromRecord(o);}
 
    private Lyrics netease(LyricsFinder.Query q, long durMs) {
       JsonElement res = this.get("https://music.163.com/api/search/get/web?type=1&offset=0&limit=10&s=" + enc((q.title() + " " + q.artist()).trim()), true);
@@ -295,9 +286,11 @@ final class LyricsFinder {
                         if (artistMatches(artists.toString(), q.artist())
                            && (durMs <= 0L || !song.has("duration") || Math.abs(song.get("duration").getAsLong() - durMs) <= 4000L)
                            && song.has("id")) {
-                           JsonElement lr = this.get("https://music.163.com/api/song/lyric?id=" + song.get("id").getAsLong() + "&lv=1&kv=1&tv=-1", true);
+                           JsonElement lr = this.get("https://music.163.com/api/song/lyric?id=" + song.get("id").getAsLong() + "&lv=-1&kv=-1&tv=-1&rv=-1&yv=-1", true);
                            if (lr != null && lr.isJsonObject()) {
                               JsonObject lo = lr.getAsJsonObject();
+                              Lyrics rich=LyricsFormats.netease(lo);
+                              if(!rich.lines.isEmpty())return rich;
                               if (lo.has("lrc") && lo.get("lrc").isJsonObject()) {
                                  String lrc = str(lo.getAsJsonObject("lrc"), "lyric");
                                  if (lrc != null && !lrc.isBlank()) {

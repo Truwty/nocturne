@@ -1307,14 +1307,15 @@ public final class LyricsRenderer {
 
       List<List<Integer>> rows = new ArrayList<>();
       List<Integer> row = new ArrayList<>();
+      int gap = line.explicitSpacing() ? 0 : 4;
       int rowW = 0;
       int[] widths = new int[n];
       Component[] comps = new Component[n];
 
       for (int i = 0; i < n; i++) {
          comps[i] = Draw.lyric(words.get(i).text(), big[i], fontIdx);
-         widths[i] = Math.round(font.width(comps[i]) * (big[i] ? bigMul : smallMul));
-         int add = (row.isEmpty() ? 0 : 4) + widths[i];
+         widths[i] = Math.round(font.width(LyricText.visual(comps[i])) * (big[i] ? bigMul : smallMul));
+         int add = (row.isEmpty() ? 0 : gap) + widths[i];
          if (!row.isEmpty() && rowW + add > 200) {
             rows.add(row);
             row = new ArrayList<>();
@@ -1334,11 +1335,11 @@ public final class LyricsRenderer {
       float top = -(rows.size() - 1) * rowH / 2.0F;
 
       for (int r = 0; r < rows.size(); r++) {
-         List<Integer> rw = rows.get(r);
-         int total = -4;
+         List<Integer> rw = LyricText.order(words,rows.get(r));
+         int total = -gap;
 
          for (int i : rw) {
-            total += widths[i] + 4;
+            total += widths[i] + gap;
          }
 
          float x = -total / 2.0F;
@@ -1351,13 +1352,13 @@ public final class LyricsRenderer {
                   words.get(i).text(),
                   x + widths[i] / 2.0F,
                   top + r * rowH,
-                  font.width(comps[i]),
+                  font.width(LyricText.visual(comps[i])),
                   i,
                   big[i],
                   big[i] ? bigMul : smallMul
                )
             );
-            x += widths[i] + 4;
+            x += widths[i] + gap;
          }
       }
 
@@ -1683,7 +1684,7 @@ public final class LyricsRenderer {
          float dy = (1.0F - Anim.easeOutBack(a)) * 6.0F;
          int c = Draw.mix(-1, Draw.mix(col, col2, cps.length <= 1 ? 0.0F : (float)i / (cps.length - 1)), 0.25F);
          Component cc = Draw.lyric(ch, true, fontIdx);
-         text(ps, out, x, -4.0F + dy, cc.getVisualOrderText(), true, mode, Draw.alpha(c, a * fade));
+         text(ps, out, x, -4.0F + dy, LyricText.visual(cc), true, mode, Draw.alpha(c, a * fade));
          x += font.width(cc) + track;
       }
 
@@ -1859,7 +1860,7 @@ public final class LyricsRenderer {
          if (settings.reducedMotion.on()) { rotDeg = 0; chroma = 0; sc = 1; }
          if (settings.quality.get() == 0) glow = 0;
          if (settings.highContrast.on()) { color = -1; readNow = 1; }
-         FormattedCharSequence s = c.getVisualOrderText();
+         FormattedCharSequence s = LyricText.visual(c);
          ps.pushPose();
          ps.translate(cx, cy, 0.0F);
          if (Math.abs(rotDeg) > 0.01F) {

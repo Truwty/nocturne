@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.truwty.nocturne.lyrics.Lyrics;
+import dev.truwty.nocturne.lyrics.LyricDocumentCodec;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -67,27 +68,56 @@ public final class StudioLibrary {
 
     public Path lyricPath(String key) { return root.resolve("lyrics").resolve(trackId(key) + ".lrc"); }
 
+    public Path documentPath(String key) {return root.resolve("lyrics").resolve(trackId(key)+".document.json");}
     public Lyrics local(String key) throws IOException {
+        if(Files.exists(documentPath(key))) {
+            if(Files.size(documentPath(key))>2_097_152)throw new IOException("Lyric document too large");
+            try {return secondary(key,LyricDocumentCodec.decode(Files.readString(documentPath(key)))).manuallyCorrected();}
+            catch(RuntimeException ex) {throw new IOException("Invalid edited lyric document",ex);}
+        }
         Path file = lyricPath(key);
         if (!Files.exists(file)) return null;
         if (Files.size(file) > 1_048_576) throw new IOException("Local LRC exceeds 1 MiB");
-        return Lyrics.parse(Files.readString(file));
+        return secondary(key,Lyrics.parse(Files.readString(file))).manuallyCorrected();
     }
 
     public void importLyrics(String key, Path file) throws IOException {
         if (!Files.isRegularFile(file) || Files.size(file) > 1_048_576) throw new IOException("Choose an LRC file smaller than 1 MiB");
-        chooseLyrics(key, Files.readString(file));
+        String text=Files.readString(file);
+        if(file.toString().endsWith(".yaml")||file.toString().endsWith(".yml"))saveDocument(key,dev.truwty.nocturne.lyrics.LyricsFormats.lyricsfile(text).manuallyCorrected());
+        else chooseLyrics(key,text);
     }
 
     public void chooseLyrics(String key, String lrc) throws IOException {
         if (lrc.length() > 1_048_576 || Lyrics.parse(lrc).lines.isEmpty()) throw new IOException("No synchronized timestamps found in this LRC");
-        write(lyricPath(key), lrc);
+        write(lyricPath(key), lrc);Files.deleteIfExists(documentPath(key));
     }
 
-    public void clearLyrics(String key) throws IOException { Files.deleteIfExists(lyricPath(key)); }
+    public void clearLyrics(String key) throws IOException { Files.deleteIfExists(lyricPath(key));Files.deleteIfExists(documentPath(key)); }
+    public void saveDocument(String key,Lyrics document) throws IOException {
+        String json=LyricDocumentCodec.encode(document.manuallyCorrected());
+        if(json.getBytes(StandardCharsets.UTF_8).length>2_097_152)throw new IOException("Lyric document too large");
+        try {LyricDocumentCodec.decode(json);}catch(RuntimeException ex){throw new IOException("Invalid lyric document",ex);}
+        write(documentPath(key),json);
+    }
+    private Path secondaryPath(String key,boolean romanized) {return root.resolve("lyrics").resolve(trackId(key)+(romanized?".romanization.lrc":".translation.lrc"));}
+    public void importSecondary(String key,Path file,boolean romanized) throws IOException {
+        if(!Files.isRegularFile(file)||Files.size(file)>1_048_576)throw new IOException("Choose a synchronized LRC smaller than 1 MiB");
+        String lrc=Files.readString(file);if(Lyrics.parse(lrc).lines.isEmpty())throw new IOException("Secondary lyrics need timestamps");write(secondaryPath(key,romanized),lrc);
+    }
+    public Lyrics secondary(String key,Lyrics primary) throws IOException {
+        Lyrics translated=null,romanized=null;
+        for(boolean roman:new boolean[]{false,true}) {
+            Path file=secondaryPath(key,roman);if(!Files.exists(file))continue;
+            if(Files.size(file)>1_048_576)throw new IOException("Secondary LRC too large");
+            if(roman)romanized=Lyrics.parse(Files.readString(file));else translated=Lyrics.parse(Files.readString(file));
+        }
+        return primary.secondary(translated,romanized);
+    }
+    public synchronized void removePreset(String group,String name) throws IOException {group(group).remove(name);save();}
 
     public synchronized void preset(String group, String name, JsonObject settings) throws IOException {
-        if (name.isBlank() || name.length() > 48) throw new IllegalArgumentException("Preset name must be 1–48 characters");
+        if (name.isBlank() || (group.equals("songAppearance") ? !name.matches("[0-9a-f]{64}") : name.length() > 48)) throw new IllegalArgumentException("Preset name must be 1–48 characters");
         group(group).add(name, settings.deepCopy()); save();
     }
 

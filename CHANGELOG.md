@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0-beta.1
+
+- Add source word karaoke through safe Lyricsfile 1.0 parsing, Enhanced LRC and provider YRC/KLYRIC. Keep source, mixed, estimated and manually corrected timing distinguishable.
+- Add lyric workspace with history, line/word bounds, draggable boundary timeline, playhead actions, 40-step undo/redo, persistent local documents and Enhanced LRC export.
+- Retain optional provider translation/romanization; import and export synchronized language sidecars and toggle secondary HUD lines independently.
+- Add automatic per-song visual profiles that preserve global settings across saves and track changes.
+- Add bidirectional shaping/visual word order, Unicode font choice, known-gap vocal countdowns and confidence labels.
+- Preserve word ends, whitespace, language layers and provenance in local/cache data; support LRC offsets and repeated Enhanced LRC timestamps. Validate bounded YAML with SnakeYAML 2.7, with legacy fallback for unsupported documents.
+
+
 ## 0.7.0-beta.1
 
 - Diagnose lookup, clock drift, disabled lyrics, missing players and hidden active lines separately; offer the matching repair action.

@@ -33,7 +33,7 @@ public final class Draw {
    public static final FontDescription SMOOTH_BOLD = new Resource(Identifier.fromNamespaceAndPath("nocturne", "smooth_bold"));
    public static final FontDescription ELEGANT = new Resource(Identifier.fromNamespaceAndPath("nocturne", "elegant"));
    public static final FontDescription IMPACT = new Resource(Identifier.fromNamespaceAndPath("nocturne", "impact"));
-   public static final String[] LYRIC_FONTS = new String[]{"Smooth", "Elegant", "Impact", "Pixel"};
+   public static final String[] LYRIC_FONTS = new String[]{"Smooth", "Elegant", "Impact", "Pixel", "Unicode"};
    private static final Map<Item, ItemStack> ICONS = new HashMap<>();
 
    private Draw() {
@@ -306,17 +306,18 @@ public final class Draw {
       return switch (font) {
          case 1 -> c.withStyle(st -> st.withFont(ELEGANT));
          case 2 -> c.withStyle(st -> st.withFont(IMPACT));
+         case 4 -> c.withStyle(st -> st.withFont(new Resource(Identifier.fromNamespaceAndPath("minecraft", "uniform"))));
          case 3 -> big ? c.withStyle(st -> st.withBold(true)) : c;
          default -> c.withStyle(st -> st.withFont(big ? SMOOTH_BOLD : SMOOTH));
       };
    }
 
    public static FormattedCharSequence seq(String s) {
-      return comp(s).getVisualOrderText();
+      return dev.truwty.nocturne.lyrics.LyricText.visual(comp(s));
    }
 
    public static int width(Font f, String s) {
-      return f.width(comp(s));
+      return f.width(seq(s));
    }
 
    public static int width(Font f, String s, boolean bold) {
@@ -336,12 +337,12 @@ public final class Draw {
          int ix = Math.round(x);
          int iy = Math.round(y);
          if (!Fx.smoothFont() || !(Math.abs(x - ix) > 0.01F) && !(Math.abs(y - iy) > 0.01F)) {
-            g.text(f, comp(s), ix, iy, c, shadow);
+            g.text(f, dev.truwty.nocturne.lyrics.LyricText.visual(comp(s)), ix, iy, c, shadow);
          } else {
             Matrix3x2fStack p = g.pose();
             p.pushMatrix();
             p.translate(x, y);
-            g.text(f, comp(s), 0, 0, c, shadow);
+            g.text(f, dev.truwty.nocturne.lyrics.LyricText.visual(comp(s)), 0, 0, c, shadow);
             p.popMatrix();
          }
       }
@@ -356,7 +357,7 @@ public final class Draw {
             p.pushMatrix();
             p.translate(x, y);
             p.scale(scale, scale);
-            g.text(f, comp(s), 0, 0, c, shadow);
+            g.text(f, dev.truwty.nocturne.lyrics.LyricText.visual(comp(s)), 0, 0, c, shadow);
             p.popMatrix();
          }
       }
