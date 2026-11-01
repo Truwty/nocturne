@@ -30,7 +30,7 @@ public final class StudioButton extends Button {
         long now = System.nanoTime();
         float dt = lastFrame == 0 ? 0.016f : Math.min(0.1f, (now-lastFrame)/1e9f); lastFrame=now;
         float target = active && isHoveredOrFocused() ? 1 : 0;
-        hover = s.reducedMotion.on() ? target : hover + (target-hover) * (float)-Math.expm1(-dt*18);
+        hover = s.reducedMotion.on() || s.photosensitiveMode.on() ? target : hover + (target-hover) * (float)-Math.expm1(-dt*18);
         int accent=s.uiAccent.argb(), text=s.uiText.argb();
         int surface=Draw.mix(s.uiBackground.argb(), text, 0.065f);
         Draw.round(g,getX(),getY(),width,height,4,Draw.mix(surface,accent,hover*0.21f));

@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.lyrics;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.accessibility.*;
 import dev.truwty.nocturne.performance.RenderPerformance;
 import dev.truwty.nocturne.gui.Draw;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -54,6 +55,11 @@ public final class HudLyrics {
    public static void reset() {
       used = 0;
       ready = false;
+   }
+
+   public static void suppress() {
+      reset();
+      LyricsDebug.hudRecorded = LyricsDebug.hudDrawn = LyricsDebug.hudSteep = LyricsDebug.hudOff = 0;
    }
 
    public static boolean begin(Vec3 camPos, Matrix4fc base) {
@@ -133,7 +139,7 @@ public final class HudLyrics {
    }
 
    public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
-      long start=RenderPerformance.time();try{renderContents(g,delta);}finally{RenderPerformance.addTime(start);}
+      long start=RenderPerformance.time();try(var scope=ContextProfiles.scope()){if(Accessibility.hidden()){suppress();return;}renderContents(g,delta);}finally{RenderPerformance.addTime(start);}
    }
    private static void renderContents(GuiGraphicsExtractor g, DeltaTracker delta) {
       if (ready && used != 0) {

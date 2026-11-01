@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.lyrics;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.accessibility.*;
 import dev.truwty.nocturne.Studio;
 import dev.truwty.nocturne.performance.RenderPerformance;
 import dev.truwty.nocturne.FrameMotion;
@@ -60,6 +61,7 @@ public final class LyricsRenderer {
    private static final List<LyricsRenderer.Spark> SPARKS = new ArrayList<>();
    private static final List<LyricsRenderer.Mist> MIST = new ArrayList<>();
    private static final List<LyricsRenderer.BattleWord> BATTLE = new ArrayList<>();
+   private static long contextRevision=-1;
    private static long playbackRevision=-1;
    private static long nextEnvironment;
    private static ClientLevel environmentLevel;
@@ -126,7 +128,7 @@ public final class LyricsRenderer {
    private static float editorX, editorY, editorYaw, editorPitch, editorRoll, audioEnvelope;
    private static int particleBudget() {
       LyricsSettings mod = NocturneClient.SETTINGS;
-      return mod.reducedMotion.on() ? 0 : RenderPerformance.particles(Math.min(mod.particleLimit.i(), mod.quality.get() == 0 ? 20 : mod.quality.get() == 1 ? 48 : 180));
+      return !Accessibility.particles() ? 0 : RenderPerformance.particles(Math.min(mod.particleLimit.i(), mod.quality.get() == 0 ? 20 : mod.quality.get() == 1 ? 48 : 180));
    }
    private static float impact;
    private static float flash;
@@ -145,13 +147,14 @@ public final class LyricsRenderer {
    private LyricsRenderer() {
    }
 
+   public static boolean inCombat(){return combat>0;}
    public static boolean active() {
       return active;
    }
 
    public static float flash() {
       LyricsSettings mod = NocturneClient.SETTINGS;
-      return mod != null && mod.flashEffects.on() && !mod.reducedMotion.on() ? flash * mod.intensityFactor() : 0.0F;
+      return mod != null && Accessibility.flashes() && !Accessibility.hidden() ? flash * mod.intensityFactor() : 0.0F;
    }
 
    public static long clockMs() {
@@ -218,18 +221,23 @@ public final class LyricsRenderer {
 
    public static float fovKick() {
       LyricsSettings mod = NocturneClient.SETTINGS;
-      return mod != null && mod.isEnabled() && mod.beatZoom.on() && !mod.reducedMotion.on() ? 1.0F - impact * 0.035F * mod.intensityFactor() : 1.0F;
+      if(mod==null)return 1;try(var scope=ContextProfiles.scope()){return mod.isEnabled()&&!Accessibility.hidden()&&Accessibility.camera()&&mod.beatZoom.on()?1-impact*.035F*mod.intensityFactor():1;}
    }
 
    public static void render(LevelRenderContext ctx) {
-      long start=RenderPerformance.time();RenderPerformance.begin(Minecraft.getInstance());
-      try {renderContents(ctx);}finally{RenderPerformance.counts(SPARKS.size()+MIST.size()+BATTLE.size(),TRAIL.size());RenderPerformance.addTime(start);}
+      long start=RenderPerformance.time();try(var scope=ContextProfiles.scope()){
+         RenderPerformance.begin(Minecraft.getInstance());
+         try {if(Accessibility.hidden()){suppress();return;}renderContents(ctx);}
+         finally{EdgeFallback.update(edgeAnchor());RenderPerformance.counts(SPARKS.size()+MIST.size()+BATTLE.size(),TRAIL.size());RenderPerformance.addTime(start);}
+      }
    }
+   private static Vec3 edgeAnchor(){if(current==null||current.dismissed)return null;var place=at(current);double yaw=place.yaw+editorYaw;return place.pos().add(Math.cos(yaw)*editorX,editorY,-Math.sin(yaw)*editorX);}
+   private static void suppress(){active=false;flash=impact=0;SPARKS.clear();MIST.clear();BATTLE.clear();TRAIL.clear();HudLyrics.suppress();EdgeFallback.clear();clock=-1;}
    private static void renderContents(LevelRenderContext ctx) {
       long nowN = System.nanoTime();
       float dt = lastNanos == 0L ? 0.016F : Math.min(0.1F, (float)(nowN - lastNanos) / 1.0E9F);
       lastNanos = nowN;
-      if (NocturneClient.SETTINGS == null || !NocturneClient.SETTINGS.reducedMotion.on()) {if(!RenderPerformance.idle())time += dt;}
+      if (NocturneClient.SETTINGS == null || Accessibility.textMotion()) {if(!RenderPerformance.idle())time += dt;}
       culled = false;
       impact = impact * (float)Math.exp(-dt * 7.0F);
       flash = flash * (float)Math.exp(-dt * 10.0F);
@@ -263,6 +271,7 @@ public final class LyricsRenderer {
          } else {
             Lyrics ly = chunk(LyricsService.INSTANCE.lyrics(), mod.maxWords.i());
             if (ly == null || ly.lines.isEmpty()) { reset(); return; }
+            if(contextRevision!=ContextProfiles.revision()){contextRevision=ContextProfiles.revision();reset();}
             Font font = mc.font;
             Vec3 cam = ctx.levelState().cameraRenderState.pos;
             fontIdx = mod.lyricFont.get();
@@ -280,7 +289,7 @@ public final class LyricsRenderer {
             boolean world = modeNow != 2;
             boolean turn = mod.faceYou.on();
             float linger = world ? mod.linger.f() : 0.0F;
-            boolean battleNow = !RenderPerformance.idle() && particleBudget()>0 && mod.battle.on() && combat > 0;
+            boolean battleNow = !RenderPerformance.idle() && Accessibility.textMotion() && particleBudget()>0 && mod.battle.on() && combat > 0;
             float partial = mc.getDeltaTracker().getGameTimeDeltaPartialTick(true);
             Vec3 look = mc.player.getViewVector(partial);
             double d = mod.distance.get();
@@ -317,7 +326,7 @@ public final class LyricsRenderer {
                title = new LyricsRenderer.Place(desired);
             }
 
-            if (!RenderPerformance.idle() && mod.cloudDrift.on() && !mod.reducedMotion.on()) {
+            if (!RenderPerformance.idle() && Accessibility.textMotion() && mod.cloudDrift.on() && !mod.reducedMotion.on()) {
                Vec3 wind = new Vec3(dt * 0.6, 0.0, 0.0);
                if (current != null && current.place.kind == 2) {
                   current.place.at = current.place.at.add(wind);
@@ -353,7 +362,7 @@ public final class LyricsRenderer {
 
             long pos = (long)clock;
             playingFade = playingFade + ((np.playing() ? 1.0F : 0.35F) - playingFade) * (1.0F - (float)Math.exp(-dt * 6.0F));
-            beat = mod.reducedMotion.on() ? 0 : mod.audioReactive.on() ? audioEnvelope : mod.beatPulse.on() && ly != null && np.playing() ? ly.beat(pos) : 0.0F;
+            beat = !Accessibility.textMotion() ? 0 : mod.audioReactive.on() ? audioEnvelope : mod.beatPulse.on() && ly != null && np.playing() ? ly.beat(pos) : 0.0F;
             int idx = ly == null ? -1 : ly.indexAt(pos);
             LyricsDebug.hud = hud;
             LyricsDebug.pos = pos;
@@ -371,7 +380,7 @@ public final class LyricsRenderer {
 
                if (idx >= 0) {
                   LyricsRenderer.Place place = newPlace(modeNow, mc, cam, look, desired, mod);
-                  if (previousAnchor != null && !mod.reducedMotion.on()) place.smoothed = previousAnchor;
+                  if (previousAnchor != null && Accessibility.textMotion()) place.smoothed = previousAnchor;
                   current = layout(font, ly.lines.get(idx), idx, place);
                   if (world) {
                      settle(mc.level, cam, current, mod);
@@ -415,8 +424,9 @@ public final class LyricsRenderer {
                s.age += dt;
             }
 
-            boolean orbitNow = mod.orbit.on() && !mod.reducedMotion.on() && mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT;
+            boolean orbitNow = Accessibility.textMotion() && mod.orbit.on() && !mod.reducedMotion.on() && mc.options.getCameraType() == CameraType.THIRD_PERSON_FRONT;
             orbitBlend = orbitBlend + ((orbitNow ? 1.0F : 0.0F) - orbitBlend) * (1.0F - (float)Math.exp(-dt * 4.5));
+            if(!Accessibility.textMotion())orbitBlend=0;
             if (orbitBlend < 0.002F) {
                orbitBlend = 0.0F;
             }
@@ -448,7 +458,7 @@ public final class LyricsRenderer {
             float scale = 0.02F * mod.size.f() / 100.0F;
             DisplayMode mode = mod.seeThrough.on() ? DisplayMode.SEE_THROUGH : DisplayMode.NORMAL;
             active = np.playing() && ly != null;
-            if (mod.titleCard.on() && songAge < 5.5F && title != null) {
+            if (Accessibility.textMotion() && mod.titleCard.on() && songAge < 5.5F && title != null) {
                titleCard(ps, out, font, cam, np, mod, orbitBlend > 0.0F ? titleOrbit : (world ? title : follow), scale, mode);
             }
 
@@ -507,7 +517,7 @@ public final class LyricsRenderer {
                      drawLine(ps, out, font, cam, current, pos, true, 1.0F, mod, scale, I, mode);
                      if (mod.nextLine.on() && (modeNow == 1 || modeNow == 2) && current.index + 1 < ly.lines.size()) {
                         String next = Draw.trim(font, ly.lines.get(current.index + 1).text(), 260);
-                        float in = Anim.easeOutCubic(current.age / 0.5F);
+                        float in = Accessibility.textMotion()?Anim.easeOutCubic(current.age / 0.5F):1;
                         ps.pushPose();
                         face(ps, cam, at(current), 0.0F, scale);
                         ps.translate(0.0F, current.height / 2.0F + 9.0F + (1.0F - in) * 6.0F, 0.0F);
@@ -982,6 +992,7 @@ public final class LyricsRenderer {
       readNow = -1.0F;
       ps.pushPose();
       face(ps, cam, pl, 0.0F, scale);
+      backplate(ps,out,s,fade);
       if(culled){ps.popPose();readNow=saveRead;return;}
       if (live && beat > 0.01F) {
          float b = 1.0F + 0.04F * beat;
@@ -1374,6 +1385,7 @@ public final class LyricsRenderer {
    }
 
    private static int colorFor(LyricsSettings mod, int i, int n) {
+      if(Accessibility.photosensitive()||mod.contrastPreset.get()!=0)return Accessibility.ink();
       if (mod.highContrast.on()) return -1;
       return switch (mod.colorMode.get()) {
          case 0 -> mod.color.argb();
@@ -1386,6 +1398,16 @@ public final class LyricsRenderer {
                : Draw.mix(album, Draw.mix(album, -1, 0.55F), n <= 1 ? 0.0F : (float)i / (n - 1));
          }
       };
+   }
+
+   private static void backplate(PoseStack ps,SubmitNodeCollector out,Shown shown,float alpha){
+      if(!Accessibility.plate()||culled)return;ps.pushPose();ps.translate(0,0,-1.2F);quad(ps,out,-shown.halfWidth()-5,-shown.height/2F-4,shown.halfWidth()+5,shown.height/2F+4,Draw.alpha(Accessibility.background(),(float)Accessibility.plateOpacity()*alpha));ps.popPose();
+   }
+   private static void steadyLine(PoseStack ps,SubmitNodeCollector out,Font font,Vec3 cam,Shown shown,long pos,boolean live,float fade,LyricsSettings mod,float scale,float intensity,DisplayMode mode){
+      ps.pushPose();face(ps,cam,at(shown),0,scale);backplate(ps,out,shown,fade);
+      for(var placed:shown.words){if(live&&placed.word().start()<=pos&&placed.index()>lastHit){lastHit=placed.index();if(pos-placed.word().start()<350)onHit(shown,placed,mod,intensity,colorFor(mod,placed.index(),shown.words.size()));}
+         word(ps,out,placed.comp(),placed.width(),placed.cx(),placed.cy(),placed.sc(),0,colorFor(mod,placed.index(),shown.words.size()),fade,0,0,colorFor(mod,placed.index(),shown.words.size()),mode);
+      }ps.popPose();
    }
 
    private static void drawLine(
@@ -1402,6 +1424,7 @@ public final class LyricsRenderer {
       float I,
       DisplayMode mode
    ) {
+      if(!Accessibility.textMotion()){steadyLine(ps,out,font,cam,s,pos,live,fade,mod,scale,I,mode);return;}
       if (at(s).kind == 2) {
          drawCloudLine(ps, out, cam, s, pos, live, fade, 0.0F, mod, scale, mode);
       } else {
@@ -1410,6 +1433,7 @@ public final class LyricsRenderer {
          boolean sky = at(s).kind == 1;
          ps.pushPose();
          face(ps, cam, at(s), 0.0F, scale);
+         backplate(ps,out,s,fade);
          if (live && beat > 0.01F) {
             float b = 1.0F + 0.06F * beat * Math.min(1.4F, I);
             ps.scale(b, b, 1.0F);
@@ -1866,9 +1890,10 @@ public final class LyricsRenderer {
    ) {
       if (!culled && !(alpha <= 0.01F)) {
          LyricsSettings settings = NocturneClient.SETTINGS;
-         if (settings.reducedMotion.on()) { rotDeg = 0; chroma = 0; sc = 1; }
-         if (settings.quality.get() == 0) glow = 0;
-         if (settings.highContrast.on()) { color = -1; readNow = 1; }
+         if (!Accessibility.textMotion()) { rotDeg = 0; chroma = 0; sc = 1; }
+         if (settings.quality.get() == 0 || Accessibility.photosensitive()) glow = 0;
+         if(Accessibility.photosensitive()||settings.contrastPreset.get()!=0){color=Accessibility.ink();chroma=0;}
+         if (settings.highContrast.on() && settings.contrastPreset.get()!=2) { color = -1; readNow = 1; }
          FormattedCharSequence s = LyricText.visual(c);
          ps.pushPose();
          ps.translate(cx, cy, 0.0F);
@@ -1879,6 +1904,7 @@ public final class LyricsRenderer {
          ps.scale(sc, sc, 1.0F);
          float x = -width / 2.0F;
          float y = -4.0F;
+         if(settings.lyricOutline.on()||Accessibility.photosensitive()){int outline=Accessibility.ink()==0xFF121212?0xFFFDF9F0:0xFF08080C;for(int i=0;i<4;i++)text(ps,out,x+(i==0?-1:i==1?1:0),y+(i==2?-1:i==3?1:0),s,false,mode,Draw.alpha(outline,alpha));}
          if (readNow >= 0.0F) {
             float k = 0.22F + 0.5F * readNow;
             ps.pushPose();
@@ -2010,7 +2036,7 @@ public final class LyricsRenderer {
       void update(Vec3 cam, float dt, boolean turn) {
          this.lift = this.lift + (this.liftTarget - this.lift) * (1.0F - (float)Math.exp(-dt * 6.0F));
          Vec3 targetPosition = this.at.add(0.0, this.lift, 0.0);
-         this.smoothed = this.smoothed == null || NocturneClient.SETTINGS.reducedMotion.on() ? targetPosition : this.smoothed.lerp(targetPosition, -Math.expm1(-dt * 5 / NocturneClient.SETTINGS.transition.get()));
+         this.smoothed = this.smoothed == null || !Accessibility.textMotion() ? targetPosition : this.smoothed.lerp(targetPosition, -Math.expm1(-dt * 5 / NocturneClient.SETTINGS.transition.get()));
          Vec3 to = cam.subtract(this.pos());
          float ty = (float)Math.atan2(to.x, to.z);
          float tp = this.floor

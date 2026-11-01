@@ -9,5 +9,6 @@
   "key.nocturne.volume_down": "Player volume down 5%",
   "key.nocturne.volume_up": "Player volume up 5%",
   "key.nocturne.shuffle": "Toggle shuffle",
-  "key.nocturne.repeat": "Cycle repeat"
+  "key.nocturne.repeat": "Cycle repeat",
+  "key.nocturne.screenshot_context": "Toggle screenshot context"
 }

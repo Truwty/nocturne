@@ -114,7 +114,7 @@ public final class RenderPerformance {
     }
 
     public static int lingering(int maximum) {
-        return AdaptiveBudget.limit(maximum, scale);
+        return dev.truwty.nocturne.accessibility.Accessibility.textMotion()?AdaptiveBudget.limit(maximum, scale):0;
     }
 
     public static int layers(int maximum) {

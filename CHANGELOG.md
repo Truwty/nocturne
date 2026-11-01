@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0-beta.1
+
+- Add render-scoped Exploration, Combat, Menus and Screenshots profiles with searchable drafts, preview, undo/redo and explicit save/enable. Preserve global/per-song settings.
+- Add independent chat, inventory, F3, pause, other-screen and F1 hiding, plus persistent exact-class rules for modded screens. Suppress related lyric effects while hidden.
+- Add a safe-margin screen-edge lyric caption with behind-camera handling and recovery hysteresis.
+- Add world/projected backplates, adjustable opacity, four-sided outlines and dark/light contrast presets, including secondary HUD text.
+- Separate flashes, camera/FOV movement, particles and animated text. Add steady whole-line rendering and a global photosensitivity-friendly lock that profiles cannot bypass.
+- Add an optional screenshot-context binding without replacing native F2 capture.
+- Test context priority, override restoration, screen policies, edge placement and actual native UI/render flows.
+
 ## 0.11.0-beta.1
 
 - Add smoothed adaptive effect budgets with fast reductions, gradual recovery and a configurable frame-time target.

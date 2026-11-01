@@ -31,7 +31,7 @@ public class NocturneClient implements ClientModInitializer {
    public static final String ASCII_NAME = "Nocturne Lyrics";
    public static final Logger LOG = LoggerFactory.getLogger("Nocturne Lyrics");
    public static LyricsSettings SETTINGS;
-   public static KeyMapping OPEN_KEY;
+   public static KeyMapping OPEN_KEY,SCREENSHOT_CONTEXT_KEY;
    private static int playbackTicks;
 
    public void onInitializeClient() {
@@ -41,6 +41,7 @@ public class NocturneClient implements ClientModInitializer {
       dev.truwty.nocturne.playback.Playback.initialize();
       Category category = Category.register(Identifier.fromNamespaceAndPath("nocturne", "main"));
       OPEN_KEY = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.open", Type.KEYSYM, 78, category));
+      SCREENSHOT_CONTEXT_KEY=KeyMappingHelper.registerKeyMapping(new KeyMapping("key.nocturne.screenshot_context",Type.KEYSYM,-1,category));
       dev.truwty.nocturne.playback.PlaybackKeys.register(category);
       ClientTickEvents.END_CLIENT_TICK.register(NocturneClient::tick);
       LevelRenderEvents.COLLECT_SUBMITS.register(LyricsRenderer::render);
@@ -67,6 +68,8 @@ public class NocturneClient implements ClientModInitializer {
 
    private static void tick(Minecraft mc) {
       if (!SETTINGS.isEnabled() && ++playbackTicks % 10 == 0) LyricsService.INSTANCE.system.start();
+      while(SCREENSHOT_CONTEXT_KEY.consumeClick())if(mc.screen==null&&mc.level!=null)dev.truwty.nocturne.accessibility.ContextProfiles.screenshot(!dev.truwty.nocturne.accessibility.ContextProfiles.screenshot());
+      dev.truwty.nocturne.accessibility.Accessibility.tick(mc);
       dev.truwty.nocturne.playback.PlaybackKeys.tick(mc);
       while (OPEN_KEY.consumeClick()) {
          if (mc.screen == null) {

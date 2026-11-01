@@ -198,6 +198,7 @@ public final class PortClientTest implements FabricClientGameTest {
             context.runOnClient(mc -> { if (NocturneClient.SETTINGS.uiAccent.argb()!=0xFF62E9D0) throw new AssertionError("Theme shortcut did not apply"); });
             interfaceChecks(context);
             performanceChecks(context);
+            accessibilityChecks(context);
             context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
             for(int playbackTab=0;playbackTab<4;playbackTab++){
                 int tab=playbackTab;context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null,tab));context.waitTicks(5);
@@ -262,7 +263,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(mc.screen));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
                     ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
-                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null))) {
+                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,0),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,1),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,2),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3),()->new dev.truwty.nocturne.gui.ContextProfileEditorScreen(null,dev.truwty.nocturne.accessibility.GameplayContext.COMBAT))) {
                     context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(mc.screen);mc.screen.mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(mc.screen);});
                 }
                 for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
@@ -284,6 +285,37 @@ public final class PortClientTest implements FabricClientGameTest {
             context.waitTicks(25);
             context.runOnClient(mc -> { if (!LyricsRenderer.active()) throw new AssertionError("Lyrics did not recover after reconnect"); });
         }
+    }
+
+    private static void accessibilityChecks(ClientGameTestContext context){
+        var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
+        context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.hideChat.set(true);s.hideInventory.set(true);s.hideDebug.set(true);s.edgeFallback.set(true);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);LyricsService.INSTANCE.startDemo();});
+        context.setScreen(()->null);context.waitTicks(40);
+        context.setScreen(()->new net.minecraft.client.gui.screens.ChatScreen("",false));context.waitTicks(5);
+        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active()||LyricsDebug.hudRecorded!=0)throw new AssertionError("Chat did not hide lyric geometry");});
+        context.setScreen(()->new net.minecraft.client.gui.screens.inventory.InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));context.waitTicks(5);
+        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Inventory did not hide lyrics");});
+        context.setScreen(()->null);context.runOnClient(mc->mc.debugEntries.setOverlayVisible(true));context.waitTicks(5);
+        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Debug overlay did not hide lyrics");mc.debugEntries.setOverlayVisible(false);NocturneClient.SETTINGS.editorX.set(8.0);});context.waitTicks(30);
+        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Off-screen editor placement did not activate edge fallback");});takeShot(context,"nocturne-edge-fallback");
+        context.runOnClient(mc->NocturneClient.SETTINGS.edgeFallback.set(false));context.waitTicks(2);
+        context.runOnClient(mc->{if(dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Disabled fallback retained its visible state");NocturneClient.SETTINGS.edgeFallback.set(true);});context.waitTicks(2);
+        context.runOnClient(mc->NocturneClient.SETTINGS.editorX.set(0.0));context.waitTicks(30);
+        context.runOnClient(mc->{if(dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Fallback did not clear after the world text returned");});
+        context.setScreen(()->new StudioScreen(null,5));context.clickScreenButton("Gameplay & accessibility");context.clickScreenButton("Readability");context.clickScreenButton("White on charcoal");context.waitTicks(5);takeShot(context,"nocturne-readability");
+        context.clickScreenButton("Contexts");context.clickScreenButton("Edit Combat");context.clickScreenButton("Suggested preset");context.clickScreenButton("Preview: Off");context.waitTicks(3);
+        context.runOnClient(mc->{if(NocturneClient.SETTINGS.animatedText.get()!=saved.get("Animated lyric text").getAsBoolean())throw new AssertionError("Preview mutated global settings");});
+        takeShot(context,"nocturne-context-editor");context.clickScreenButton("Save & enable profiles");
+        context.runOnClient(mc->{if(!NocturneClient.SETTINGS.contextProfiles.on()||dev.truwty.nocturne.accessibility.ContextProfiles.profile(dev.truwty.nocturne.accessibility.GameplayContext.COMBAT)==null)throw new AssertionError("Context profile did not persist");});
+        context.setScreen(()->null);context.runOnClient(mc->mc.player.hurtTime=5);context.waitTicks(5);
+        context.runOnClient(mc->{if(dev.truwty.nocturne.accessibility.ContextProfiles.current()!=dev.truwty.nocturne.accessibility.GameplayContext.COMBAT)throw new AssertionError("Local combat event did not select Combat");try(var scope=dev.truwty.nocturne.accessibility.ContextProfiles.scope()){if(NocturneClient.SETTINGS.animatedText.on())throw new AssertionError("Saved combat settings did not apply");}});takeShot(context,"nocturne-combat-profile");
+        context.runOnClient(mc->mc.player.hurtTime=0);context.waitTicks(75);
+        context.setScreen(()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3));context.clickScreenButton("Screenshot context: Off");context.runOnClient(mc->{if(dev.truwty.nocturne.accessibility.ContextProfiles.current()!=dev.truwty.nocturne.accessibility.GameplayContext.SCREENSHOTS)throw new AssertionError("Screenshot context did not override Menus");});context.clickScreenButton("Screenshot context: On");
+        context.clickScreenButton("Motion");context.clickScreenButton("Apply photosensitivity-friendly preset");context.waitTicks(4);
+        context.runOnClient(mc->{var s=NocturneClient.SETTINGS;if(dev.truwty.nocturne.accessibility.Accessibility.textMotion()||dev.truwty.nocturne.accessibility.Accessibility.particles()||dev.truwty.nocturne.accessibility.Accessibility.camera()||dev.truwty.nocturne.accessibility.Accessibility.flashes()||LyricsRenderer.fovKick()!=1||LyricsRenderer.flash()!=0)throw new AssertionError("Friendly preset left an effect enabled");try{var forced=new com.google.gson.JsonObject();forced.addProperty("Flash effects",true);forced.addProperty("Camera movement",true);forced.addProperty("Particle effects",true);forced.addProperty("Animated lyric text",true);forced.addProperty("Reduced motion",false);dev.truwty.nocturne.accessibility.ContextProfiles.save(dev.truwty.nocturne.accessibility.GameplayContext.MENUS,forced);try(var scope=dev.truwty.nocturne.accessibility.ContextProfiles.scope()){if(dev.truwty.nocturne.accessibility.Accessibility.camera()||dev.truwty.nocturne.accessibility.Accessibility.flashes()||dev.truwty.nocturne.accessibility.Accessibility.textMotion()||dev.truwty.nocturne.accessibility.Accessibility.particles())throw new AssertionError("Context bypassed friendly-mode lock");}if(s.cameraMovement.on()||s.flashEffects.on())throw new AssertionError("Render scope leaked context values");}catch(java.io.IOException ex){throw new AssertionError(ex);}});
+        context.setScreen(()->null);context.runOnClient(mc->LyricsService.INSTANCE.startDemo());context.waitTicks(40);takeShot(context,"nocturne-friendly-preset");
+        context.runOnClient(mc->{var frame=dev.truwty.nocturne.performance.RenderPerformance.snapshot();if(frame.particles()!=0||frame.glow()!=0||frame.cloud()!=0||frame.text()==0)throw new AssertionError("Friendly mode rendered decoration or lost core lyrics");try{dev.truwty.nocturne.accessibility.ContextProfiles.remove(dev.truwty.nocturne.accessibility.GameplayContext.COMBAT);dev.truwty.nocturne.accessibility.ContextProfiles.remove(dev.truwty.nocturne.accessibility.GameplayContext.MENUS);}catch(java.io.IOException ex){throw new AssertionError(ex);}dev.truwty.nocturne.accessibility.ContextProfiles.clearPreview();for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));});
+        NocturneClient.LOG.info("ACCESSIBILITY TEST PASSED: chat/inventory/debug hiding, edge recovery, readability, profile preview/save/restoration and friendly lock across contexts");
     }
 
     private static void performanceChecks(ClientGameTestContext context){

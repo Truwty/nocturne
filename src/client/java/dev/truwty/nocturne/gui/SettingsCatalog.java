@@ -18,6 +18,7 @@ public final class SettingsCatalog {
 
     public static String category(Setting<?> s) {
         String n = s.name.toLowerCase(Locale.ROOT);
+        if(n.startsWith("hide lyrics")||n.contains("context profiles"))return "Interface";
         if (n.startsWith("ui ") || n.contains("settings style") || n.contains("controller"))
             return "Interface";
         if (n.contains("limit")||n.contains("effect detail")||n.contains("budget")||n.contains("frame time")||n.contains("performance"))return "Motion & performance";
@@ -30,7 +31,7 @@ public final class SettingsCatalog {
                 || n.contains("cloud")
                 || n.contains("running")
                 || n.contains("walls")) return "Placement";
-        if (n.contains("motion")
+        if (n.contains("photosensitivity")||n.contains("camera movement")||n.contains("animated lyric")||n.contains("motion")
                 || n.contains("flash")
                 || n.contains("shake")
                 || n.contains("particle")
@@ -50,7 +51,7 @@ public final class SettingsCatalog {
                 || n.contains("sparkles")
                 || n.equals("size")
                 || n.contains("cinematic")
-                || n.contains("contrast")) return "Appearance";
+                || n.contains("contrast") || n.contains("backplate") || n.contains("lyric outline")) return "Appearance";
         return "Lyrics & playback";
     }
 
@@ -74,6 +75,15 @@ public final class SettingsCatalog {
             case "Lingering line limit"->" · Maximum retained previous lines; zero keeps only the current line";
             case "Distance effect detail", "Full effect detail distance"->" · Fade decorative detail toward the lyric render distance";
             case "Performance readout"->" · CPU-side elapsed submission time and geometry counters; move Diagnostics in the HUD editor";
+            case "Automatic context profiles"->" · Apply saved Screenshots, Menus, Combat or Exploration settings during rendering";
+            case "Camera movement"->" · Allow Nocturne beat-driven FOV changes; never changes the player's aim";
+            case "Particle effects"->" · Allow sparks, mist and flying words independently of text animation";
+            case "Animated lyric text"->" · Disable to show steady complete lines without word transforms or orbit motion";
+            case "Photosensitivity-friendly mode"->" · Lock Nocturne flashes, motion, glow and particles off across every context";
+            case "Screen edge lyric fallback"->" · Keep the current lyric near a safe screen edge when its world anchor is outside the view";
+            case "Lyric backplate", "Backplate opacity"->" · Add one matching background quad per lyric line";
+            case "Lyric outline"->" · Add four cardinal text passes for stronger edges";
+            case "Hide lyrics with F1"->" · Also hide world lyrics when F1 hides Minecraft's HUD";
             default->"";
         };
         return category(s) + " · " + detail+purpose;

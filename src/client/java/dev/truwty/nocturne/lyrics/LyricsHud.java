@@ -1,6 +1,7 @@
 package dev.truwty.nocturne.lyrics;
 
 import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.accessibility.*;
 import dev.truwty.nocturne.performance.RenderPerformance;
 import dev.truwty.nocturne.LyricsSettings;
 import dev.truwty.nocturne.gui.Anim;
@@ -32,7 +33,7 @@ public final class LyricsHud {
    }
 
    public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
-      RenderPerformance.hudBegin();long start=RenderPerformance.time();try{renderContents(g,delta);}finally{RenderPerformance.addTime(start);RenderPerformance.hudEnd();}
+      RenderPerformance.hudBegin();long start=RenderPerformance.time();try(var scope=ContextProfiles.scope()){if(Accessibility.hidden())return;renderContents(g,delta);EdgeFallback.render(g);}finally{RenderPerformance.addTime(start);RenderPerformance.hudEnd();}
    }
    private static void renderContents(GuiGraphicsExtractor g, DeltaTracker delta) {
       long now = System.nanoTime();
@@ -49,7 +50,8 @@ public final class LyricsHud {
          }
       }
       if (mod != null && (mc.player != null || LyricsService.INSTANCE.now()!=null)) {
-         boolean want = mc.screen==null && mod.isEnabled() && mod.cinematic.on() && LyricsRenderer.active();
+         boolean want = !Accessibility.photosensitive() && mc.screen==null && mod.isEnabled() && mod.cinematic.on() && LyricsRenderer.active();
+         if(Accessibility.photosensitive())bars=0;
          bars = bars + ((want ? 1.0F : 0.0F) - bars) * (1.0F - (float)Math.exp(-dt * 3.5F));
          if (bars < 0.003F) {
             bars = 0.0F;
@@ -151,6 +153,7 @@ public final class LyricsHud {
    }
 
    private static void karaokeBar(GuiGraphicsExtractor g, Minecraft mc, LyricsSettings mod, float dt, int sw, int top) {
+      if(!Accessibility.textMotion()){steadyBar(g,mc,mod,sw,top);return;}
       NowPlaying np = LyricsService.INSTANCE.now();
       Lyrics ly = LyricsService.INSTANCE.lyrics();
       if (np != null && !np.key().equals(barKey)) {
@@ -268,6 +271,12 @@ public final class LyricsHud {
       }
    }
 
+   private static void steadyBar(GuiGraphicsExtractor g,Minecraft mc,LyricsSettings mod,int sw,int top){
+      var track=LyricsService.INSTANCE.now();if(!mod.isEnabled()||!mod.topBar.on()||track==null)return;
+      var lyrics=LyricsService.INSTANCE.lyrics();int index=lyrics==null?-1:lyrics.indexAt(hudClock());String text=index<0?track.title()+" · "+track.artist():lyrics.lines.get(index).text();
+      int width=Math.max(32,Math.min(sw-12,350));g.fill(6,top+4,6+width,top+24,Draw.alpha(Accessibility.background(),(float)Accessibility.plateOpacity()));
+      var sequence=LyricText.visual(Draw.lyric(text,false,mod.lyricFont.get()));g.enableScissor(10,top+4,width+2,top+24);HudReadability.text(g,mc.font,sequence,10,top+10,Accessibility.ink());g.disableScissor();
+   }
    private static long hudClock(){
       var mc=Minecraft.getInstance();var track=LyricsService.INSTANCE.now();
       return mc.player!=null?LyricsRenderer.clockMs():track==null?0:Math.max(0,track.positionMs()+Math.round(NocturneClient.SETTINGS.offset.get()+dev.truwty.nocturne.Studio.songOffset(track)));
@@ -290,8 +299,10 @@ public final class LyricsHud {
       var sequences=lines.stream().map(value->LyricText.visual(Draw.lyric(value,false,NocturneClient.SETTINGS.lyricFont.get()))).toList();
       int width=Math.min(sw-16,sequences.stream().mapToInt(font::width).max().orElse(1)+4),height=lines.size()*12;
       try(var scope=HudLayouts.begin(g,id,sw,sh,width,height)) {
+         if(Accessibility.plate())g.fill(0,0,width,height,Draw.alpha(Accessibility.background(),(float)Accessibility.plateOpacity()));
+         int ink=Accessibility.photosensitive()||NocturneClient.SETTINGS.contrastPreset.get()!=0?Accessibility.ink():color;
          g.enableScissor(0,0,width,height);
-         for(int i=0;i<sequences.size();i++){var text=sequences.get(i);g.text(font,text,(width-font.width(text))/2,i*12,i==0?color:Draw.alpha(color,.7f),true);}
+         for(int i=0;i<sequences.size();i++){var text=sequences.get(i);HudReadability.text(g,font,text,(width-font.width(text))/2,i*12+1,i==0?ink:Draw.alpha(ink,.85f));}
          g.disableScissor();
       }
    }

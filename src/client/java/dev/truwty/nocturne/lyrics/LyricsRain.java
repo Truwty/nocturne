@@ -26,13 +26,15 @@ public final class LyricsRain {
       return strength;
    }
 
-   public static void frame(Object rainColumns) {
+   public static void frame(Object rainColumns) {try(var scope=dev.truwty.nocturne.accessibility.ContextProfiles.scope()){frameContents(rainColumns);}}
+   private static void frameContents(Object rainColumns) {
       rainList = rainColumns;
       long now = System.nanoTime();
       float dt = last == 0L ? 0.016F : Math.min(0.1F, (float)(now - last) / 1.0E9F);
       last = now;
       LyricsSettings mod = NocturneClient.SETTINGS;
       NowPlaying np = mod != null && mod.isEnabled() && mod.albumRain.on() ? LyricsService.INSTANCE.now() : null;
+      if(dev.truwty.nocturne.accessibility.Accessibility.hidden()||dev.truwty.nocturne.accessibility.Accessibility.photosensitive()){strength=beat=0;return;}
       boolean want = np != null && np.playing();
       strength = strength + ((want ? 1.0F : 0.0F) - strength) * (1.0F - (float)Math.exp(-dt * 1.6F));
       if (strength < 0.003F) {

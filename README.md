@@ -13,7 +13,7 @@ Cinematic world lyrics and desktop music controls for **Minecraft Java 26.1.2 + 
 ## Install
 
 1. Use **Minecraft 26.1.2**, **Java 25**, **Fabric Loader 0.20.1+**, and [Fabric API 0.155.3+26.1.2](https://modrinth.com/mod/fabric-api/versions?g=26.1.2).
-2. Replace older Nocturne JARs with `nocturne-0.11.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-0.12.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
@@ -29,6 +29,19 @@ Matching removes remaster/feature/browser noise, extracts artist/title pairs fro
 Seeking, pause/resume, track changes, recognized advertisements, session loss and Windows output-device changes reset the lyric clock and stale effects. Health has an explicit resynchronization action. Windows Apps diagnostics show each detected app's advertised play/pause, seek and next/previous support. macOS/Linux display detected apps but explicitly mark per-action capability details unavailable.
 
 Settings use schema version 1. Legacy settings are backed up before migration, unknown settings are preserved, corrupt JSON is quarantined, and valid backups are restored when available. Damaged libraries similarly recover from backup or start safely after preserving the damaged original. Health reports recovery and write failures. Future config versions are read-only to prevent downgrades from overwriting them.
+
+## Gameplay and accessibility
+
+Open **N → Motion → Gameplay & accessibility** for Visibility, Motion, Readability and Contexts.
+
+- **Visibility:** hide Nocturne lyrics during chat, container/inventory screens, F3, pause menus, other screens or F1. Chat, inventory and F3 hiding start enabled. Add exact screen class names or use **Add last game screen** after visiting a modded screen. Hidden lyrics also suppress fallback captions, lyric particles, flashes and Nocturne FOV effects.
+- **Screen-edge fallback:** when the current world lyric anchor leaves the camera view, its current line appears in a bounded caption near the corresponding edge. Behind-camera captions sit at the bottom. Hysteresis avoids flicker at the edge; it clears when the world anchor returns comfortably into view. Enabled by default; normal world lyrics and HUD layout visibility remain separately configurable.
+- **Readability:** optional backplates, 30–100% opacity, four-sided outlines, white-on-charcoal and ink-on-parchment presets. Contrast choices apply to world/projected lyrics, steady captions and secondary lyric widgets. Custom restores your configured palette.
+- **Independent motion controls:** flashes, Nocturne camera/FOV movement, particles and animated lyric text have separate switches. Disabling animated text shows steady complete lines and removes word transforms, scrolling highlights, orbit and cloud drift. Reduced motion and friendly mode take precedence over individual switches.
+- **Context profiles:** save separate render settings for Exploration, Combat, Menus and Screenshots. Search, edit, undo/redo and preview a draft before **Save & enable profiles**. Automatic profiles start disabled. Priority is **Screenshots → Menus → Combat → Exploration**; an unsaved context inherits global/per-song settings. Combat follows local damage/attack events and expires shortly after activity stops. Overrides are scoped to rendering and never overwrite global/per-song preferences.
+- **Screenshots:** save a Screenshots profile, enable automatic profiles, then toggle **Screenshot context** before pressing F2. Its optional binding starts unbound under Minecraft Controls → Nocturne. Toggle again to exit; leaving the world clears it. F1 does not hide world lyrics unless you enable that visibility rule.
+
+**Apply photosensitivity-friendly preset** enables a persistent global lock: steady white-on-dark lyrics, backplates and outlines, no Nocturne flashes, camera effects, particles, glow, chromatic animation, rain decoration or lingering lines. Saved context profiles cannot override this lock. Disabling the lock does not restore the previous preset; re-enable desired effects explicitly. This controls Nocturne's visuals only; Minecraft, shader packs and other mods keep their own visual settings.
 
 ## Tested compatibility
 

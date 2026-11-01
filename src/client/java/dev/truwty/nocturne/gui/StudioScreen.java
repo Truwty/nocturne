@@ -184,7 +184,7 @@ public final class StudioScreen extends Screen {
         // Split into compact columns so keyboard-accessible controls remain on screen.
         int left = x, widthBefore = w; w = (widthBefore - 16) / 2;
         toggle(s().reducedMotion); toggle(s().flashEffects); toggle(s().shakeEffects); toggle(s().highContrast);
-        number(s().transition); number(s().size); x = left + w + 16; row = body;
+        number(s().transition); number(s().size);button(x+16,row,w-32,"Gameplay & accessibility",()->minecraft.setScreen(new AccessibilityScreen(this))); x = left + w + 16; row = body;
         toggle(s().audioReactive); number(s().audioGain); mode(s().quality); number(s().particleLimit); number(s().renderDistance);
         button(x + 16, row, w - 32, "Apply lightweight preset", () -> { s().quality.set(0); s().particleLimit.set(20.0); s().glow.set(false); s().chroma.set(false); s().cloudDrift.set(false); s().save(); rebuildWidgets(); });
         row+=26;button(x+16,row,w-32,"Performance & budgets",()->minecraft.setScreen(new PerformanceScreen(this)));
