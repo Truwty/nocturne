@@ -2,7 +2,7 @@
 
 ![Nocturne](docs/banner.svg)
 
-[Download](https://github.com/Truwty/nocturne/releases) · [Issues](https://github.com/Truwty/nocturne/issues) · [Licensing](PORTING-NOTICE.md)
+[Download](https://github.com/Truwty/nocturne/releases) · [Issues](https://github.com/Truwty/nocturne/issues) · [Licensing](LICENSE)
 
 </div>
 
@@ -101,7 +101,3 @@ python scripts/windows_media_smoke.py
 ```
 
 Those Python dependencies are for developer tests only. See [validation](VALIDATION.md) for the tested behavior and limits.
-
-## Attribution
-
-Nocturne includes upstream code distributed with permission confirmed by the repository owner. Original copyright and font licenses remain intact. This version is **not wholly MIT licensed**; see [porting and licensing](PORTING-NOTICE.md). Historical independently written Nocturne releases retain their own original licenses.
