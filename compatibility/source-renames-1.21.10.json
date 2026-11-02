@@ -1,0 +1,30 @@
+{
+  "literal": {
+    "net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper": "net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper",
+    "KeyMappingHelper.registerKeyMapping": "KeyBindingHelper.registerKeyBinding",
+    "net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext": "net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext",
+    "net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents": "net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents",
+    "LevelRenderContext": "WorldRenderContext",
+    "LevelRenderEvents.COLLECT_SUBMITS": "WorldRenderEvents.BEFORE_ENTITIES",
+    "net.minecraft.client.renderer.state.level.WeatherRenderState": "net.minecraft.client.renderer.state.WeatherRenderState",
+    "GuiGraphicsExtractor": "GuiGraphics",
+    "extractWidgetRenderState": "renderWidget",
+    "extractRenderState": "render",
+    "extractBackground": "renderBackground",
+    "extractContents": "renderWidget",
+    "ctx.levelState()": "ctx.worldState()",
+    "ctx.poseStack()": "ctx.matrices()",
+    "ctx.submitNodeCollector()": "ctx.commandQueue()",
+    "net.minecraft.client.renderer.state.level.LevelRenderState": "net.minecraft.client.renderer.state.LevelRenderState",
+    "Identifier": "ResourceLocation",
+    "net.minecraft.util.Util": "net.minecraft.Util",
+    "net.minecraft.client.renderer.rendertype.RenderTypes": "net.minecraft.client.renderer.RenderType",
+    "RenderTypes.debugFilledBox()": "RenderType.debugFilledBox()",
+    "import net.minecraft.world.attribute.EnvironmentAttributes;": "",
+    "Float ch = (Float)level.environmentAttributes().getValue(EnvironmentAttributes.CLOUD_HEIGHT, cam);": "Float ch = ClientAccess.cloudHeight(level, cam);"
+  },
+  "regex": {
+    "\\b(g|graphics)\\.text\\(": "$1.drawString(",
+    "\\b(g|graphics)\\.item\\(": "$1.renderItem("
+  }
+}

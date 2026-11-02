@@ -65,7 +65,7 @@ public final class DiagnosticsReport {
             else if (ENUMS.containsKey(key)
                     && value instanceof String text
                     && ENUMS.get(key).contains(text)) out.addProperty(key, text);
-            else if (key.equals("minecraft") && Set.of("1.21.11", "26.1", "26.1.1", "26.1.2", "26.2", "26.3").contains(value))
+            else if (key.equals("minecraft") && Set.of("1.21.10", "1.21.11", "26.1", "26.1.1", "26.1.2", "26.2", "26.3").contains(value))
                 out.addProperty(key, (String) value);
             else if (key.equals("modVersion") && value instanceof String text) {
                 try {

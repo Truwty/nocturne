@@ -25,6 +25,7 @@ public final class NeoForgeSmoke {
     private boolean finished;
 
     public NeoForgeSmoke() {
+        LyricsService.INSTANCE.stop();
         NeoForge.EVENT_BUS.addListener(this::tick);
     }
 
@@ -69,7 +70,6 @@ public final class NeoForgeSmoke {
                 if (!(mc.screen instanceof StudioScreen)) throw new AssertionError("Shortcut did not open Studio");
             }
             if (stage >= 1 && stage <= 7) {
-                mc.setScreen(new StudioScreen(null, stage - 1));
                 for (var child : mc.screen.children()) {
                     if (child instanceof AbstractWidget widget && widget.visible &&
                         (widget.getX() < 0 || widget.getY() < 0 || widget.getRight() > mc.screen.width || widget.getBottom() > mc.screen.height))
@@ -77,6 +77,7 @@ public final class NeoForgeSmoke {
                 }
                 Screenshot.grab(mc.gameDirectory, "nocturne-neoforge-studio-" + stage + ".png", mc.getMainRenderTarget(), 1,
                     message -> NocturneClient.LOG.info("Smoke screenshot: {}", message.getString()));
+                if (stage < 7) mc.setScreen(new StudioScreen(null, stage));
             }
             if (++stage > 8) finish(mc, true, "World lyrics, zero effect budgets, registered shortcut and seven Studio tabs passed");
         } catch (Throwable failure) {

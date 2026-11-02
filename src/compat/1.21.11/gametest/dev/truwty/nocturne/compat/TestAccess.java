@@ -9,4 +9,5 @@ public final class TestAccess {
     world.getClientWorld().waitForChunksRender();
   }
   public static void resizeGui(net.minecraft.client.Minecraft mc) { mc.resizeDisplay(); }
+  public static void debugOverlay(net.minecraft.client.Minecraft mc, boolean visible) { mc.debugEntries.setOverlayVisible(visible); }
 }

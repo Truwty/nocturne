@@ -33,7 +33,7 @@ def build(minecraft: str, loader: str) -> dict[str, Path]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--minecraft", default="26.1.2", choices=("1.21.11", "26.1", "26.1.1", "26.1.2", "26.2", "26.3"))
+    parser.add_argument("--minecraft", default="26.1.2", choices=("1.21.10", "1.21.11", "26.1", "26.1.1", "26.1.2", "26.2", "26.3"))
     parser.add_argument("--loader", default="fabric", choices=("fabric", "neoforge"))
     args = parser.parse_args()
     minecraft, loader = args.minecraft, args.loader

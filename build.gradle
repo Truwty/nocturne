@@ -9,10 +9,10 @@ def minecraftTarget = providers.gradleProperty('minecraftVersion').getOrElse('26
 def remappedTarget = minecraftTarget.startsWith('1.')
 def javaTarget = remappedTarget ? 21 : 25
 apply plugin: remappedTarget ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
-def apiTargets = ['1.21.11': '0.141.6+1.21.11', '26.1': '0.155.3+26.1.2', '26.1.1': '0.155.3+26.1.2', '26.1.2': '0.155.3+26.1.2', '26.2': '0.161.0+26.2', '26.3': '0.165.0+26.3']
+def apiTargets = ['1.21.10': '0.138.4+1.21.10', '1.21.11': '0.141.6+1.21.11', '26.1': '0.155.3+26.1.2', '26.1.1': '0.155.3+26.1.2', '26.1.2': '0.155.3+26.1.2', '26.2': '0.161.0+26.2', '26.3': '0.165.0+26.3']
 if (!apiTargets.containsKey(minecraftTarget)) throw new GradleException('Unsupported build target: ' + minecraftTarget)
 def fabricApiTarget = apiTargets[minecraftTarget]
-def modMenuTarget = remappedTarget ? '17.0.1' : '18.0.2'
+def modMenuTarget = minecraftTarget == '1.21.10' ? '16.0.1' : remappedTarget ? '17.0.1' : '18.0.2'
 if (minecraftTarget != '26.1.2') {
     layout.buildDirectory = layout.projectDirectory.dir('build/minecraft/' + minecraftTarget)
     base.archivesName = 'nocturne'
