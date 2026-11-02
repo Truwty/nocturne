@@ -1,6 +1,6 @@
 The Cyrillic glyphs in smooth_cyrillic.ttf and smooth_cyrillic_bold.ttf are a subset of
 Inter (Medium and Bold), Copyright 2016-2023 The Inter Project Authors (https://github.com/rsms/inter).
-Converted to TrueType outlines and subset to Cyrillic for 観月 Lyrics.
+Converted to TrueType outlines and subset to Cyrillic for Nocturne.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 

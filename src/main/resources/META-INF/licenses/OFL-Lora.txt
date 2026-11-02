@@ -1,5 +1,5 @@
 elegant.ttf is Lora Italic, Copyright 2011 The Lora Project Authors (https://github.com/cyrealtype/Lora-Cyrillic),
-with Reserved Font Name "Lora". Instanced at SemiBold weight and renamed "Kangetsu Elegant" for 観月 Lyrics,
+with Reserved Font Name "Lora". Instanced at SemiBold weight and renamed "Nocturne Elegant" for Nocturne,
 as the Reserved Font Name may not be used for modified versions.
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

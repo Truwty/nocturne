@@ -90,9 +90,9 @@ These are actual mod captures. External shader and resource packs are not bundle
 
 ## Choose the build for your world
 
-| Published preview builds | Environment | Before installing |
+| Published builds | Environment | Before installing |
 | --- | --- | --- |
-| Minecraft **26.1 · 26.1.1 · 26.1.2 · 26.2 · 26.3** | **Fabric · client only** | Each Minecraft version has its own exact-target JAR. |
+| **1.0.0 release: 26.1.2** · Historical betas: **26.1 · 26.1.1 · 26.1.2 · 26.2 · 26.3** | **Fabric · client only** | Each Minecraft version has its own exact-target JAR. |
 
 **The download selector is the source of truth for published artifacts.** Fabric 1.21.10 / 1.21.11 and NeoForge 1.21.11 ports exist in the source tree but are not published downloads yet. Earlier Minecraft versions remain separate porting work; Nocturne does not currently support every version from 1.8.9 onward.
 
