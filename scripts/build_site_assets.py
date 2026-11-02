@@ -11,7 +11,7 @@ def main() -> None:
     assets = {
         **{name: f"docs/{name}" for name in (
             "world.png", "compatibility-shaders.png", "lyric-workspace.png",
-            "interface-picker.png", "placement-editor.png", "playback.png",
+            "interface-picker.png", "placement-editor.png", "playback.png", "studio.png",
         )},
         "icon.png": "src/main/resources/assets/nocturne/icon.png",
         "smooth.ttf": "src/main/resources/assets/nocturne/font/smooth.ttf",

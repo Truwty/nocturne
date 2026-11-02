@@ -1,51 +1,119 @@
 <div align="center">
 
-<img src="docs/banner.svg" alt="Nocturne — your world, your soundtrack" width="900">
+<img src="docs/banner.svg" alt="Nocturne. After dark, in tune. Music, in your Minecraft." width="100%">
 
-**Your music belongs in Minecraft.**
+**World lyrics. Desktop playback. Your own atmosphere.**
 
-Synchronized world lyrics, desktop playback and a Studio that makes it yours.
+[**Download Nocturne →**](https://truwty.github.io/nocturne/downloads.html) &nbsp; · &nbsp; [Explore the website](https://truwty.github.io/nocturne/) &nbsp; · &nbsp; [Read the guide](docs/GUIDE.md)
 
-[**Explore the website**](https://truwty.github.io/nocturne/) · [**Choose a download**](https://truwty.github.io/nocturne/downloads.html) · [User guide](docs/GUIDE.md) · [Support](SUPPORT.md)
+<sub>CLIENT ONLY &nbsp; / &nbsp; FABRIC &nbsp; / &nbsp; AUTOMATIC DESKTOP DETECTION</sub>
 
 </div>
 
-![Nocturne world lyrics in Minecraft](docs/world.png)
+<br>
 
-## The soundtrack stays with you
+![Actual in-game capture of Nocturne's synchronized world lyrics and karaoke HUD](docs/world.png)
 
-Nocturne is a **client-side Fabric mod**. It detects your desktop music automatically, renders lyrics in your world and keeps playback controls a keypress away. Desktop detection needs **no Spotify login**. An optional account connection enables supported extras.
+<sub>01 / THE WORLD SESSION — actual Nocturne capture, playing the built-in demo.</sub>
 
-| Make the lyrics yours | Keep the music going |
+## The music comes with you.
+
+Nocturne brings your desktop soundtrack into Minecraft: lyrics in the world, a compact playback HUD, and a Studio for getting every detail right. It detects supported desktop players automatically. **No Spotify login is needed for desktop detection**; an optional account connection enables supported extras.
+
+[Get started](#three-steps-to-your-first-session) · [Inside the Studio](#inside-the-studio) · [Compatibility](#choose-the-build-for-your-world) · [Development & support](#behind-the-session)
+
+## Inside the Studio
+
+<table>
+<tr>
+<td width="50%"><strong>02 / Follow every word</strong></td>
+<td width="50%"><strong>03 / Find your color</strong></td>
+</tr>
+<tr>
+<td><a href="docs/lyric-workspace.png"><img src="docs/lyric-workspace.png" alt="Lyric workspace with timing, history and editing controls" width="100%"></a></td>
+<td><a href="docs/interface-theme.png"><img src="docs/interface-theme.png" alt="Theme editor showing a live mint-colored preview" width="100%"></a></td>
+</tr>
+<tr>
+<td>Line and word timing, lyric history, translation and romanization where available. Correct timing in the interactive editor. True word-level karaoke uses source-provided word timestamps.</td>
+<td>Preview before applying. Tune colors and opacity, browse presets, and undo changes. Save appearances for individual songs.</td>
+</tr>
+<tr>
+<td><strong>04 / Keep the controls close</strong></td>
+<td><strong>05 / Put it in its place</strong></td>
+</tr>
+<tr>
+<td><a href="docs/playback.png"><img src="docs/playback.png" alt="Nocturne playback and integration settings" width="100%"></a></td>
+<td><a href="docs/placement-editor.png"><img src="docs/placement-editor.png" alt="Draggable HUD placement editor in Minecraft" width="100%"></a></td>
+</tr>
+<tr>
+<td>Gameplay shortcuts, player priorities and album artwork. Queue, volume, shuffle and repeat controls appear where the selected integration supports them.</td>
+<td>Snap the HUD into place, keep separate menu and gameplay layouts, and choose profiles for exploration, combat or a quiet screenshot.</td>
+</tr>
+</table>
+
+### Atmosphere with a little restraint.
+
+Readable backplates, outlines and independent motion controls help lyrics fit the moment. Start with the **photosensitivity-friendly preset** when you want fewer flashes and animated effects. Automatic screen hiding and off-screen fallback keep captions useful during gameplay.
+
+Adaptive effect budgets, separate particle and glow limits, bounded artwork caching and cancelled obsolete requests keep work controlled. The built-in readout shows CPU-side rendering time and submission counts; it is not a GPU or FPS benchmark.
+
+<details>
+<summary><strong>Open the extended capture gallery</strong> — color tools, performance and rendering</summary>
+
+<br>
+
+**A closer look at the palette**
+
+![Full color and opacity picker](docs/interface-picker.png)
+
+**See the rendering workload**
+
+![Nocturne performance controls and readout](docs/performance.png)
+
+**A shader and resource-pack session**
+
+![Actual Nocturne shader and resource-pack compatibility capture](docs/compatibility-shaders.png)
+
+These are actual mod captures. External shader and resource packs are not bundled. A capture does not establish compatibility with every pack; see [validation and limits](VALIDATION.md).
+
+</details>
+
+## Three steps to your first session
+
+1. **Choose your build.** Use the [download selector](https://truwty.github.io/nocturne/downloads.html) to match your exact Minecraft version, loader and release channel.
+2. **Install the dependencies.** Use the Java, loader and API versions listed beside that download. Put **one** Nocturne mod JAR in your instance's `mods` folder.
+3. **Press <kbd>N</kbd>.** Start your desktop music player, open Minecraft and enter Studio. The built-in demo lets you check the renderer before looking up a song.
+
+**Song detected, lyrics missing?** Open the [lyric recovery guide](docs/GUIDE.md#if-a-song-is-detected-but-lyrics-are-missing). Source availability and metadata affect lyric coverage; synchronized lyrics are not available for every recording.
+
+## Choose the build for your world
+
+| Published preview builds | Environment | Before installing |
+| --- | --- | --- |
+| Minecraft **26.1 · 26.1.1 · 26.1.2 · 26.2 · 26.3** | **Fabric · client only** | Each Minecraft version has its own exact-target JAR. |
+
+**The download selector is the source of truth for published artifacts.** Fabric 1.21.10 / 1.21.11 and NeoForge 1.21.11 ports exist in the source tree but are not published downloads yet. Earlier Minecraft versions remain separate porting work; Nocturne does not currently support every version from 1.8.9 onward.
+
+No server installation is needed. Follow your server's mod rules; no Hypixel approval is claimed. See the [support matrix and build requirements](SUPPORT.md) for pinned dependencies and the [compatibility notes](compatibility/README.md) for port status.
+
+## Behind the session
+
+| I want to… | Start here |
 | --- | --- |
-| ![Lyric history and timing workspace](docs/lyric-workspace.png) | ![Desktop player controls and integrations](docs/playback.png) |
-| Word-level karaoke when source timings exist, translations, romanization and a timeline editor. | Player priorities, configurable playback shortcuts and capability-aware controls. |
+| Set up lyrics, themes or playback | [User guide](docs/GUIDE.md) |
+| Check what changed | [Changelog](CHANGELOG.md) · [GitHub releases](https://github.com/Truwty/nocturne/releases) |
+| Report a problem | [Open an issue](https://github.com/Truwty/nocturne/issues) with exact Minecraft / loader versions and a filtered diagnostic export from **N → Health → Releases & diagnostics**. Review the export before sharing. |
+| Build or contribute | [Pinned tools and reproducible builds](SUPPORT.md#reproducible-releases) · [Validation evidence and limits](VALIDATION.md) |
+| Understand permissions | [License](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md). Source is available under the repository's existing license; it is **not** a permissive open-source license. |
 
-| Set the atmosphere | Make it comfortable |
-| --- | --- |
-| ![Live theme preview](docs/interface-theme.png) | ![Color and opacity picker](docs/interface-picker.png) |
-| Live themes, a full color picker, saved presets and draggable HUD layouts. | Context profiles, readable backplates and independent motion controls, including a photosensitivity-friendly preset. |
+---
 
-## Start listening
+<div align="center">
 
-1. [Choose your exact Minecraft version and Nocturne release](https://truwty.github.io/nocturne/downloads.html).
-2. Install the listed Java version, Fabric Loader and matching Fabric API. Put **one** Nocturne mod JAR in the instance's `mods` folder.
-3. Start your desktop music player and press **N** in Minecraft. Try the built-in demo to check rendering.
+**A soundtrack for the world you're already in.**
 
-**Published compatibility is listed in [SUPPORT.md](SUPPORT.md) and the download selector.** Unlisted versions are not supported. Ports from Minecraft 1.8.9 onward are separate engineering work; changing a version label does not make a JAR compatible. No server installation is needed. Follow your server's mod rules; Hypixel approval is not claimed.
+[Download](https://truwty.github.io/nocturne/downloads.html) &nbsp; / &nbsp; [Website](https://truwty.github.io/nocturne/) &nbsp; / &nbsp; [Guide](docs/GUIDE.md) &nbsp; / &nbsp; [Issues](https://github.com/Truwty/nocturne/issues)
 
-## Built to stay out of the way
+<sub>Nocturne is an independent Minecraft mod. Not affiliated with Mojang or Microsoft.</sub>
 
-Adaptive effect budgets, bounded caches and cancelled stale downloads keep background work controlled. Screen hiding, off-screen captions and quiet context profiles help keep gameplay readable. Source availability still determines lyric coverage and timing quality.
-
-![Actual shader and resource-pack compatibility capture](docs/compatibility-shaders.png)
-
-[Feature and setup guide](docs/GUIDE.md) · [Exact validation and limits](VALIDATION.md) · [Changelog](CHANGELOG.md)
-
-## Contribute or report a problem
-
-- [Build and version support](SUPPORT.md) — pinned tools, reproducible release commands and compatibility requirements.
-- [Report a bug](https://github.com/Truwty/nocturne/issues) — include Minecraft/loader versions and a filtered diagnostic export from **N → Health → Releases & diagnostics**. Review it before sharing.
-- [Source and licensing](LICENSE) · [Third-party notices](THIRD_PARTY_NOTICES.md).
-
-The website uses real Nocturne screenshots. External shader/resource packs shown in captures are not bundled. Nocturne is an independent Minecraft mod and is not affiliated with Mojang or Microsoft.
+</div>
