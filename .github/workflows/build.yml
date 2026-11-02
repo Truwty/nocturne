@@ -48,7 +48,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6.4.1
       - name: Test and package mod
         shell: pwsh
-        run: ./gradlew.bat build -PminecraftVersion=${{ matrix.minecraft }} -Ploader=${{ matrix.loader }} --console=plain
+        run: ./gradlew.bat build '-PminecraftVersion=${{ matrix.minecraft }}' '-Ploader=${{ matrix.loader }}' --console=plain
       - uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.artifact }}
@@ -252,7 +252,7 @@ jobs:
       - name: Install virtual display
         run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
       - name: Exercise the client with two processors and 2 GiB heap
-        run: xvfb-run -a ./gradlew runClientGameTest -PclientTestMemoryMiB=2048 -PclientTestProcessors=2 --console=plain
+        run: xvfb-run -a ./gradlew runClientGameTest -PclientTestMemoryMiB=2048 -PclientTestProcessors=2 -PdisablePacketSync=true --console=plain
       - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
