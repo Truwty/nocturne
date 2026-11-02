@@ -108,6 +108,8 @@ public final class StudioScreen extends Screen {
         button(x + 20 + third, row, third, service().demoPlaying() ? "Stop demo" : "Visual demo", () -> { if (service().demoPlaying()) service().stopDemo(); else service().startDemo(); rebuildWidgets(); });
         button(x + 24 + third * 2, row, third, "Retry lyrics", () -> { service().refetch(); notice = "Looking for lyrics again"; });
         row += 26;button(x+16,row,w-32,"Playback & integrations",()->ClientAccess.setScreen(minecraft, new PlaybackScreen(this)));
+        row += 26;button(x+16,row,w-32,"Browse music library",()->ClientAccess.setScreen(minecraft, new MusicLibraryScreen(this)));
+        row += 26;button(x+16,row,w-32,"Music spectrum & beat effects",()->ClientAccess.setScreen(minecraft, new AudioScreen(this)));
     }
     private void repair() {
         var diagnosis=recoveryDiagnosis==null?dev.truwty.nocturne.lyrics.LyricsRecovery.current():recoveryDiagnosis;
@@ -179,7 +181,8 @@ public final class StudioScreen extends Screen {
         button(x+16,row,(w-36)/2,"Undo placement",()->StudioEdits.undo("placement"));
         button(x+20+(w-36)/2,row,(w-36)/2,"Redo placement",()->StudioEdits.redo("placement"));row+=24;
         button(x+16,row,w-32,"Browse placement presets",()->ClientAccess.setScreen(minecraft, new PresetBrowserScreen(this,"placement:"+s().follow.get())));row+=24;
-        button(x+16,row,w-32,"Browse HUD presets",()->ClientAccess.setScreen(minecraft, new PresetBrowserScreen(this,"hudLayouts")));
+        button(x+16,row,w-32,"Browse HUD presets",()->ClientAccess.setScreen(minecraft, new PresetBrowserScreen(this,"hudLayouts")));row+=24;
+        button(x+16,row,w-32,"Reserve space for other overlays",()->ClientAccess.setScreen(minecraft, new OverlayZonesScreen(this)));
     }
     private void motion() {
         // Split into compact columns so keyboard-accessible controls remain on screen.
@@ -196,6 +199,8 @@ public final class StudioScreen extends Screen {
         row=body+141; number(s().cacheDays);
         button(x+16,body+169,w-32,"Resynchronize playback",()->service().resynchronize());
         button(x+16,body+195,w-32,"Releases & diagnostics",()->ClientAccess.setScreen(minecraft, new MaintenanceScreen(this)));
+        button(x+16,body+221,w-32,"Manage lyric & artwork downloads",()->ClientAccess.setScreen(minecraft, new CacheManagerScreen(this)));
+        button(x+16,body+247,w-32,"Help & setup",()->ClientAccess.setScreen(minecraft, new TutorialScreen(this)));
     }
 
     @Override public void tick() {
@@ -262,7 +267,7 @@ public final class StudioScreen extends Screen {
         rebuildWidgets(); return true;
     }
     private int maxScroll() {
-        int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 134 : page == 1 ? 244 : page == 3 || page == 4 ? 230 : page == 6 ? 220 : 204;
+        int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 186 : page == 1 ? 244 : page == 4 ? 270 : page == 3 ? 230 : page == 6 ? 275 : 204;
         return Math.max(0, contentHeight - (h - 116));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); ClientAccess.setScreen(minecraft, parent); }

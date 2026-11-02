@@ -3,6 +3,9 @@ package dev.truwty.nocturne.lyrics;
 import com.google.gson.*;
 
 import dev.truwty.nocturne.performance.ArtworkCache;
+import dev.truwty.nocturne.performance.PersistentArtworkCache;
+import dev.truwty.nocturne.NocturneClient;
+import dev.truwty.nocturne.Studio;
 import dev.truwty.nocturne.playback.*;
 
 import java.net.*;
@@ -25,9 +28,11 @@ public final class ArtworkLoader {
     private CompletableFuture<?> network, result;
     private long generation;
     private int cancellations;
+    private final PersistentArtworkCache disk;
 
     public ArtworkLoader(HttpClient http, Executor decode) {
-        this(http, decode, URI.create("https://itunes.apple.com/search"));
+        this(http, decode, URI.create("https://itunes.apple.com/search"), Duration.ofSeconds(8),
+                new PersistentArtworkCache(Studio.directory().resolve("cache/artwork")));
     }
 
     ArtworkLoader(HttpClient http, Executor decode, URI catalog) {
@@ -35,12 +40,17 @@ public final class ArtworkLoader {
     }
 
     ArtworkLoader(HttpClient http, Executor decode, URI catalog, Duration timeout) {
+        this(http, decode, catalog, timeout, null);
+    }
+
+    ArtworkLoader(HttpClient http, Executor decode, URI catalog, Duration timeout, PersistentArtworkCache disk) {
         this.http = http;
         this.decode = decode;
         this.catalog = catalog;
         if (timeout.isNegative() || timeout.isZero())
             throw new IllegalArgumentException("Invalid artwork timeout");
         this.timeout = timeout;
+        this.disk = disk;
     }
 
     public synchronized void cancel() {
@@ -56,6 +66,33 @@ public final class ArtworkLoader {
         String key = song.key() + "|" + song.album() + "|" + song.artUrl();
         var hit = cache.get(key, System.currentTimeMillis());
         if (hit != null) return CompletableFuture.completedFuture(hit);
+        var pending = CompletableFuture.supplyAsync(() -> {
+            check(id);
+            if (disk == null) return null;
+            try { return disk.read(key); }
+            catch (java.io.IOException ex) {
+                NocturneClient.LOG.debug("Artwork disk cache read failed", ex);
+                return null;
+            }
+        }, decode).thenCompose(stored -> {
+            check(id);
+            return stored == null ? download(id, song) : CompletableFuture.completedFuture(stored);
+        }).thenApplyAsync(entry -> {
+            synchronized (this) {
+                check(id);
+                if (entry != null) {
+                    cache.put(key, entry);
+                    if (disk != null) try { disk.write(key, entry); }
+                    catch (java.io.IOException ex) { NocturneClient.LOG.debug("Artwork disk cache write failed", ex); }
+                }
+                return entry;
+            }
+        }, decode);
+        result = pending;
+        return pending;
+    }
+
+    private CompletableFuture<ArtworkCache.Entry> download(long id, NowPlaying song) {
         String given = song.artUrl();
         CompletableFuture<String> url;
         if (given != null && given.startsWith("https://"))
@@ -77,7 +114,7 @@ public final class ArtworkLoader {
                                                     new String(bytes, StandardCharsets.UTF_8)),
                                             song));
         }
-        var pending =
+        return
                 url.thenCompose(
                                 value -> {
                                     if (value == null)
@@ -101,17 +138,10 @@ public final class ArtworkLoader {
                                         throw new CompletionException(ex);
                                     }
                                 },
-                                decode)
-                        .thenApply(entry -> {
-                            synchronized (this) {
-                                check(id);
-                                if (entry != null) cache.put(key, entry);
-                                return entry;
-                            }
-                        });
-        result = pending;
-        return pending;
+                                decode);
     }
+
+    public synchronized void clearMemory() { cancel(); cache.clear(); }
 
     private synchronized void check(long id) {
         if (id != generation) throw new CancellationException("Obsolete artwork request");

@@ -32,7 +32,7 @@ public final class LyricsHud {
    }
 
    public static void render(GuiGraphicsExtractor g, DeltaTracker delta) {
-      RenderPerformance.hudBegin();long start=RenderPerformance.time();try(var scope=ContextProfiles.scope()){if(Accessibility.hidden())return;renderContents(g,delta);EdgeFallback.render(g);}finally{RenderPerformance.addTime(start);RenderPerformance.hudEnd();}
+      RenderPerformance.hudBegin();long start=RenderPerformance.time();try(var scope=ContextProfiles.scope()){if(Accessibility.hidden())return;renderContents(g,delta);EdgeFallback.render(g);dev.truwty.nocturne.gui.VisualizerHud.render(g);}finally{RenderPerformance.addTime(start);RenderPerformance.hudEnd();}
    }
    private static void renderContents(GuiGraphicsExtractor g, DeltaTracker delta) {
       long now = System.nanoTime();

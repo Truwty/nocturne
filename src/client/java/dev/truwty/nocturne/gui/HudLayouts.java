@@ -49,7 +49,7 @@ public final class HudLayouts {
     public static Scope begin(
             GuiGraphicsExtractor g, String id, int sw, int sh, double width, double height) {
         var node = current().node(id);
-        var box = node.box(sw, sh, width, height);
+        var box = HudAvoidance.place(node.box(sw, sh, width, height), sw, sh);
         float scale =
                 (float)
                         Math.min(

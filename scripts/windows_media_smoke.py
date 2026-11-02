@@ -98,11 +98,15 @@ async def main() -> None:
             if fixture_id is None:
                 raise RuntimeError("Windows did not publish the isolated fixture session")
             script = Path("src/main/resources/nocturne/media-v2.ps1").read_text(encoding="utf-8")
-            encoded = base64.b64encode(script.encode("utf-16le")).decode("ascii")
+            script = script.replace("#NOCTURNE_CAPTURE_SOURCE#", Path("src/main/resources/nocturne/process-audio.cs").read_text(encoding="utf-8"))
+            bootstrap = "iex ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::ReadLine())))"
+            encoded = base64.b64encode(bootstrap.encode("utf-16le")).decode("ascii")
             process = await asyncio.create_subprocess_exec(
                 "powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded,
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=subprocess.DEVNULL,
             )
+            process.stdin.write(base64.b64encode(script.encode("utf-8")) + b"\n")
+            await process.stdin.drain()
 
             async def command(action: str, **parameters) -> None:
                 payload = {"action": action, "target": fixture_id, **parameters}
@@ -152,7 +156,7 @@ async def main() -> None:
             await command("repeat", millis=0)
             await wait_state(lambda data: data.get("repeatMode") == "off")
             await command("audio", enabled=True)
-            await wait_state(lambda data: data.get("audioAvailable") is True)
+            await wait_state(lambda data: data.get("audioAvailable") is False and "unique supported process" in data.get("audioError", ""))
             await command("select", app="nocturne-test-missing-player")
             await wait_state(lambda data: not data.get("title") and data.get("selected") == "nocturne-test-missing-player")
             await command("select", app=fixture_id)
@@ -163,9 +167,11 @@ async def main() -> None:
                 "powershell.exe", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded,
                 stdin=asyncio.subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             )
+            process.stdin.write(base64.b64encode(script.encode("utf-8")) + b"\n")
+            await process.stdin.drain()
             process.stdin.close()
             await asyncio.wait_for(process.wait(), 10)
-            print("WINDOWS MEDIA TEST PASSED: selection, pause, seek, next, previous, resume, shuffle, repeat modes, priorities, idle polling, output meter, strict pin, reconnect and parent EOF shutdown")
+            print("WINDOWS MEDIA TEST PASSED: selection, pause, seek, next, previous, resume, shuffle, repeat modes, priorities, idle polling, unsupported process audio isolation, strict pin, reconnect and parent EOF shutdown")
         finally:
             state["running"] = False
             await ticking

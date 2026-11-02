@@ -21,7 +21,7 @@ public final class Studio {
         return library;
     }
     public static Path directory() { return dev.truwty.nocturne.platform.ModPlatform.configDirectory().resolve("nocturne"); }
-    public static void open() { Minecraft mc = Minecraft.getInstance(); ClientAccess.setScreen(mc, new StudioScreen(ClientAccess.screen(mc))); }
+    public static void open() { Minecraft mc = Minecraft.getInstance(); ClientAccess.setScreen(mc, NocturneClient.settingsScreen(ClientAccess.screen(mc))); }
     public static double songOffset(NowPlaying track) { return track == null ? 0 : library().offset(track.key()); }
 
     public static void tick() {

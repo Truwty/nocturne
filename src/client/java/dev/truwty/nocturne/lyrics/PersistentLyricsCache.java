@@ -12,7 +12,7 @@ final class PersistentLyricsCache {
     private final Path root;
     private final LongSupplier clock;
     private static final long MAX_TIME=86_400_000L;
-    private record Entry(int schema, long saved, String status, boolean estimated, List<Lyrics.Line> lines) {}
+    private record Entry(int schema, long saved, String label, String status, boolean estimated, List<Lyrics.Line> lines) {}
     PersistentLyricsCache(Path root) { this(root, System::currentTimeMillis); }
     PersistentLyricsCache(Path root, LongSupplier clock) { this.root=root; this.clock=clock; }
     private Path path(String key) { return root.resolve(StudioLibrary.trackId(key)+".json"); }
@@ -46,7 +46,8 @@ final class PersistentLyricsCache {
     }
     synchronized void write(String key,LyricsFinder.Result result) throws IOException {
         if(result.lyrics()==null || result.lyrics().lines.isEmpty()) return;
-        String json=JSON.toJson(new Entry(1,clock.getAsLong(),result.status(),result.lyrics().estimated,result.lyrics().lines));
+        String label=key.split("\\|",2)[0];
+        String json=JSON.toJson(new Entry(1,clock.getAsLong(),label.substring(0,Math.min(300,label.length())),result.status(),result.lyrics().estimated,result.lyrics().lines));
         if(json.getBytes(java.nio.charset.StandardCharsets.UTF_8).length>2_097_152) return;
         StudioLibrary.write(path(key),json);
         prune(false,256,67_108_864);

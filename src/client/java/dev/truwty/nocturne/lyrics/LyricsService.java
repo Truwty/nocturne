@@ -335,6 +335,10 @@ public final class LyricsService {
    }
 
    private ArtworkLoader artLoader;
+   public synchronized void invalidateDownloadCaches() {
+      cache.clear();
+      if (artLoader != null) artLoader.clearMemory();
+   }
    private synchronized ArtworkLoader artLoader(){if(artLoader==null)artLoader=new ArtworkLoader(HTTP,exec);return artLoader;}
    private java.util.concurrent.CompletableFuture<dev.truwty.nocturne.performance.ArtworkCache.Entry> artRequest;
    private volatile long nextArtAttempt;

@@ -258,6 +258,11 @@ public final class LyricsRenderer {
          editorPitch = FrameMotion.angle(editorPitch, (float)Math.toRadians(mod.editorPitch.get()), rate, dt);
          editorRoll = FrameMotion.angle(editorRoll, (float)Math.toRadians(mod.editorRoll.get()), rate, dt);
          float targetAudio = !RenderPerformance.idle() && mod.audioReactive.on() && !mod.reducedMotion.on() ? LyricsService.INSTANCE.system.peak() * mod.audioGain.f() : 0;
+         var signal = LyricsService.INSTANCE.system.audioFrame();
+         if (signal != null && !RenderPerformance.idle() && Accessibility.textMotion()) {
+            if (mod.audioReactive.on()) targetAudio = (signal.bass() * mod.bassResponse.f() + signal.mid() * mod.midResponse.f() + signal.treble() * mod.trebleResponse.f()) * mod.audioGain.f();
+            if (mod.detectedBeat.on() && signal.onset()) impact = Math.max(impact, .18f * mod.bassResponse.f());
+         }
          audioEnvelope = FrameMotion.approach(audioEnvelope, Math.clamp(targetAudio, 0, 1), targetAudio > audioEnvelope ? 20 : 5, dt);
          while (SPARKS.size() + MIST.size() + BATTLE.size() > particleBudget()) {
             if (!MIST.isEmpty()) MIST.removeLast(); else if(!SPARKS.isEmpty())SPARKS.removeLast();else BATTLE.removeLast();

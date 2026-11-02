@@ -179,15 +179,25 @@ The original world effects remain: seven placements, eight animations, twelve vi
 
 ### Optional audio reaction
 
-**Desktop audio reactive** is opt-in and Windows-only. It reads the actual peak level of the default output device using [Windows Core Audio](https://learn.microsoft.com/en-us/windows/win32/api/endpointvolume/nn-endpointvolume-iaudiometerinformation), then smooths it into lyric scale pulses. Adjust Audio sensitivity to suit the output level.
+Open **Player → Music spectrum & beat effects**. Version 1 uses Windows [application process-loopback capture](https://learn.microsoft.com/en-us/windows/win32/api/audioclientactivationparams/ns-audioclientactivationparams-audioclient_process_loopback_params) for the selected supported desktop player's process tree. Minecraft and other applications are excluded. Browser capture includes every audio tab in that browser. Windows 11 and other builds with process-loopback support (20348+) are required for this feature; unknown or ambiguous player processes produce a diagnostic instead of capturing all output.
 
-This meter includes **all sound on that output**, including Minecraft and notifications. It does not isolate Spotify, detect BPM, use the microphone, record audio, or transmit audio. Health reports when the output meter is unavailable. Reduced motion suppresses audio-driven movement. With audio reaction off, the original lyric-timing pulse remains available.
+Choose **Without lyrics** to visualize instrumental gaps and missing lyrics, **Always** for continuous visuals, or **Off**. Spectrum uses 32 logarithmic FFT bands; Waveform uses signed PCM samples; Frequency bands shows bass/mid/treble. Adjust each band's response and overall sensitivity. Lyric-scale audio reaction and detected-beat pulses have independent switches. Tempo is estimated after several consistent onsets and remains uncertain when the evidence is weak. Capture and analysis stop while paused, minimized, unfocused, without matching local music, or under reduced-motion/photosensitivity controls. PCM stays in short-lived memory; it is not saved or sent to a service, and no microphone is used.
+
+### Setup, storage and guides
+
+The first Studio visit opens live setup checks. Reopen them through **Health → Help & setup**. This also contains guided timing, theme and world-placement exercises with links to the actual editors. Demo checks are explicitly labelled and do not prove a real provider lookup succeeded.
+
+**Health → Manage lyric & artwork downloads** lists cached songs, entry sizes and download dates. Select entries, choose Remove, then confirm. Only generated download-cache files are removed; local lyric corrections, profiles and account files remain. Covers persist for seven days within 64 entries / 8 MiB on disk. Lyric expiration follows the existing configurable setting.
+
+**Place → Reserve space for other overlays** adds up to eight percentage-based regions. The HUD avoids those regions alongside the hotbar, subtitle area and sidebar. Cooperating mods can register dynamic regions through `HudAvoidance.register`; arbitrary overlay pixels cannot be discovered automatically.
+
+Focus a Studio text field and press the built-in controller's accept button for the on-screen keyboard. Use left/right to select characters, up/down to move focus, and Space/Shift/Symbols/Backspace to edit. Use text applies the result; Cancel leaves the field unchanged. Controller polling yields to Controlify/MidnightControls, which manage their own input.
 
 ## Coverage and privacy
 
 Automatic detection reads metadata published by desktop players; it does not obtain Spotify's own lyric feed. Live lyric availability and synchronization depend on external catalogs. Unsynchronized fallback has estimated timing. The demo animates original text without playing audio.
 
-Track metadata is sent to lyric/artwork providers for lookup (LRCLIB, the upstream NetEase fallback and Apple's artwork catalog). Imported local lyrics bypass lyric lookup; artwork lookup is separate. Audio metering stays local. No Spotify credentials are requested or stored.
+Track metadata is sent to lyric/artwork providers for lookup (LRCLIB, the upstream NetEase fallback and Apple's artwork catalog). Imported local lyrics bypass lyric lookup; artwork lookup is separate. Audio analysis stays local. Automatic desktop detection requires no Spotify credentials. The optional account integration uses your own Spotify application Client ID and PKCE authorization, with tokens stored through the private credential store; it does not ask for your Spotify password. Library search/playlist access uses that optional integration and its permissions.
 
 Shader-compatible projected text is available in Detailed settings. Automated tests exercise vanilla, Sodium 0.9.2 and Iris 1.11.4 with Minecraft 26.1.2. An Iris test without a shader pack does not establish compatibility with every shader pack.
 

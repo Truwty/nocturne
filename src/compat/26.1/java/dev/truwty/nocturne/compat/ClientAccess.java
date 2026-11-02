@@ -11,6 +11,10 @@ import net.minecraft.network.chat.Component;
 public final class ClientAccess {
   private ClientAccess() {}
 
+  public static net.minecraft.world.scores.DisplaySlot teamSidebarSlot(net.minecraft.world.scores.PlayerTeam team) {
+    return team == null ? null : net.minecraft.world.scores.DisplaySlot.teamColorToSlot(team.getColor());
+  }
+
   public static com.mojang.blaze3d.pipeline.RenderTarget renderTarget(Minecraft mc) {
     return mc.getMainRenderTarget();
   }

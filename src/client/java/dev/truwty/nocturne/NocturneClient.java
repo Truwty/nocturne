@@ -56,6 +56,7 @@ public class NocturneClient {
   }
 
   public static Screen settingsScreen(Screen parent) {
+      if (!dev.truwty.nocturne.gui.SetupScreen.completed()) return new dev.truwty.nocturne.gui.SetupScreen(parent);
       return new dev.truwty.nocturne.gui.StudioScreen(parent);
    }
 
@@ -76,7 +77,8 @@ public class NocturneClient {
       dev.truwty.nocturne.playback.Playback.spotify().activity(background,mc.isPaused());
       if(!SETTINGS.isEnabled())LyricsService.INSTANCE.system.activity(background?3000:2000);
       var song=dev.truwty.nocturne.playback.Playback.current();
-      LyricsService.INSTANCE.system.audio(!background&&!mc.isPaused()&&song!=null&&song.playing()&&SETTINGS.audioReactive.on() && !SETTINGS.reducedMotion.on());
+      var localSong=LyricsService.INSTANCE.system.latest();
+      LyricsService.INSTANCE.system.audio(SETTINGS.isEnabled()&&!background&&!mc.isPaused()&&song!=null&&localSong!=null&&song.key().equals(localSong.key())&&song.playing()&&(SETTINGS.audioReactive.on()||SETTINGS.visualizer.get()!=0||SETTINGS.detectedBeat.on()) && !SETTINGS.reducedMotion.on() && !SETTINGS.photosensitiveMode.on());
       dev.truwty.nocturne.gui.StudioController.tick(mc);
       Studio.tick();
       SETTINGS.tickPreset();

@@ -13,15 +13,20 @@ public final class EdgeFallback {
     private static boolean outside, behind;
     private static double x, y;
     private static String key = "";
+    private static boolean occluded;
+    private static long nextRay;
 
     private EdgeFallback() {}
 
     public static boolean showing() {
-        return outside;
+        return outside || occluded;
     }
+    public static boolean occluded() { return occluded; }
 
     public static void clear() {
         outside = false;
+        occluded = false;
+        nextRay = 0;
         key = "";
     }
 
@@ -50,13 +55,21 @@ public final class EdgeFallback {
         x = ndc.x;
         y = ndc.y;
         outside = EdgePlacement.outside(x, y, behind, outside);
+        long now = System.nanoTime();
+        if (NocturneClient.SETTINGS.terrainFallback.on() && mc.level != null && now >= nextRay) {
+            nextRay = now + 100_000_000L;
+            var hit = mc.level.clip(new net.minecraft.world.level.ClipContext(camera.position(), anchor,
+                    net.minecraft.world.level.ClipContext.Block.COLLIDER, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player));
+            occluded = hit.getType() != net.minecraft.world.phys.HitResult.Type.MISS
+                    && hit.getLocation().distanceToSqr(camera.position()) + .04 < anchor.distanceToSqr(camera.position());
+        } else if (!NocturneClient.SETTINGS.terrainFallback.on()) occluded = false;
     }
 
     public static void render(GuiGraphicsExtractor g) {
         var s = NocturneClient.SETTINGS;
         var service = LyricsService.INSTANCE;
         var lyrics = service.lyrics();
-        if (!outside || !s.edgeFallback.on() || Accessibility.hidden() || lyrics == null) return;
+        if (!(outside || occluded) || !s.edgeFallback.on() || Accessibility.hidden() || lyrics == null) return;
         long clock = LyricsRenderer.clockMs();
         int index = lyrics.indexAt(clock);
         if (index < 0 || clock >= lyrics.lines.get(index).end()) return;
@@ -69,7 +82,8 @@ public final class EdgeFallback {
         int count = Math.min(3, lines.size()), height = 16 + count * 11, width = max;
         var placement =
                 EdgePlacement.locate(x, y, behind, g.guiWidth(), g.guiHeight(), width, height);
-        int left = placement.x(), top = placement.y();
+        var safe = dev.truwty.nocturne.gui.HudAvoidance.place(new dev.truwty.nocturne.gui.HudLayout.Box(placement.x(), placement.y(), width, height), g.guiWidth(), g.guiHeight());
+        int left = (int)safe.x(), top = (int)safe.y();
         g.fill(
                 left,
                 top,
@@ -80,7 +94,7 @@ public final class EdgeFallback {
                         (float) Math.max(.85, Accessibility.plateOpacity())));
         g.text(
                 mc.font,
-                "Lyrics " + placement.direction(),
+                occluded && !outside ? "Lyrics · behind scenery" : "Lyrics " + placement.direction(),
                 left + 8,
                 top + 4,
                 Accessibility.ink(),

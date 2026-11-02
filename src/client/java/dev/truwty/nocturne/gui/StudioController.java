@@ -58,6 +58,11 @@ public final class StudioController {
     }
 
     public static void dispatch(Screen screen, ControllerRepeater.Action action) {
+        if (action == ControllerRepeater.Action.ACCEPT
+                && screen.getFocused() instanceof net.minecraft.client.gui.components.EditBox field) {
+            ClientAccess.setScreen(Minecraft.getInstance(), new OnScreenKeyboard(screen, field));
+            return;
+        }
         if (action == ControllerRepeater.Action.PAGE_UP
                 || action == ControllerRepeater.Action.PAGE_DOWN) {
             screen.mouseScrolled(0, 0, 0, action == ControllerRepeater.Action.PAGE_UP ? 5 : -5);

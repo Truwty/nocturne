@@ -2,6 +2,8 @@
 
 ## Supported versions
 
+**Official Release Version 1 (1.0.0)** targets **Windows / Minecraft 26.1.2 / Fabric**. The table below also documents historical beta targets; no new stable builds for those targets are implied. Application-isolated spectrum capture requires Windows process-loopback support (build 20348+, including Windows 11). Unavailable capture leaves normal lyric lookup and desktop controls usable.
+
 | Component | Supported / pinned build |
 | --- | --- |
 | Minecraft Java | **26.1, 26.1.1, 26.1.2, 26.2 and 26.3**, using a separate exact-version JAR |
