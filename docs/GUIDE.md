@@ -6,17 +6,21 @@
 
 </div>
 
-Cinematic world lyrics and desktop music controls. **Stable 1.0.1 targets Windows / Minecraft Java 26.1.2 / Fabric.** Historical beta targets remain in the download selector. Entirely client-side, with automatic desktop music detection. **Desktop detection needs no Spotify login or developer application.** An optional Spotify account connection adds device volume and queue controls.
+Cinematic world lyrics and desktop music controls. **Stable 1.0.2 targets Windows / Minecraft Java 26.1.2 / Fabric.** Historical beta targets remain in the download selector. Entirely client-side, with automatic desktop music detection. **Desktop detection needs no Spotify login or developer application.** An optional Spotify account connection adds device volume and queue controls.
 
 ![Nocturne Studio](studio.png)
 
 ## Install
 
 1. Select your **exact Minecraft version** on the [download page](https://truwty.github.io/nocturne/downloads.html). Use **Java 25**, **Fabric Loader 0.20.1+**, and the matching Fabric API listed in [support](../SUPPORT.md).
-2. Replace older Nocturne JARs with `nocturne-1.0.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-1.0.2.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
+
+## Lyric presets
+
+Open **N > Lyric presets** for 57 built-in looks. **Perfection** keeps the lyrics at a fixed camera-relative anchor, with uniform lettering and no motion decoration. Browse categories, search, favourite looks, save custom appearances, or import/export JSON. Selecting a sample does not apply it. **Apply & view** saves the selected look and closes Studio; the built-in visual demo lets you inspect it without a live song. Undo/redo restores the entire look. [Browse the complete catalog](lyric-presets.md).
 
 ## Recovery, caching and playback
 

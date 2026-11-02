@@ -29,7 +29,7 @@ public final class PresetCodec {
             values = root.getAsJsonObject("values");
         }
         if (group.equals("hudLayouts")) return HudLayout.parse(values).json();
-        if (!group.equals("themes") && !group.startsWith("placement:"))
+        if (!group.equals("themes") && !group.equals(dev.truwty.nocturne.LyricLooks.GROUP) && !group.startsWith("placement:"))
             throw new IllegalArgumentException("Unsupported preset category");
         if (values == null || values.isEmpty()) throw new IllegalArgumentException("Empty preset");
         for (String key : values.keySet())

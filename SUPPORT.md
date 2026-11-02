@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-**Official Release Version 1 (1.0.1)** targets **Windows / Minecraft 26.1.2 / Fabric**. The table below also documents historical beta targets; no new stable builds for those targets are implied. Application-isolated spectrum capture requires Windows process-loopback support (build 20348+, including Windows 11). Unavailable capture leaves normal lyric lookup and desktop controls usable.
+**Official Release Version 1 (1.0.2)** targets **Windows / Minecraft 26.1.2 / Fabric**. The table below also documents historical beta targets; no new stable builds for those targets are implied. Application-isolated spectrum capture requires Windows process-loopback support (build 20348+, including Windows 11). Unavailable capture leaves normal lyric lookup and desktop controls usable.
 
 | Component | Supported / pinned build |
 | --- | --- |
@@ -44,7 +44,7 @@ python3 scripts/verify_release.py --minecraft 26.1.2
 
 Select `--minecraft 26.1`, `26.1.1`, `26.1.2`, `26.2` or `26.3`. Non-default output is isolated under `build/minecraft/<version>/`; the default remains `build/`. Each JAR is compiled against that target’s actual Minecraft and Fabric APIs. The 26.3 adapter uses SDL gamepad input and its current weather/rendering hooks; earlier targets use GLFW. Controller hardware still needs manual testing.
 
-For development 1.21.11 ports, install Temurin 21.0.13+9 alongside the Java 25 build launcher and set `NOCTURNE_JAVA21` to its JDK directory. Run `python scripts/verify_release.py --minecraft 1.21.11` for Fabric or append `--loader neoforge` for NeoForge. NeoForge output is isolated under `build/neoforge/1.21.11`. Its development-only smoke mod is enabled with `-Psmoke=true` and requires `NOCTURNE_SMOKE_WORLD` pointing to a disposable vanilla 1.21.11 world; it is excluded from release JARs.
+For development 1.21.11 ports, install Temurin 21.0.23+9 alongside the Java 25 build launcher and set `NOCTURNE_JAVA21` to its JDK directory. Run `python scripts/verify_release.py --minecraft 1.21.11` for Fabric or append `--loader neoforge` for NeoForge. NeoForge output is isolated under `build/neoforge/1.21.11`. Its development-only smoke mod is enabled with `-Psmoke=true` and requires `NOCTURNE_SMOKE_WORLD` pointing to a disposable vanilla 1.21.11 world; it is excluded from release JARs.
 
 The script performs **two clean builds** with task/build-cache reuse disabled, runs the offline tests twice, and fails unless the mod JAR, sources JAR and support manifest are byte-identical. `build/release/SHA256SUMS` and `reproducibility.json` record digests, source commit, worktree status and the comparison count. A dirty checkout can be checked during development; publish only evidence with `dirty: false` from the release commit. This proves repeatability for the recorded inputs, not independence from unavailable or changed upstream repositories.
 

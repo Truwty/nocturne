@@ -20,7 +20,7 @@
 
 Nocturne brings your desktop soundtrack into Minecraft: lyrics in the world, a compact playback HUD, and a Studio for getting every detail right. It detects supported desktop players automatically. **No Spotify login is needed for desktop detection**; an optional account connection enables supported extras.
 
-**Official Release Version 1 · Windows · Minecraft 26.1.2 · Fabric.** Updated in 1.0.1: safer lyric matching, ranked previews, targeted recovery, tighter playback synchronization, precise editor dragging and calmer defaults. Includes isolated music audio, spectrum visuals and library browsing. [Read the release notes](docs/releases/1.0.1.md).
+**Official Release Version 1 · Windows · Minecraft 26.1.2 · Fabric.** New in 1.0.2: a Lyric presets tab with 57 curated looks, including camera-locked Perfection, plus search, favourites, custom looks and undo/redo. Includes isolated music audio, spectrum visuals and library browsing. [Read the release notes](docs/releases/1.0.2.md).
 
 [Get started](#three-steps-to-your-first-session) · [Inside the Studio](#inside-the-studio) · [Compatibility](#choose-the-build-for-your-world) · [Development & support](#behind-the-session)
 
@@ -92,7 +92,7 @@ These are actual mod captures. External shader and resource packs are not bundle
 
 | Published builds | Environment | Before installing |
 | --- | --- | --- |
-| **1.0.1 release: 26.1.2** · Historical betas: **26.1 · 26.1.1 · 26.1.2 · 26.2 · 26.3** | **Fabric · client only** | Each Minecraft version has its own exact-target JAR. |
+| **1.0.2 release: 26.1.2** · Historical betas: **26.1 · 26.1.1 · 26.1.2 · 26.2 · 26.3** | **Fabric · client only** | Each Minecraft version has its own exact-target JAR. |
 
 **The download selector is the source of truth for published artifacts.** Fabric 1.21.10 / 1.21.11 and NeoForge 1.21.11 ports exist in the source tree but are not published downloads yet. Earlier Minecraft versions remain separate porting work; Nocturne does not currently support every version from 1.8.9 onward.
 

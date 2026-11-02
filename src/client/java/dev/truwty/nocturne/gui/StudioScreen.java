@@ -20,7 +20,7 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 
 public final class StudioScreen extends Screen {
-    private static final String[] TABS = {"Player", "Lyrics", "Apps", "Theme", "Place", "Motion", "Health"};
+    private static final String[] TABS = {"Player", "Lyrics", "Apps", "Theme", "Place", "Motion", "Health", "Lyric presets"};
     private final Screen parent;
     private final String platformDescription = "Minecraft " + NocturneClient.minecraftVersion() + " / "
         + dev.truwty.nocturne.platform.ModPlatform.displayName() + " / client only";
@@ -43,21 +43,21 @@ public final class StudioScreen extends Screen {
     @Override public boolean isPauseScreen() { return false; }
 
     @Override protected void init() {
-        w = Math.min(650, width - 16); h = Math.min(356, height - 16); x = (width - w) / 2; y = (height - h) / 2;
-        int tabW = (w - 24) / TABS.length;
+        w = Math.min(650, width - 16); h = Math.min(380, height - 16); x = (width - w) / 2; y = (height - h) / 2;
+        int tabW = (w - 24) / 4;
         for (int i = 0; i < TABS.length; i++) {
             final int index = i;
-            Button tab = button(x + 12 + i * tabW, y + 39, tabW - 3, TABS[i], () -> { page = index; scroll = 0; notice = ""; rebuildWidgets(); });
+            Button tab = button(x + 12 + (i % 4) * tabW, y + 39 + (i / 4) * 24, tabW - 3, TABS[i], () -> { page = index; scroll = 0; notice = ""; rebuildWidgets(); });
             if (page == i) tab.setMessage(Draw.comp("• " + TABS[i]).withStyle(style -> style.withColor(s().uiAccent.argb() & 0xFFFFFF)));
         }
-        body = y + 72 - scroll; row = body;
+        body = y + 96 - scroll; row = body;
         int contentStart = children().size(); seek = null; transport = List.of(); query = file = name = null;
         switch (page) {
             case 0 -> player(); case 1 -> lyrics(); case 2 -> apps(); case 3 -> theme();
-            case 4 -> placement(); case 5 -> motion(); default -> health();
+            case 4 -> placement(); case 5 -> motion(); case 7 -> lyricPresets(); default -> health();
         }
         for (var child : children().subList(contentStart, children().size())) {
-            if (child instanceof net.minecraft.client.gui.components.AbstractWidget widget) widget.visible = widget.getY() >= y + 68 && widget.getY() + widget.getHeight() <= y + h - 48;
+            if (child instanceof net.minecraft.client.gui.components.AbstractWidget widget) widget.visible = widget.getY() >= y + 92 && widget.getY() + widget.getHeight() <= y + h - 48;
         }
         button(x + 12, y + h - 29, 120, "Search settings", () -> ClientAccess.setScreen(minecraft, new SettingsSearchScreen(this)));
         button(x + w - 76, y + h - 29, 64, "Done", this::onClose);
@@ -102,6 +102,14 @@ public final class StudioScreen extends Screen {
                 boolean handled=super.keyPressed(event);if(handled && before!=null)commit();return handled;
             }
         }); row += 24;
+    }
+
+    private void lyricPresets() {
+        button(x+16,row,w-32,"Browse 57 lyric presets",()->ClientAccess.setScreen(minecraft,new LyricPresetsScreen(this)));row+=28;
+        button(x+16,row,w-32,"Apply Perfection",()->io(()->{dev.truwty.nocturne.LyricLooks.apply(dev.truwty.nocturne.LyricLooks.named("Perfection").values());notice="Perfection applied: stable placement and uniform lettering";}));row+=28;
+        button(x+16,row,w-32,service().demoPlaying()?"Stop visual demo":"Start visual demo",()->{if(service().demoPlaying())service().stopDemo();else service().startDemo();rebuildWidgets();});row+=28;
+        button(x+16,row,(w-36)/2,"Undo lyric preset",()->StudioEdits.undo(dev.truwty.nocturne.LyricLooks.GROUP));
+        button(x+20+(w-36)/2,row,(w-36)/2,"Redo lyric preset",()->StudioEdits.redo(dev.truwty.nocturne.LyricLooks.GROUP));
     }
 
     private void player() {
@@ -236,14 +244,14 @@ public final class StudioScreen extends Screen {
         Draw.rect(g, x + 16, y + 32, w - 32, 1, Draw.alpha(s().uiAccent.argb(), .3f));
         super.extractRenderState(g, mx, my, delta);
         if (maxScroll() > 0) {
-            int top = y + 68, available = h - 116;
+            int top = y + 92, available = h - 140;
             g.fill(x + w - 8, top, x + w - 6, top + available, 0x33444455);
             int thumb = Math.max(12, available * available / (available + maxScroll()));
             int thumbY = top + (available - thumb) * scroll / maxScroll();
             g.fill(x + w - 8, thumbY, x + w - 6, thumbY + thumb, s().uiAccent.argb());
             Draw.text(g, font, "Scroll ↓", x + 140, y + h - 23, s().uiText.argb(), false);
         }
-        g.enableScissor(x + 12, y + 68, x + w - 12, y + h - 48);
+        g.enableScissor(x + 12, y + 92, x + w - 12, y + h - 48);
         NowPlaying track = dev.truwty.nocturne.playback.Playback.current();
         if (page == 0) {
             AlbumArtwork.draw(g,x+w-45,body,28,1);
@@ -252,6 +260,10 @@ public final class StudioScreen extends Screen {
         } else if (page == 1) {
             text(g, track == null ? "No current song" : "Song offset: " + Math.round(Studio.songOffset(track)) + " ms · " + service().lyricsStatus(), body + 209);
             text(g, service().searchStatus(), body + 223);
+        } else if (page == 7) {
+            text(g,"Choose placement, animation, lettering and effects as one look.",body+116);
+            text(g,"Perfection keeps a fixed camera-relative anchor while you move.",body+134);
+            text(g,"Preset changes preserve player connections, timing and hiding rules.",body+152);
         } else if (page == 2) {
             int appY=body+75;
             for(var app:shownPlayers) {text(g,app.diagnostic(),appY);appY+=42;}
@@ -283,7 +295,7 @@ public final class StudioScreen extends Screen {
     }
     private int maxScroll() {
         int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 212 : page == 1 ? 244 : page == 4 ? 270 : page == 3 ? 230 : page == 6 ? 275 : 204;
-        return Math.max(0, contentHeight - (h - 116));
+        return Math.max(0, contentHeight - (h - 140));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); ClientAccess.setScreen(minecraft, parent); }
 

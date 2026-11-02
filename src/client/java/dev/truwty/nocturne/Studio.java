@@ -88,9 +88,10 @@ public final class Studio {
     public static boolean accepts(String group,String name) {return included(group,name);}
 
     private static boolean included(String group, String name) {
+        if(group.equals(LyricLooks.GROUP))return LyricLooks.controls(name);
         if(group.equals("context"))return !name.equals("Preset")&&(included("song",name)||java.util.Set.of("Camera movement","Particle effects","Animated lyric text","Lyric backplate","Lyric outline","Backplate opacity","Lyric contrast","Screen edge lyric fallback","Show translation","Show romanization","Vocal countdown","Lyric confidence","Glow pass limit","Cloud lettering layer limit","Lingering line limit").contains(name));
         if(group.equals("song")) return name.startsWith("Editor ") || java.util.Set.of(
-            "Preset","Placement","Animation","Intensity","Lyrics font","Distance","Size","Colour mode","Colour","Second colour",
+            "Stable lyric placement","Preset","Placement","Animation","Intensity","Lyrics font","Distance","Size","Colour mode","Colour","Second colour",
             "Glow","Chromatic split","Sparkles","Impact shake + flash","Cinematic bars","Beat zoom","Turn to face you","Words on the floor",
             "Reduced motion","Flash effects","Shake effects","High contrast lyrics","Transition duration","Words per line","Lines stay for",
             "Show through walls","Show next line","Karaoke bar","Song title intro","Auto readability","Beat pulse","Album colour rain","Battle words when fighting","Smart placement","Keep up when running","Orbit you in F5 front view","Orbit speed",

@@ -134,7 +134,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 NocturneClient.SETTINGS.flashEffects.set(false);
                 NocturneClient.SETTINGS.highContrast.set(false);
             });
-            for (int tab = 0; tab < 7; tab++) {
+            for (int tab = 0; tab < 8; tab++) {
                 int page = tab;
                 context.setScreen(() -> new StudioScreen(null, page));
                 context.waitTicks(3);
@@ -205,8 +205,9 @@ public final class PortClientTest implements FabricClientGameTest {
             interfaceChecks(context);
             performanceChecks(context);
             accessibilityChecks(context);
-            maintenanceChecks(context);
             reliabilityChecks(context);
+            lyricPresetChecks(context);
+            maintenanceChecks(context);
             regressionChecks(context,world);
             context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
             for(int playbackTab=0;playbackTab<4;playbackTab++){
@@ -255,7 +256,7 @@ public final class PortClientTest implements FabricClientGameTest {
             officialReleaseChecks(context);
             context.getInput().resizeWindow(640,480);context.runOnClient(mc -> { mc.options.guiScale().set(2); dev.truwty.nocturne.compat.TestAccess.resizeGui(mc); });
             context.waitTicks(10);
-            for (int tab = 0; tab < 7; tab++) {
+            for (int tab = 0; tab < 8; tab++) {
                 int page = tab;
                 context.setScreen(() -> new StudioScreen(null, page));
                 context.waitTicks(2);
@@ -274,7 +275,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.setScreen(()->new StudioScreen(null,0));context.waitTicks(3);
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
-                    ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
+                    ()->new dev.truwty.nocturne.gui.LyricPresetsScreen(null),()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
                     ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null),()->new dev.truwty.nocturne.gui.MaintenanceScreen(null),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,0),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,1),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,2),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3),()->new dev.truwty.nocturne.gui.ContextProfileEditorScreen(null,dev.truwty.nocturne.accessibility.GameplayContext.COMBAT),
                     ()->new dev.truwty.nocturne.gui.SetupScreen(null),()->new dev.truwty.nocturne.gui.TutorialScreen(null),()->new dev.truwty.nocturne.gui.CacheManagerScreen(null),()->new dev.truwty.nocturne.gui.MusicLibraryScreen(null),()->new dev.truwty.nocturne.gui.AudioScreen(null),()->new dev.truwty.nocturne.gui.OverlayZonesScreen(null),
                     ()->new dev.truwty.nocturne.gui.OnScreenKeyboard(null,new net.minecraft.client.gui.components.EditBox(net.minecraft.client.Minecraft.getInstance().font,0,0,100,20,net.minecraft.network.chat.Component.literal("Test"))))) {
@@ -338,6 +339,46 @@ public final class PortClientTest implements FabricClientGameTest {
             } finally {mc.level.setBlock(position,previous,3);dev.truwty.nocturne.accessibility.EdgeFallback.clear();}
         });
         NocturneClient.LOG.info("OFFICIAL RELEASE FEATURES PASSED: setup, controller text entry, new screen bounds and terrain obstruction");
+    }
+
+    private static void lyricPresetChecks(ClientGameTestContext context) {
+        var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
+        context.runOnClient(mc->{LyricsService.INSTANCE.startDemo();LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(),Lyrics.parse("[00:00.00]<00:00.00>Consistent <00:30.00>lyric <01:00.00>placement<05:00.00>"));NocturneClient.SETTINGS.contextProfiles.set(false);});
+        context.setScreen(()->null);
+        for(var look:dev.truwty.nocturne.LyricLooks.all()) {
+            context.runOnClient(mc->{
+                for(String name:look.values().keySet())if(NocturneClient.SETTINGS.settings.stream().noneMatch(setting->setting.name.equals(name)))throw new AssertionError("Unknown catalog setting: "+name);
+                Studio.apply(dev.truwty.nocturne.LyricLooks.GROUP,look.values(),false);Studio.adoptPlacement();NocturneClient.SETTINGS.adoptPreset();LyricsRenderer.appearanceChanged();
+            });context.waitTicks(2);
+        }
+        context.setScreen(()->new StudioScreen(null));context.clickScreenButton("Lyric presets");context.clickScreenButton("Browse 57 lyric presets");
+        context.waitTicks(3);context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));takeShot(context,"nocturne-lyric-presets");
+        context.runOnClient(mc->{var field=(net.minecraft.client.gui.components.EditBox)ClientAccess.screen(mc).children().stream().filter(child->child instanceof net.minecraft.client.gui.components.EditBox).findFirst().orElseThrow();field.setValue("Skywriter");});context.waitTicks(3);
+        context.clickScreenButton("Skywriter");
+        context.runOnClient(mc->{var field=(net.minecraft.client.gui.components.EditBox)ClientAccess.screen(mc).children().stream().filter(child->child instanceof net.minecraft.client.gui.components.EditBox).findFirst().orElseThrow();field.setValue("");});context.waitTicks(3);
+        context.clickScreenButton("Perfection");context.clickScreenButton("Favorite");context.clickScreenButton("Export selected");
+        context.runOnClient(mc->{var exported=dev.truwty.nocturne.gui.PresetCodec.decode(dev.truwty.nocturne.LyricLooks.GROUP,mc.keyboardHandler.getClipboard());if(!exported.get("Stable lyric placement").getAsBoolean()||!Studio.library().favorite(dev.truwty.nocturne.LyricLooks.GROUP,"Perfection"))throw new AssertionError("Preset export/favorite failed");mc.keyboardHandler.setClipboard("{\"Size\":105}");});
+        context.clickScreenButton("Import JSON");context.waitTicks(2);context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
+        context.clickScreenButton("Perfection");
+        context.clickScreenButton("Apply preset");
+        context.runOnClient(mc->{if(!NocturneClient.SETTINGS.stablePlacement.on()||NocturneClient.SETTINGS.follow.get()!=2)throw new AssertionError("Perfection was not applied");});
+        context.clickScreenButton("Back");context.clickScreenButton("Undo lyric preset");context.clickScreenButton("Redo lyric preset");
+        context.runOnClient(mc->{if(!NocturneClient.SETTINGS.stablePlacement.on())throw new AssertionError("Lyric preset redo lost stable placement");});
+        context.setScreen(()->null);
+        for(int angle:new int[]{0,90,180,270}) {
+            context.runOnClient(mc->{mc.player.setYRot(angle);mc.player.setXRot(angle==90?60:angle==270?-60:0);});context.waitTicks(5);
+            context.runOnClient(mc->{
+                try {
+                    var f=LyricsRenderer.class.getDeclaredField("follow");f.setAccessible(true);Object follow=f.get(null);
+                    var p=follow.getClass().getDeclaredField("smoothed");p.setAccessible(true);var actual=(net.minecraft.world.phys.Vec3)p.get(follow);
+                    var camera=ClientAccess.camera(mc);var expected=StableLyrics.anchor(camera.position(),camera.rotation(),NocturneClient.SETTINGS.distance.get());
+                    if(actual==null||actual.distanceTo(expected)>.05)throw new AssertionError("Perfection anchor lagged behind camera movement");
+                }catch(ReflectiveOperationException ex){throw new AssertionError(ex);}
+            });
+        }
+        takeShot(context,"nocturne-perfection");
+        context.runOnClient(mc->{for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));Studio.adoptPlacement();NocturneClient.SETTINGS.adoptPreset();LyricsRenderer.appearanceChanged();mc.player.setYRot(0);mc.player.setXRot(0);});
+        NocturneClient.LOG.info("LYRIC PRESETS PASSED: 57 registered looks, selector, apply, undo/redo and camera-locked Perfection across yaw/pitch changes");
     }
 
     private static void reliabilityChecks(ClientGameTestContext context) {

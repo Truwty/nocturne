@@ -39,6 +39,11 @@ public final class StudioEdits {
         }
         if (!(forward ? history.redo() : history.undo())) return false;
         Studio.apply(group, history.value());
+        if(group.equals(dev.truwty.nocturne.LyricLooks.GROUP)) {
+            Studio.adoptPlacement();dev.truwty.nocturne.NocturneClient.SETTINGS.adoptPreset();
+            dev.truwty.nocturne.lyrics.LyricsRenderer.appearanceChanged();
+            try {Studio.savePlacement();}catch(java.io.IOException ex){dev.truwty.nocturne.NocturneClient.LOG.warn("Could not save restored lyric placement",ex);}
+        }
         return true;
     }
 }

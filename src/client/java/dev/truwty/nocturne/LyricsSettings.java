@@ -95,6 +95,7 @@ public class LyricsSettings {
    public final BoolSetting hideOtherScreens=add(new BoolSetting("Hide lyrics in other screens",false));
    public final BoolSetting hideWithGui=add(new BoolSetting("Hide lyrics with F1",false));
    public final BoolSetting edgeFallback=add(new BoolSetting("Screen edge lyric fallback",true));
+   public final BoolSetting stablePlacement=add(new BoolSetting("Stable lyric placement",false));
    public final BoolSetting lyricBackplate=add(new BoolSetting("Lyric backplate",true));
    public final BoolSetting lyricOutline=add(new BoolSetting("Lyric outline",false));
    public final NumberSetting backplateOpacity=add(new NumberSetting("Backplate opacity",85,30,100,1,"%"));

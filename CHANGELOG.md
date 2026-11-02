@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.2 - Lyric presets
+
+- Add a dedicated Studio tab and 57 curated lyric looks spanning eight visual families plus Perfection.
+- Add camera-locked stable placement and uniform word sizing for Perfection, with no shake or drifting.
+- Add searchable categories, favourites, style samples, custom saves, import/export, visual demo, Apply & view and whole-look undo/redo.
+- Preserve timing, connections, hiding rules and accessibility locks. Existing configurations remain unchanged until a preset is applied.
+- Target: Windows / Minecraft 26.1.2 / Fabric / Java 25 / client only. [Release notes](docs/releases/1.0.2.md) / [all 57 looks](docs/lyric-presets.md).
+
+
 ## 1.0.1 - Reliability and polish
 
 - Validate automatic lyric matches, preserve meaningful metadata, rank manual alternatives and preview before saving a persistent song selection.

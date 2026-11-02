@@ -22,7 +22,7 @@ public final class LyricSearch {
     public static List<Candidate> search(String query) throws IOException, InterruptedException {
         if (query.isBlank() || query.length() > 200) throw new IllegalArgumentException("Search needs 1–200 characters");
         HttpRequest request = HttpRequest.newBuilder(URI.create("https://lrclib.net/api/search?q=" + URLEncoder.encode(query, StandardCharsets.UTF_8)))
-            .timeout(Duration.ofSeconds(12)).header("User-Agent", "Nocturne/1.0.1 (https://github.com/Truwty/nocturne)").GET().build();
+            .timeout(Duration.ofSeconds(12)).header("User-Agent", "Nocturne/1.0.2 (https://github.com/Truwty/nocturne)").GET().build();
         ProviderBackoff.check(request.uri());
         var response=HTTP.send(request,dev.truwty.nocturne.playback.BoundedBody.handler(2_097_152));
         ProviderBackoff.response(request.uri(),response.statusCode(),response.headers());

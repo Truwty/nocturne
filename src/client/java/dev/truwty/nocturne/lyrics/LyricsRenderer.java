@@ -299,6 +299,7 @@ public final class LyricsRenderer {
             double d = mod.distance.get();
             Vec3 flat = new Vec3(look.x, look.y * 0.35, look.z).normalize();
             Vec3 desired = cam.add(flat.scale(d)).add(0.0, mod.smartPlace.on() ? 0.15 + d * 0.13 : 0.15, 0.0);
+            if(mod.stablePlacement.on() && modeNow==2)desired=StableLyrics.anchor(cam,ClientAccess.camera(mc).rotation(),d);
             if (follow == null) {
                follow = new LyricsRenderer.Place(desired);
             }
@@ -307,7 +308,7 @@ public final class LyricsRenderer {
                followRel = desired.subtract(cam);
             }
 
-            followRel = followRel.lerp(desired.subtract(cam), 1.0 - Math.exp(-dt * 5.0));
+            followRel = mod.stablePlacement.on() && modeNow==2 ? desired.subtract(cam) : followRel.lerp(desired.subtract(cam), 1.0 - Math.exp(-dt * 5.0));
             follow.at = cam.add(followRel);
             float yawNow = (float)Math.atan2(look.x, look.z);
             float dyaw = yawNow - driftYaw;
@@ -617,6 +618,8 @@ public final class LyricsRenderer {
 
       return Double.NaN;
    }
+
+   public static void appearanceChanged() {reset();lastLyrics=null;followRel=null;follow=null;}
 
    private static void reset() {
       SPARKS.clear();
@@ -1316,7 +1319,7 @@ public final class LyricsRenderer {
       boolean[] big = new boolean[n];
       int bigCount = 0;
 
-      for (int i = 0; i < n && bigCount < 2; i++) {
+      for (int i = 0; i < n && bigCount < 2 && !NocturneClient.SETTINGS.stablePlacement.on(); i++) {
          Lyrics.Word w = words.get(i);
          String t = w.text().replaceAll("[^\\p{L}\\p{N}]", "");
          boolean caps = t.length() >= 2 && t.equals(t.toUpperCase()) && !t.equals(t.toLowerCase());
@@ -2037,7 +2040,7 @@ public final class LyricsRenderer {
       void update(Vec3 cam, float dt, boolean turn) {
          this.lift = this.lift + (this.liftTarget - this.lift) * (1.0F - (float)Math.exp(-dt * 6.0F));
          Vec3 targetPosition = this.at.add(0.0, this.lift, 0.0);
-         this.smoothed = this.smoothed == null || !Accessibility.textMotion() ? targetPosition : this.smoothed.lerp(targetPosition, -Math.expm1(-dt * 5 / NocturneClient.SETTINGS.transition.get()));
+         this.smoothed = this.smoothed == null || !Accessibility.textMotion() || (this==follow && NocturneClient.SETTINGS.stablePlacement.on()) ? targetPosition : this.smoothed.lerp(targetPosition, -Math.expm1(-dt * 5 / NocturneClient.SETTINGS.transition.get()));
          Vec3 to = cam.subtract(this.pos());
          float ty = (float)Math.atan2(to.x, to.z);
          float tp = this.floor

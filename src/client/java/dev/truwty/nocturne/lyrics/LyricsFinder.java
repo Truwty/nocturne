@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 
 final class LyricsFinder {
    private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6L)).followRedirects(Redirect.NORMAL).build();
-   private static final String UA = "Nocturne/1.0.1 (https://github.com/Truwty/nocturne)";
+   private static final String UA = "Nocturne/1.0.2 (https://github.com/Truwty/nocturne)";
    private static final Pattern BRACKETS = Pattern.compile("\\s*[(\\[{【（][^)\\]}】）]*[)\\]}】）]");
    private static final Pattern FEAT = Pattern.compile("(?i)\\s+(feat\\.?|ft\\.?|featuring)\\s+.*$");
    private static final Pattern DASH_TAIL = Pattern.compile(
