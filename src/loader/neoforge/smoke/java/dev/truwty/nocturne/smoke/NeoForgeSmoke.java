@@ -76,12 +76,12 @@ public final class NeoForgeSmoke {
                     message -> NocturneClient.LOG.info("Smoke screenshot: {}", message.getString()));
                 KeyMapping.click(NocturneClient.OPEN_KEY.getDefaultKey());
             } else if (stage == 1) {
-                if (!(mc.screen instanceof StudioScreen)) throw new AssertionError("Shortcut did not open Studio");
+                if (!(mc.screen instanceof StudioScreen) && !(mc.screen instanceof dev.truwty.nocturne.gui.SetupScreen)) throw new AssertionError("Shortcut did not open setup/Studio");
                 var container = net.neoforged.fml.ModList.get().getModContainerById(NocturneClient.ID).orElseThrow();
                 var factory = container.getCustomExtension(net.neoforged.neoforge.client.gui.IConfigScreenFactory.class).orElseThrow();
                 var parent = mc.screen;
                 mc.setScreen(factory.createScreen(container, parent));
-                if (!(mc.screen instanceof StudioScreen)) throw new AssertionError("Registered config factory did not open Studio");
+                if (!(mc.screen instanceof StudioScreen) && !(mc.screen instanceof dev.truwty.nocturne.gui.SetupScreen)) throw new AssertionError("Registered config factory did not open setup/Studio");
                 mc.screen.onClose();
                 if (mc.screen != parent) throw new AssertionError("Config factory screen did not restore its parent");
                 var diagnostics = com.google.gson.JsonParser.parseString(dev.truwty.nocturne.maintenance.Diagnostics.report()).getAsJsonObject();
