@@ -78,7 +78,7 @@ public final class HudAvoidance {
     if (mc.level == null) return null;
     var scoreboard = mc.level.getScoreboard();
     var team = scoreboard.getPlayersTeam(mc.player.getScoreboardName());
-    var slot = team == null ? null : DisplaySlot.teamColorToSlot(team.getColor());
+    var slot = dev.truwty.nocturne.compat.ClientAccess.teamSidebarSlot(team);
     var objective = slot == null ? null : scoreboard.getDisplayObjective(slot);
     if (objective == null) objective = scoreboard.getDisplayObjective(DisplaySlot.SIDEBAR);
     if (objective == null) return null;
