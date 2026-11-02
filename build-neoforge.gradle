@@ -104,3 +104,5 @@ tasks.register('writeSupportManifest') {
     }
 }
 tasks.named('assemble') { dependsOn 'writeSupportManifest' }
+
+apply from: 'gradle/canonical-archives.gradle'

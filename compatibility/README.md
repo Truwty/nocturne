@@ -6,7 +6,7 @@ Published support is defined by exact-target release assets and manifests, not a
 | --- | --- | --- |
 | 26.1, 26.1.1, 26.1.2, 26.2, 26.3 | Fabric | Published in 0.14.0-beta.1; native client validation |
 | 1.21.10, 1.21.11 | Fabric | Development: build, unit suite, Windows/Linux native suite and repeat-build checks passed; unpublished |
-| 1.21.11 | NeoForge | Development: build, unit suite and native demo/UI smoke passed locally; CI/reproducibility pending |
+| 1.21.11 | NeoForge | Development: build, unit suite, Windows/Linux native demo/UI smoke and repeat-build checks passed; unpublished |
 | Earlier Fabric versions | Fabric | Not ported |
 | 1.8.9 onward | Forge | Not ported |
 | Other Minecraft versions | NeoForge | Not ported |

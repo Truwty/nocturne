@@ -1,13 +1,26 @@
 """Compare a downloaded build artifact with this checkout's rebuilt release."""
 from __future__ import annotations
+import argparse
 import hashlib
 from pathlib import Path
-import sys
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-reference = Path(sys.argv[1]).resolve()
-local = list((root / "build/libs").glob("*.jar")) + [root / "build/release/nocturne-mc26.1.2.json"]
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("reference", type=Path)
+parser.add_argument("--local-directory", type=Path, help="Downloaded artifact containing one exact-target release")
+args = parser.parse_args()
+reference = args.reference.resolve()
+if args.local_directory:
+    manifests = list(args.local_directory.rglob("nocturne-*mc*.json"))
+    if len(manifests) != 1:
+        raise RuntimeError("Expected one local support manifest")
+    manifest = manifests[0]
+else:
+    manifest = root / "build/release/nocturne-mc26.1.2.json"
+local = list((manifest.parent.parent / "libs").glob("*.jar")) + [manifest]
+if len(local) != 3 or not all(path.is_file() for path in local):
+    raise RuntimeError("Expected a mod JAR, sources JAR and support manifest")
 for path in local:
     candidates = list(reference.rglob(path.name))
     if len(candidates) != 1:

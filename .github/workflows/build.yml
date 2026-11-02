@@ -10,8 +10,37 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - minecraft: '26.1.2'
+            loader: fabric
+            folder: build
+            artifact: nocturne-mc26.1.2
+          - minecraft: '1.21.10'
+            loader: fabric
+            folder: build/minecraft/1.21.10
+            artifact: windows-nocturne-mc1.21.10
+          - minecraft: '1.21.11'
+            loader: fabric
+            folder: build/minecraft/1.21.11
+            artifact: windows-nocturne-mc1.21.11
+          - minecraft: '1.21.11'
+            loader: neoforge
+            folder: build/neoforge/1.21.11
+            artifact: windows-nocturne-neoforge-mc1.21.11
     steps:
       - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.1.0
+        if: startsWith(matrix.minecraft, '1.')
+        with:
+          distribution: temurin
+          java-version: '21.0.13+9'
+      - name: Keep the Java 21 runtime available to toolchains
+        if: startsWith(matrix.minecraft, '1.')
+        shell: pwsh
+        run: Add-Content -LiteralPath $env:GITHUB_ENV -Value "NOCTURNE_JAVA21=$env:JAVA_HOME"
       - uses: actions/setup-java@v6.1.0
         with:
           distribution: temurin
@@ -19,13 +48,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6.4.1
       - name: Test and package mod
         shell: pwsh
-        run: ./gradlew.bat build --console=plain
+        run: ./gradlew.bat build -PminecraftVersion=${{ matrix.minecraft }} -Ploader=${{ matrix.loader }} --console=plain
       - uses: actions/upload-artifact@v7.0.2
         with:
-          name: nocturne-mc26.1.2
+          name: ${{ matrix.artifact }}
           path: |
-            build/libs/*.jar
-            build/release/nocturne-mc26.1.2.json
+            ${{ matrix.folder }}/libs/*.jar
+            ${{ matrix.folder }}/release/nocturne-*.json
           if-no-files-found: error
   client:
     runs-on: ubuntu-24.04
@@ -186,6 +215,26 @@ jobs:
             build/run/neoforge-1.21.11/screenshots/**
             build/run/neoforge-1.21.11/logs/**
             build/run/neoforge-1.21.11/crash-reports/**
+
+  port-cross-platform:
+    runs-on: ubuntu-24.04
+    needs: [windows, modern-ports, neoforge]
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: [nocturne-mc1.21.10, nocturne-mc1.21.11, nocturne-neoforge-mc1.21.11]
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/linux-release
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: windows-${{ matrix.artifact }}
+          path: build/windows-release
+      - name: Compare exact-target artifacts across operating systems
+        run: python3 scripts/compare_release.py build/windows-release --local-directory build/linux-release
 
   constrained-client:
     runs-on: ubuntu-24.04
