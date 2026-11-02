@@ -10,8 +10,6 @@ import dev.truwty.nocturne.performance.RenderPerformance;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
@@ -29,7 +27,6 @@ import org.joml.Matrix4fc;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
 
-@Environment(EnvType.CLIENT)
 public final class HudLyrics {
    private static final int TEXT = 0;
    private static final int PUFF = 1;
@@ -352,7 +349,6 @@ public final class HudLyrics {
       return puffTex;
    }
 
-   @Environment(EnvType.CLIENT)
    private static final class Cmd {
       int kind;
       int order;

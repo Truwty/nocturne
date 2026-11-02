@@ -24,4 +24,20 @@ class PersistentLyricsCacheTest {
   Path file;try(var paths=Files.list(dir)){file=paths.filter(p->p.toString().endsWith(".json")).findFirst().orElseThrow();}Files.writeString(file,"broken");
   assertNull(cache.read("a",10000));try(var stream=Files.list(dir)){assertTrue(stream.anyMatch(p->p.toString().contains(".corrupt-")));}
  }
+ @Test void corruptQuarantineIsBoundedAndUnrelatedFilesArePreserved() throws Exception {
+  var cache=new PersistentLyricsCache(dir,()->1000);Files.writeString(dir.resolve("user-notes.txt"),"keep");
+  for(int i=0;i<24;i++) {
+   String key="bad-"+i;Path file=dir.resolve(dev.truwty.nocturne.StudioLibrary.trackId(key)+".json");Files.writeString(file,"broken");assertNull(cache.read(key,10000));
+  }
+  try(var paths=Files.list(dir)){assertEquals(16,paths.filter(p->p.getFileName().toString().contains(".corrupt-")).count());}
+  assertEquals("keep",Files.readString(dir.resolve("user-notes.txt")));
+ }
+ @Test void invalidWordIntervalsAreRejectedBeforeRendering() throws Exception {
+  var cache=new PersistentLyricsCache(dir,()->1000);
+  cache.write("track",new LyricsFinder.Result(Lyrics.parse("[00:01]One word\n[00:04]Two"),"Synced"));
+  Path file=dir.resolve(dev.truwty.nocturne.StudioLibrary.trackId("track")+".json");
+  var json=com.google.gson.JsonParser.parseString(Files.readString(file)).getAsJsonObject();
+  json.getAsJsonArray("lines").get(0).getAsJsonObject().getAsJsonArray("words").get(0).getAsJsonObject().addProperty("end",Long.MAX_VALUE);
+  Files.writeString(file,json.toString());assertNull(cache.read("track",10000));
+ }
 }

@@ -20,6 +20,8 @@ jobs:
           ref: main
       - name: Test catalog compatibility and URL validation
         run: python3 -m unittest discover -s scripts/tests -v
+      - name: Test loader and dependency selection
+        run: node --test scripts/tests/catalog.test.mjs
       - name: Build verified release catalog
         env:
           GITHUB_TOKEN: ${{ github.token }}

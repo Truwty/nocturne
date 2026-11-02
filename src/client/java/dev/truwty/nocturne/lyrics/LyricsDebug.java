@@ -7,11 +7,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.loader.api.FabricLoader;
 
-@Environment(EnvType.CLIENT)
 public final class LyricsDebug {
    public static final int OK = 0;
    public static final int WARN = 1;
@@ -228,7 +224,6 @@ public final class LyricsDebug {
       return dev.truwty.nocturne.maintenance.Diagnostics.report();
    }
 
-   @Environment(EnvType.CLIENT)
    public record Row(int level, String label, String value) {
    }
 }

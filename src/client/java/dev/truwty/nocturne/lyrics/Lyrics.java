@@ -4,10 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-@Environment(EnvType.CLIENT)
 public final class Lyrics {
    public final List<Lyrics.Line> lines;
    public final long beatMs;
@@ -102,7 +99,7 @@ public final class Lyrics {
       Matcher offsetTag=Pattern.compile("(?im)^\\s*\\[offset:([+-]?\\d+)]").matcher(lrc);
       if(offsetTag.find())offset=Long.parseLong(offsetTag.group(1));
       if(Math.abs(offset)>300000)throw new IllegalArgumentException("LRC offset exceeds five minutes");
-      @Environment(EnvType.CLIENT)
+
       record Raw(long t, long origin, String body) {
       }
 
@@ -346,14 +343,12 @@ public final class Lyrics {
       return low-1;
    }
 
-   @Environment(EnvType.CLIENT)
    public record Line(long start,long end,String text,List<Word> words,String translation,String romanization) {
       public Line(long start,long end,String text,List<Word> words) {this(start,end,text,words,"","");}
       public boolean explicitSpacing() {return words.stream().map(Word::text).collect(java.util.stream.Collectors.joining()).strip().equals(text.strip());}
       public Line {translation=translation==null?"":translation;romanization=romanization==null?"":romanization;words=List.copyOf(words);}
    }
 
-   @Environment(EnvType.CLIENT)
    public record Word(String text,long start,long end,boolean sourceTimed) {
       public Word(String text,long start,long end) {this(text,start,end,false);}
       public float progress(long position) {return Math.clamp((float)(position-start)/Math.max(1,end-start),0,1);}

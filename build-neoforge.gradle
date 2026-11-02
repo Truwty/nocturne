@@ -1,0 +1,104 @@
+plugins {
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+def minecraftTarget = providers.gradleProperty('minecraftVersion').getOrElse('1.21.11')
+if (minecraftTarget != '1.21.11') throw new GradleException('No validated NeoForge adapter for ' + minecraftTarget)
+def neoVersion = '21.11.48'
+layout.buildDirectory = layout.projectDirectory.dir('build/neoforge/' + minecraftTarget)
+base.archivesName = 'nocturne'
+repositories { mavenCentral() }
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    withSourcesJar()
+}
+
+def renames = new groovy.json.JsonSlurper().parse(file('compatibility/source-renames-1.21.11.json'))
+def generateClient = tasks.register('generateCompatibilityClient', Sync) {
+    inputs.file('compatibility/source-renames-1.21.11.json')
+    from('src/client/java') { exclude '**/ModMenuIntegration.java' }
+    from('src/loader/neoforge/java', 'src/compat/1.21.11/java')
+    from('src/compat/glfw/java') { exclude '**/WeatherRenderingMixin.java' }
+    into(layout.buildDirectory.dir('generated/compat-client'))
+    filteringCharset = 'UTF-8'
+    filter { String line ->
+        renames.literal.each { before, after -> line = line.replace(before, after) }
+        renames.regex.each { before, after -> line = line.replaceAll(before, after) }
+        line
+    }
+}
+sourceSets.main.java.setSrcDirs([layout.buildDirectory.dir('generated/compat-client')])
+sourceSets.main.resources.srcDir('src/loader/neoforge/resources')
+sourceSets.main.resources.exclude('fabric.mod.json', 'native/**')
+def smokeEnabled = providers.gradleProperty('smoke').getOrElse('false').toBoolean()
+if (smokeEnabled) {
+    sourceSets.create('smoke') {
+        java.srcDir('src/loader/neoforge/smoke/java')
+        resources.srcDir('src/loader/neoforge/smoke/resources')
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+    configurations.smokeImplementation.extendsFrom(configurations.implementation)
+}
+tasks.named('compileJava') { dependsOn generateClient }
+tasks.named('sourcesJar') { dependsOn generateClient }
+
+neoForge {
+    version = neoVersion
+    addModdingDependenciesTo sourceSets.test
+    if (smokeEnabled) addModdingDependenciesTo sourceSets.smoke
+    runs {
+        client {
+            client()
+            gameDirectory = project.file('build/run/neoforge-' + minecraftTarget)
+            if (smokeEnabled) programArguments.addAll('--quickPlaySingleplayer', 'NocturneSmoke')
+        }
+    }
+    mods { nocturne { sourceSet sourceSets.main } }
+    if (smokeEnabled) mods { nocturne_smoke { sourceSet sourceSets.smoke } }
+}
+
+if (smokeEnabled) tasks.named('runClient') {
+    doFirst {
+        def fixture = providers.environmentVariable('NOCTURNE_SMOKE_WORLD').orNull
+        if (!fixture || !new File(fixture, 'level.dat').isFile())
+            throw new GradleException('NOCTURNE_SMOKE_WORLD must point to a disposable Minecraft 1.21.11 world fixture')
+        def destination = file('build/run/neoforge-' + minecraftTarget + '/saves/NocturneSmoke')
+        if (destination.exists()) throw new GradleException('Smoke world already exists; use a fresh run directory')
+        copy { from fixture; into destination; exclude 'session.lock' }
+    }
+}
+
+dependencies {
+    jarJar(implementation('org.yaml:snakeyaml:2.7')) { version { strictly '[2.7]'; prefer '2.7' } }
+    testImplementation platform('org.junit:junit-bom:5.13.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+test { useJUnitPlatform() }
+processResources {
+    inputs.property('releaseVersion', project.version.toString())
+    filesMatching('nocturne.client.mixins.json') { expand java: 21 }
+    filesMatching('META-INF/neoforge.mods.toml') { expand version: project.version.toString(), minecraft: minecraftTarget, neoforge: neoVersion }
+}
+tasks.withType(JavaCompile).configureEach { options.release = 21; options.encoding = 'UTF-8' }
+tasks.withType(AbstractArchiveTask).configureEach { preserveFileTimestamps = false; reproducibleFileOrder = true }
+jar {
+    archiveClassifier = 'neoforge-mc' + minecraftTarget
+    from('LICENSE', 'THIRD_PARTY_NOTICES.md')
+}
+tasks.named('sourcesJar') { archiveClassifier = 'neoforge-mc' + minecraftTarget + '-sources' }
+tasks.register('writeSupportManifest') {
+    def output = layout.buildDirectory.file('release/nocturne-neoforge-mc' + minecraftTarget + '.json')
+    inputs.property('releaseVersion', project.version.toString())
+    outputs.file(output)
+    doLast {
+        def file = output.get().asFile; file.parentFile.mkdirs()
+        file.setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([
+            schema: 1, version: project.version.toString(), minecraft: [minecraftTarget],
+            loader: 'neoforge', loaderMinimum: neoVersion, environment: 'client', java: 21
+        ])) + '\n', 'UTF-8')
+    }
+}
+tasks.named('assemble') { dependsOn 'writeSupportManifest' }

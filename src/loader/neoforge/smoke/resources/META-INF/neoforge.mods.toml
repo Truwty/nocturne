@@ -1,0 +1,10 @@
+license="ARR"
+[[mods]]
+modId="nocturne_smoke"
+version="1.0"
+displayName="Nocturne Development Smoke Test"
+[[dependencies.nocturne_smoke]]
+modId="nocturne"
+type="required"
+ordering="AFTER"
+side="CLIENT"

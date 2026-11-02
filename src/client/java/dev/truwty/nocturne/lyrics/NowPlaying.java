@@ -1,9 +1,5 @@
 package dev.truwty.nocturne.lyrics;
 
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-
-@Environment(EnvType.CLIENT)
 public record NowPlaying(
    String title, String artist, String album, long durationMs, long progressMs, boolean playing, long sampledAtNanos, String source, String artUrl, String sessionId
 ) {

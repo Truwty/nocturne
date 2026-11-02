@@ -1,13 +1,18 @@
 plugins {
-    id 'net.fabricmc.fabric-loom' version '1.19.3'
+    id 'net.fabricmc.fabric-loom' version '1.19.3' apply false
+    id 'net.fabricmc.fabric-loom-remap' version '1.19.3' apply false
 }
 
 repositories { mavenCentral(); maven { url = 'https://api.modrinth.com/maven' } }
 
 def minecraftTarget = providers.gradleProperty('minecraftVersion').getOrElse('26.1.2')
-def apiTargets = ['26.1': '0.155.3+26.1.2', '26.1.1': '0.155.3+26.1.2', '26.1.2': '0.155.3+26.1.2', '26.2': '0.161.0+26.2', '26.3': '0.165.0+26.3']
+def remappedTarget = minecraftTarget.startsWith('1.')
+def javaTarget = remappedTarget ? 21 : 25
+apply plugin: remappedTarget ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
+def apiTargets = ['1.21.11': '0.141.6+1.21.11', '26.1': '0.155.3+26.1.2', '26.1.1': '0.155.3+26.1.2', '26.1.2': '0.155.3+26.1.2', '26.2': '0.161.0+26.2', '26.3': '0.165.0+26.3']
 if (!apiTargets.containsKey(minecraftTarget)) throw new GradleException('Unsupported build target: ' + minecraftTarget)
 def fabricApiTarget = apiTargets[minecraftTarget]
+def modMenuTarget = remappedTarget ? '17.0.1' : '18.0.2'
 if (minecraftTarget != '26.1.2') {
     layout.buildDirectory = layout.projectDirectory.dir('build/minecraft/' + minecraftTarget)
     base.archivesName = 'nocturne'
@@ -25,18 +30,42 @@ loom {
     }
 }
 
+sourceSets.client.java.srcDir('src/loader/fabric/java')
 sourceSets.client.java.srcDir('src/compat/' + (minecraftTarget.startsWith('26.1') ? '26.1' : minecraftTarget) + '/java')
 sourceSets.client.java.srcDir(minecraftTarget == '26.3' ? 'src/compat/sdl/java' : 'src/compat/glfw/java')
 
+if (remappedTarget) {
+    def renameFile = file('compatibility/source-renames-' + minecraftTarget + '.json')
+    if (!renameFile.isFile()) throw new GradleException('No reviewed source rename map for ' + minecraftTarget)
+    def sourceRenames = new groovy.json.JsonSlurper().parse(renameFile)
+    def generatedClient = layout.buildDirectory.dir('generated/compat-client')
+    def generateClient = tasks.register('generateCompatibilityClient', Sync) {
+        inputs.file(renameFile)
+        from('src/client/java', 'src/loader/fabric/java', 'src/compat/' + minecraftTarget + '/java')
+        from('src/compat/glfw/java') { exclude '**/WeatherRenderingMixin.java' }
+        into(generatedClient)
+        filteringCharset = 'UTF-8'
+        filter { String line ->
+            sourceRenames.literal.each { before, after -> line = line.replace(before, after) }
+            sourceRenames.regex.each { before, after -> line = line.replaceAll(before, after) }
+            line
+        }
+    }
+    sourceSets.client.java.setSrcDirs([generatedClient])
+    tasks.named('compileClientJava') { dependsOn generateClient }
+    tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn generateClient }
+}
+
 dependencies {
-    compileOnly 'maven.modrinth:modmenu:18.0.2'
+    add(remappedTarget ? 'modCompileOnly' : 'compileOnly', 'maven.modrinth:modmenu:' + modMenuTarget)
     if (providers.gradleProperty('withModMenu').getOrElse('false') == 'true') {
         if (!minecraftTarget.startsWith('26.1')) throw new GradleException('The Mod Menu compatibility fixture is pinned to Minecraft 26.1.x')
         runtimeOnly 'maven.modrinth:modmenu:18.0.2'
     }
     minecraft 'com.mojang:minecraft:' + minecraftTarget
-    implementation 'net.fabricmc:fabric-loader:0.20.1'
-    implementation 'net.fabricmc.fabric-api:fabric-api:' + fabricApiTarget
+    if (remappedTarget) mappings loom.officialMojangMappings()
+    add(remappedTarget ? 'modImplementation' : 'implementation', 'net.fabricmc:fabric-loader:0.20.1')
+    add(remappedTarget ? 'modImplementation' : 'implementation', 'net.fabricmc.fabric-api:fabric-api:' + fabricApiTarget)
     implementation include('org.yaml:snakeyaml:2.7')
     testImplementation platform('org.junit:junit-bom:5.13.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -57,14 +86,20 @@ processResources {
     def modVersion = project.version
     inputs.property 'version', modVersion
     inputs.property 'minecraftTarget', minecraftTarget
-    filesMatching('fabric.mod.json') { expand version: modVersion, minecraft: minecraftTarget, fabricApi: fabricApiTarget.substring(0, fabricApiTarget.indexOf('+')) }
+    inputs.property 'javaTarget', javaTarget
+    inputs.property 'modMenuTarget', modMenuTarget
+    filesMatching(['fabric.mod.json', 'nocturne.client.mixins.json']) { expand version: modVersion, minecraft: minecraftTarget, fabricApi: fabricApiTarget.substring(0, fabricApiTarget.indexOf('+')), java: javaTarget, modmenu: modMenuTarget }
 }
 
-tasks.withType(JavaCompile).configureEach { options.release = 25 }
+tasks.withType(JavaCompile).configureEach { options.release = javaTarget; options.compilerArgs += ['-Xmaxerrs', '1000'] }
 java {
-    sourceCompatibility = JavaVersion.VERSION_25
-    targetCompatibility = JavaVersion.VERSION_25
+    sourceCompatibility = JavaVersion.toVersion(javaTarget)
+    targetCompatibility = JavaVersion.toVersion(javaTarget)
     withSourcesJar()
+}
+if (remappedTarget) {
+    tasks.named('remapJar') { archiveClassifier = 'mc' + minecraftTarget }
+    tasks.named('remapSourcesJar') { archiveClassifier = 'mc' + minecraftTarget + '-sources' }
 }
 tasks.named('sourcesJar') {
     exclude('native/**')
@@ -72,6 +107,7 @@ tasks.named('sourcesJar') {
 }
 test {
     useJUnitPlatform()
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(javaTarget) }
     inputs.property('liveLyrics', providers.environmentVariable('NOCTURNE_LIVE_LYRICS').getOrElse('false'))
 }
 fabricApi {
@@ -83,7 +119,7 @@ fabricApi {
         eula = true
     }
 }
-sourceSets.gametest.java.srcDir(minecraftTarget.startsWith('26.1') ? 'src/compat/26.1/gametest' : 'src/compat/26.2/gametest')
+sourceSets.gametest.java.srcDir('src/compat/' + (remappedTarget ? minecraftTarget : minecraftTarget.startsWith('26.1') ? '26.1' : '26.2') + '/gametest')
 sourceSets.gametest.compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
 sourceSets.gametest.runtimeClasspath += sourceSets.client.output + sourceSets.client.runtimeClasspath
 sourceSets.test.compileClasspath += sourceSets.client.output + sourceSets.client.compileClasspath
@@ -95,8 +131,15 @@ jar {
 
 // Optional local compatibility fixtures stay out of release artifacts.
 tasks.named('runClientGameTest') {
+    javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(javaTarget) }
+    jvmArgs '-Dfabric.noGui=true'
     workingDir = file('build/run/clientGameTest')
-    maxHeapSize = '4G'
+    def memory = providers.gradleProperty('clientTestMemoryMiB').getOrElse('4096').toInteger()
+    def processors = providers.gradleProperty('clientTestProcessors').getOrElse('0').toInteger()
+    if (memory < 1024 || memory > 8192 || processors < 0 || processors > 16) throw new GradleException('Client test bounds: 1024–8192 MiB and 0–16 processors (0 uses the host default)')
+    maxHeapSize = memory + 'm'
+    if (processors > 0) jvmArgs '-XX:ActiveProcessorCount=' + processors
+    jvmArgs '-XX:+ExitOnOutOfMemoryError'
     doFirst {
         def runRoot = file('build/run/clientGameTest').canonicalFile
         if (!runRoot.toPath().startsWith(file('build/run').canonicalFile.toPath()) || runRoot.name != 'clientGameTest') throw new GradleException('Unexpected compatibility test directory')
@@ -135,7 +178,7 @@ tasks.register('writeSupportManifest') {
         out.parentFile.mkdirs()
         out.setText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson([
             schema: 1, version: project.version.toString(), minecraft: [minecraftTarget],
-            loader: 'fabric', environment: 'client', java: 25,
+            loader: 'fabric', environment: 'client', java: javaTarget,
             fabricLoaderMinimum: '0.20.1', fabricApiMinimum: fabricApiTarget
         ])) + '\n', 'UTF-8')
     }

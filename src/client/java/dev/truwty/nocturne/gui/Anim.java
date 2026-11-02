@@ -1,10 +1,7 @@
 package dev.truwty.nocturne.gui;
 
 import dev.truwty.nocturne.Fx;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-@Environment(EnvType.CLIENT)
 public final class Anim {
    private static float dt = 0.016666668F;
    private static double time;
@@ -60,7 +57,6 @@ public final class Anim {
       return 1.0F + c3 * (float)Math.pow(t - 1.0F, 3.0) + c1 * (float)Math.pow(t - 1.0F, 2.0);
    }
 
-   @Environment(EnvType.CLIENT)
    public static final class Spring {
       public float value;
       public float velocity;

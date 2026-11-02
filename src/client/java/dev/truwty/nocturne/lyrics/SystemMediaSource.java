@@ -17,10 +17,7 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-@Environment(EnvType.CLIENT)
 public final class SystemMediaSource {
    private volatile Process process;
    public record Player(String id, String label, Set<String> capabilities, boolean playing, String issue) {

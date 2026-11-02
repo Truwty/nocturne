@@ -12,7 +12,7 @@
   "environment": "client",
   "entrypoints": {
     "client": [
-      "dev.truwty.nocturne.NocturneClient"
+      "dev.truwty.nocturne.platform.FabricEntrypoint"
     ],
     "modmenu": [
       "dev.truwty.nocturne.maintenance.ModMenuIntegration"
@@ -27,7 +27,7 @@
   "depends": {
     "fabricloader": ">=0.20.1",
     "minecraft": "${minecraft}",
-    "java": ">=25",
+    "java": ">=${java}",
     "fabric-api": ">=${fabricApi}"
   },
   "contact": {
@@ -36,6 +36,6 @@
     "issues": "https://github.com/Truwty/nocturne/issues"
   },
   "suggests": {
-    "modmenu": ">=18.0.2"
+    "modmenu": ">=${modmenu}"
   }
 }

@@ -3,14 +3,10 @@ package dev.truwty.nocturne.lyrics;
 import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.LyricsSettings;
 import java.lang.reflect.Method;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.loader.api.FabricLoader;
 
-@Environment(EnvType.CLIENT)
 public final class ShaderCompat {
-   private static final boolean IRIS = FabricLoader.getInstance().isModLoaded("iris");
-   private static final boolean OCULUS_LIKE = FabricLoader.getInstance().isModLoaded("oculus");
+   private static final boolean IRIS = dev.truwty.nocturne.platform.ModPlatform.loaded("iris");
+   private static final boolean OCULUS_LIKE = dev.truwty.nocturne.platform.ModPlatform.loaded("oculus");
    private static Object api;
    private static Method inUse;
    private static boolean broken;

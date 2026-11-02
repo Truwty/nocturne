@@ -139,7 +139,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.waitTicks(3);
                 takeShot(context, "nocturne-studio-" + page);
             }
-            context.getInput().resizeWindow(1280,960);context.runOnClient(mc -> {mc.options.guiScale().set(2);mc.resizeGui();});
+            context.getInput().resizeWindow(1280,960);context.runOnClient(mc -> {mc.options.guiScale().set(2);dev.truwty.nocturne.compat.TestAccess.resizeGui(mc);});
             context.runOnClient(mc -> {
                 var primary=Lyrics.parse("[00:01]<00:01>مرحبا <00:02>بالعالم<00:03>\n"
                         + "[00:04]\n"
@@ -250,7 +250,7 @@ public final class PortClientTest implements FabricClientGameTest {
             });
             context.clickScreenButton("Reset");
             takeShot(context, "nocturne-placement-editor");
-            context.getInput().resizeWindow(640,480);context.runOnClient(mc -> { mc.options.guiScale().set(2); mc.resizeGui(); });
+            context.getInput().resizeWindow(640,480);context.runOnClient(mc -> { mc.options.guiScale().set(2); dev.truwty.nocturne.compat.TestAccess.resizeGui(mc); });
             context.waitTicks(10);
             for (int tab = 0; tab < 7; tab++) {
                 int page = tab;
@@ -264,10 +264,10 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc -> ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
             }
             takeShot(context, "nocturne-small-window");
-            context.getInput().resizeWindow(854,480);context.runOnClient(mc -> { mc.options.guiScale().set(1); mc.resizeGui(); });
+            context.getInput().resizeWindow(854,480);context.runOnClient(mc -> { mc.options.guiScale().set(1); dev.truwty.nocturne.compat.TestAccess.resizeGui(mc); });
             context.setScreen(() -> null);
             for(int guiScale:new int[]{1,2,3,4}) {
-                context.getInput().resizeWindow(1280,960);context.runOnClient(mc->{mc.options.guiScale().set(guiScale);mc.resizeGui();});
+                context.getInput().resizeWindow(1280,960);context.runOnClient(mc->{mc.options.guiScale().set(guiScale);dev.truwty.nocturne.compat.TestAccess.resizeGui(mc);});
                 context.setScreen(()->new StudioScreen(null,0));context.waitTicks(3);
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(

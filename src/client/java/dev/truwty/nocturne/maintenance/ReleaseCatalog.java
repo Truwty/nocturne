@@ -19,6 +19,13 @@ public final class ReleaseCatalog {
 
   public static Optional<Release> newest(
       String json, String current, boolean previews, String minecraft) {
+        return newest(json, current, previews, minecraft, "fabric");
+    }
+
+    public static Optional<Release> newest(
+            String json, String current, boolean previews, String minecraft, String loader) {
+        if (!Set.of("fabric", "forge", "neoforge").contains(loader))
+            throw new IllegalArgumentException("Unsupported loader");
         if (json.length() > 262144) throw new IllegalArgumentException("Release catalog too large");
         ReleaseVersion installed = ReleaseVersion.parse(current), best = installed;
         Release found = null;
@@ -36,13 +43,15 @@ public final class ReleaseCatalog {
                 boolean marker = false, jar = false;
                 for (var asset : item.getAsJsonArray("assets")) {
                     String name = asset.getAsJsonObject().get("name").getAsString();
-                    marker |= name.equals("nocturne-mc" + minecraft + ".json");
+                    marker |= name.equals("nocturne-" + loader + "-mc" + minecraft + ".json")
+                            || (loader.equals("fabric") && name.equals("nocturne-mc" + minecraft + ".json"));
                     String releaseVersion =
                             tag.startsWith("v") ? tag.substring(1) : tag;
           jar |=
-              name.equals("nocturne-" + releaseVersion + "-mc" + minecraft + ".jar")
+              name.equals("nocturne-" + releaseVersion + "-" + loader + "-mc" + minecraft + ".jar")
+                  || (loader.equals("fabric") && (name.equals("nocturne-" + releaseVersion + "-mc" + minecraft + ".jar")
                   || (minecraft.equals(MINECRAFT)
-                      && name.equals("nocturne-" + releaseVersion + ".jar"));
+                      && name.equals("nocturne-" + releaseVersion + ".jar"))));
                 }
                 if (!marker || !jar) continue;
                 best = version;

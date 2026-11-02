@@ -8,4 +8,5 @@ public final class TestAccess {
   public static void waitForChunks(TestSingleplayerContext world) {
     world.getClientLevel().waitForChunksRender();
   }
+  public static void resizeGui(net.minecraft.client.Minecraft mc) { mc.resizeGui(); }
 }

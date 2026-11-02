@@ -1,10 +1,7 @@
 package dev.truwty.nocturne;
 
 import dev.truwty.nocturne.setting.ModeSetting;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-@Environment(EnvType.CLIENT)
 public final class LyricsPresets {
    public static final String[] NAMES = new String[]{
       "Custom", "Music edit", "Chill", "Hype", "Minimal", "Neon", "Retro", "Bouncy", "Dreamy", "Sky", "Battle", "Album"
@@ -53,7 +50,6 @@ public final class LyricsPresets {
       }
    }
 
-   @Environment(EnvType.CLIENT)
    private record P(
       String style,
       String intensity,

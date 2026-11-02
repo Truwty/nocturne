@@ -1,0 +1,26 @@
+license="ARR"
+issueTrackerURL="https://github.com/Truwty/nocturne/issues"
+[[mods]]
+modId="nocturne"
+version="${version}"
+displayName="Nocturne"
+displayURL="https://truwty.github.io/nocturne/"
+logoFile="assets/nocturne/icon.png"
+authors="Truwty"
+description='''Client-side music controls and synchronized lyrics, with automatic desktop playback detection.'''
+[[mixins]]
+config="nocturne.client.mixins.json"
+[[dependencies.nocturne]]
+modId="neoforge"
+type="required"
+versionRange="[${neoforge},)"
+ordering="NONE"
+side="CLIENT"
+[[dependencies.nocturne]]
+modId="minecraft"
+type="required"
+versionRange="[${minecraft}]"
+ordering="NONE"
+side="CLIENT"
+[features.nocturne]
+javaVersion="[21,)"

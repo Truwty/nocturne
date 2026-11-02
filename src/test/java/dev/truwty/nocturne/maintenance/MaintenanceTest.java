@@ -34,6 +34,20 @@ class MaintenanceTest {
     }
 
     @Test
+    void updateArtifactsMustMatchTheRunningLoader() {
+        var item = JsonParser.parseString(release("v1.0.0", false, true)).getAsJsonObject();
+        var assets = item.getAsJsonArray("assets");
+        assets.get(0).getAsJsonObject().addProperty("name", "nocturne-1.0.0-neoforge-mc1.21.11.jar");
+        assets.get(1).getAsJsonObject().addProperty("name", "nocturne-neoforge-mc1.21.11.json");
+        String catalog = "[" + item + "]";
+        assertTrue(ReleaseCatalog.newest(catalog, "0.14.0", true, "1.21.11", "neoforge").isPresent());
+        assertTrue(ReleaseCatalog.newest(catalog, "0.14.0", true, "1.21.11", "fabric").isEmpty());
+        assertTrue(ReleaseCatalog.newest(catalog, "0.14.0", true, "1.21.11", "forge").isEmpty());
+        assets.get(1).getAsJsonObject().addProperty("name", "nocturne-mc1.21.11.json");
+        assertTrue(ReleaseCatalog.newest("[" + item + "]", "0.14.0", true, "1.21.11", "neoforge").isEmpty());
+    }
+
+    @Test
     void stableOutranksPrerelease() {
         assertTrue(ReleaseVersion.parse("1.0.0").compareTo(ReleaseVersion.parse("1.0.0-rc.9")) > 0);
     }

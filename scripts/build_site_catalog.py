@@ -38,7 +38,15 @@ def checked_support(data: dict, version: str) -> dict:
         raise ValueError("Invalid compatibility manifest")
     if data.get("loader") not in {"fabric", "forge", "neoforge"} or data.get("environment") != "client" or not isinstance(java, int) or isinstance(java, bool) or not 8 <= java <= 30:
         raise ValueError("Invalid loader/Java/environment requirements")
-    return {"minecraft": games, "loader": data["loader"].capitalize(), "java": java}
+    dependencies = {}
+    for field, key in (("loaderMinimum", "loader"), ("fabricLoaderMinimum", "loader"), ("fabricApiMinimum", "fabricApi")):
+        if field in data:
+            value = data[field]
+            if not isinstance(value, str) or not re.fullmatch(r"[0-9][0-9A-Za-z.+_-]{0,79}", value):
+                raise ValueError("Invalid dependency requirement")
+            dependencies[key] = value
+    labels = {"fabric": "Fabric", "forge": "Forge", "neoforge": "NeoForge"}
+    return {"minecraft": games, "loader": labels[data["loader"]], "java": java, "dependencies": dependencies}
 
 def build_catalog(releases: list, audited: list, load=fetch_json) -> dict:
     known = {(item["tag"], item["name"]): item for item in audited}
@@ -53,7 +61,7 @@ def build_catalog(releases: list, audited: list, load=fetch_json) -> dict:
         targets = []
         for asset in assets:
             name = asset.get("name", "")
-            match = re.fullmatch(r"nocturne-" + re.escape(version) + r"(?:-mc([0-9.]+))?\.jar", name)
+            match = re.fullmatch(r"nocturne-" + re.escape(version) + r"(?:-(fabric|forge|neoforge))?(?:-mc([0-9.]+))?\.jar", name)
             url = asset.get("browser_download_url", "")
             if not match or not trusted_url(url, prefix):
                 continue
@@ -65,8 +73,12 @@ def build_catalog(releases: list, audited: list, load=fetch_json) -> dict:
                 checksum = support["sha256"]
                 support = {key: support[key] for key in ("minecraft", "loader", "java")}
             else:
-                game = match.group(1) or "26.1.2"
-                marker = next((a for a in assets if a.get("name") == "nocturne-mc" + game + ".json"), None)
+                loader, game = match.groups()
+                if loader and not game:
+                    continue
+                game = game or "26.1.2"
+                marker_name = "nocturne-" + (loader + "-" if loader else "") + "mc" + game + ".json"
+                marker = next((a for a in assets if a.get("name") == marker_name), None)
                 if marker is None:
                     continue
                 marker_url = marker.get("browser_download_url", "")
@@ -75,6 +87,8 @@ def build_catalog(releases: list, audited: list, load=fetch_json) -> dict:
                 support = checked_support(load(marker_url, 65536), version)
                 if game not in support["minecraft"]:
                     raise ValueError("Compatibility marker target mismatch")
+                if support["loader"].lower() != (loader or "fabric"):
+                    raise ValueError("Compatibility marker loader mismatch")
             if checksum is not None and not re.fullmatch(r"[a-fA-F0-9]{64}", checksum):
                 raise ValueError("Invalid SHA-256 digest")
             targets.append({**support, "name": name, "url": url, "sha256": checksum})
