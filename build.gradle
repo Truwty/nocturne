@@ -59,8 +59,8 @@ if (remappedTarget) {
 dependencies {
     add(remappedTarget ? 'modCompileOnly' : 'compileOnly', 'maven.modrinth:modmenu:' + modMenuTarget)
     if (providers.gradleProperty('withModMenu').getOrElse('false') == 'true') {
-        if (!minecraftTarget.startsWith('26.1')) throw new GradleException('The Mod Menu compatibility fixture is pinned to Minecraft 26.1.x')
-        runtimeOnly 'maven.modrinth:modmenu:18.0.2'
+        if (!remappedTarget && !minecraftTarget.startsWith('26.1')) throw new GradleException('No Mod Menu runtime fixture for ' + minecraftTarget)
+        add(remappedTarget ? 'modRuntimeOnly' : 'runtimeOnly', 'maven.modrinth:modmenu:' + modMenuTarget)
     }
     minecraft 'com.mojang:minecraft:' + minecraftTarget
     if (remappedTarget) mappings loom.officialMojangMappings()

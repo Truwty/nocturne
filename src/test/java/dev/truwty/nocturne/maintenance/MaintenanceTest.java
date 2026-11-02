@@ -34,6 +34,16 @@ class MaintenanceTest {
     }
 
     @Test
+    void diagnosticsAllowOnlyKnownLoaderNames() {
+        for (String loader : List.of("fabric", "forge", "neoforge")) {
+            var report = JsonParser.parseString(DiagnosticsReport.encode(Map.of("loader", loader))).getAsJsonObject();
+            assertEquals(loader, report.get("loader").getAsString());
+        }
+        var rejected = JsonParser.parseString(DiagnosticsReport.encode(Map.of("loader", "private-player-name"))).getAsJsonObject();
+        assertFalse(rejected.has("loader"));
+    }
+
+    @Test
     void updateArtifactsMustMatchTheRunningLoader() {
         var item = JsonParser.parseString(release("v1.0.0", false, true)).getAsJsonObject();
         var assets = item.getAsJsonArray("assets");

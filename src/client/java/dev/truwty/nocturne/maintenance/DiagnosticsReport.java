@@ -39,7 +39,9 @@ public final class DiagnosticsReport {
                     "recovery",
                     Set.of("NONE", "ENABLE", "RETRY", "RESYNC", "SHOW", "RECONNECT"),
                     "renderer",
-                    Set.of("WORLD", "PROJECTED"));
+                    Set.of("WORLD", "PROJECTED"),
+                    "loader",
+                    Set.of("fabric", "forge", "neoforge"));
 
     private DiagnosticsReport() {}
 

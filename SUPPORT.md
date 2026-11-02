@@ -14,7 +14,7 @@
 
 Download a build for the **exact** Minecraft version from the [download selector](https://truwty.github.io/nocturne/downloads.html). The unclassified JAR targets 26.1.2; other targets have `-mc<version>` in the filename. Loader metadata deliberately rejects different versions. Keep only one Nocturne JAR installed. Server-specific rules still apply; no Hypixel certification is claimed.
 
-The development branch adds Minecraft 1.21.11 adapters for Fabric and NeoForge. Both have passed local native client checks; release reproducibility and CI coverage are pending. They are not published downloads yet. Earlier versions, snapshots and Forge remain unported. Track the exact state in [compatibility/README.md](compatibility/README.md). Wider compatibility requires separate adapters, rather than relaxed metadata.
+The development branch adds Fabric adapters for Minecraft 1.21.10/1.21.11 and a NeoForge adapter for 1.21.11. Native checks and release reproducibility are tracked in [compatibility/README.md](compatibility/README.md). They are not published downloads yet. Earlier versions, snapshots and Forge remain unported. Wider compatibility requires separate adapters, rather than relaxed metadata.
 
 Renderer CI covers vanilla, Sodium 0.9.2, Iris 1.11.4 and Sodium/Lithium 0.24.7/FerriteCore 9.0.0. Vanilla CI also installs Mod Menu and exercises the real registered config factory; other matrix jobs verify it remains optional. Shader/modpack limits and hardware checks are recorded in [VALIDATION.md](VALIDATION.md).
 

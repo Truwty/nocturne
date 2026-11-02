@@ -68,6 +68,17 @@ public final class NeoForgeSmoke {
                 KeyMapping.click(NocturneClient.OPEN_KEY.getDefaultKey());
             } else if (stage == 1) {
                 if (!(mc.screen instanceof StudioScreen)) throw new AssertionError("Shortcut did not open Studio");
+                var container = net.neoforged.fml.ModList.get().getModContainerById(NocturneClient.ID).orElseThrow();
+                var factory = container.getCustomExtension(net.neoforged.neoforge.client.gui.IConfigScreenFactory.class).orElseThrow();
+                var parent = mc.screen;
+                mc.setScreen(factory.createScreen(container, parent));
+                if (!(mc.screen instanceof StudioScreen)) throw new AssertionError("Registered config factory did not open Studio");
+                mc.screen.onClose();
+                if (mc.screen != parent) throw new AssertionError("Config factory screen did not restore its parent");
+                var diagnostics = com.google.gson.JsonParser.parseString(dev.truwty.nocturne.maintenance.Diagnostics.report()).getAsJsonObject();
+                if (!diagnostics.get("loader").getAsString().equals("neoforge")
+                        || !diagnostics.get("minecraft").getAsString().equals("1.21.11"))
+                    throw new AssertionError("Diagnostics reported the wrong runtime target");
             }
             if (stage >= 1 && stage <= 7) {
                 for (var child : mc.screen.children()) {
