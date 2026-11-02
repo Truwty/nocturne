@@ -53,7 +53,8 @@ public final class PortClientTest implements FabricClientGameTest {
                     media.addProperty("updated", 1); media.addProperty("now", System.currentTimeMillis());
                     LyricsService.INSTANCE.update(SystemMediaSource.decodeSession(media));
                 });
-                context.waitFor(mc -> LyricsService.INSTANCE.lyrics() != null, 500);
+                context.waitFor(mc -> LyricsService.INSTANCE.lyrics() != null || LyricsService.INSTANCE.lyricsStatus().startsWith("Network unavailable") || LyricsService.INSTANCE.lyricsStatus().startsWith("No confident"), 1200);
+                context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics()==null)throw new AssertionError("Live lookup failed: "+LyricsService.INSTANCE.lyricsStatus());});
                 context.waitTicks(10);
                 context.runOnClient(mc -> {
                     if (!LyricsRenderer.active() || (LyricsDebug.worldPieces == 0 && LyricsDebug.hudDrawn == 0)) throw new AssertionError("Live provider lyrics did not reach world geometry");
@@ -205,7 +206,8 @@ public final class PortClientTest implements FabricClientGameTest {
             performanceChecks(context);
             accessibilityChecks(context);
             maintenanceChecks(context);
-            regressionChecks(context);
+            reliabilityChecks(context);
+            regressionChecks(context,world);
             context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
             for(int playbackTab=0;playbackTab<4;playbackTab++){
                 int tab=playbackTab;context.setScreen(()->new dev.truwty.nocturne.gui.PlaybackScreen(null,tab));context.waitTicks(5);
@@ -338,6 +340,57 @@ public final class PortClientTest implements FabricClientGameTest {
         NocturneClient.LOG.info("OFFICIAL RELEASE FEATURES PASSED: setup, controller text entry, new screen bounds and terrain obstruction");
     }
 
+    private static void reliabilityChecks(ClientGameTestContext context) {
+        context.runOnClient(mc->LyricsService.INSTANCE.startDemo());
+        Lyrics original=context.computeOnClient(mc->LyricsService.INSTANCE.lyrics());
+        var preview=new dev.truwty.nocturne.lyrics.LyricSearch.Candidate("Neon Rain","Nocturne demo",37,"[00:01]Alternative preview\n[00:05]Second line");
+        context.setScreen(()->new dev.truwty.nocturne.gui.LyricPreviewScreen(null,preview));
+        context.waitTicks(3);context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
+        takeShot(context,"nocturne-lyric-preview");context.clickScreenButton("Cancel");
+        context.runOnClient(mc->{if(LyricsService.INSTANCE.lyrics()!=original)throw new AssertionError("Preview cancel changed lyrics");NocturneClient.SETTINGS.editorX.set(0.0);Studio.adoptPlacement();});
+        context.setScreen(()->new PlacementScreen(null));
+        context.runOnClient(mc->{
+            var screen=ClientAccess.screen(mc);
+            double yy=screen.height/2.0;
+            var down=new net.minecraft.client.input.MouseButtonEvent(screen.width/2.0,yy,new net.minecraft.client.input.MouseButtonInfo(0,0));
+            screen.mouseClicked(down,false);
+            for(int i=0;i<10;i++)screen.mouseDragged(new net.minecraft.client.input.MouseButtonEvent(screen.width/2.0+(i+1)*.5,yy,new net.minecraft.client.input.MouseButtonInfo(0,0)),.5,0);
+            screen.mouseReleased(down);
+            if(Math.abs(NocturneClient.SETTINGS.editorX.get()-.1)>.0001)throw new AssertionError("Slow placement drag was rounded away");
+        });
+        context.clickScreenButton("Undo");context.runOnClient(mc->{if(NocturneClient.SETTINGS.editorX.get()!=0)throw new AssertionError("Gesture undo failed");});
+        context.clickScreenButton("Redo");
+        context.runOnClient(mc->{
+            var screen=ClientAccess.screen(mc);
+            screen.keyPressed(dev.truwty.nocturne.compat.GamepadInput.keyEvent(com.mojang.blaze3d.platform.InputConstants.KEY_RIGHT,com.mojang.blaze3d.platform.InputConstants.MOD_ALT));
+            if(Math.abs(NocturneClient.SETTINGS.editorX.get()-.2)>.0001)throw new AssertionError("Keyboard placement nudge was rounded away");
+        });
+        context.clickScreenButton("Undo");context.clickScreenButton("Save");
+        context.runOnClient(mc->{if(Math.abs(NocturneClient.SETTINGS.editorX.get()-.1)>.0001)throw new AssertionError("Gesture redo/save failed");});
+        context.runOnClient(mc->{
+            var service=LyricsService.INSTANCE;service.stop();service.stopDemo();
+            long time=System.nanoTime();
+            var first=new NowPlaying("Reliability fixture","Nocturne tests","",180000,10000,true,time,"System","","fixture|speakers");
+            try {Studio.library().chooseLyrics(first.key(),"[00:01]Remembered fixture\n[00:10]Second fixture");}
+            catch(java.io.IOException ex){throw new AssertionError(ex);}
+            service.update(first);service.poll(Long.MIN_VALUE);
+            if(service.now()!=first)throw new AssertionError("Stopped poll replaced current playback");
+            if(service.lyrics()==null||!service.lyrics().lines.getFirst().text().equals("Remembered fixture"))throw new AssertionError("Saved match was not restored");
+            var fresh=new NowPlaying(first.title(),first.artist(),"",180000,10300,true,time+300_000_000L,"System","",first.sessionId());
+            service.update(fresh);service.update(first);
+            if(service.now()!=fresh)throw new AssertionError("Late sample replaced fresh playback");
+            long revision=service.playbackRevision();
+            var seek=new NowPlaying(first.title(),first.artist(),"",180000,50000,true,time+400_000_000L,"System","",first.sessionId());
+            service.update(seek);if(service.playbackRevision()<=revision)throw new AssertionError("Seek failed to reset the lyric clock");
+            service.update(new NowPlaying("Advertisement","Spotify","",30000,0,true,time+450_000_000L,"Spotify app","",first.sessionId()));
+            if(service.lyrics()!=null||!service.lyricsStatus().startsWith("Advertisement"))throw new AssertionError("Ad retained lyrics");
+            service.update(new NowPlaying(first.title(),first.artist(),"",180000,51000,true,time+500_000_000L,"System","","fixture|headphones"));
+            if(service.lyrics()==null||!service.lyrics().lines.getFirst().text().equals("Remembered fixture"))throw new AssertionError("Ad/device return lost saved match");
+            service.stop();service.start();service.startDemo();
+        });
+        NocturneClient.LOG.info("RELIABILITY UI PASSED: lyric preview/cancel, precise small drags, gesture undo/redo/save");
+    }
+
     private static void maintenanceChecks(ClientGameTestContext context) {
         dev.truwty.nocturne.maintenance.UpdateClientChecks.run(context);
         context.setScreen(()->new StudioScreen(null,6));context.clickScreenButton("Releases & diagnostics");context.waitTicks(3);
@@ -352,16 +405,22 @@ public final class PortClientTest implements FabricClientGameTest {
         NocturneClient.LOG.info("MAINTENANCE TEST PASSED: filtered clipboard/file export, screen bounds and optional Mod"
             + " Menu entrypoint");
     }
-    private static void regressionChecks(ClientGameTestContext context) {
+    private static void regressionChecks(ClientGameTestContext context,TestSingleplayerContext world) {
         var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
         var results=new com.google.gson.JsonArray();
         try(var input=PortClientTest.class.getResourceAsStream("/performance-budgets.json")) {
             if(input==null)throw new IllegalStateException("Missing performance budgets");var budgets=com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(input,java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
             context.setScreen(()->null);
-            for(String scenario:java.util.List.of("steady-v2","decorated-v2")) {
-                context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.photosensitiveMode.set(false);s.reducedMotion.set(false);s.adaptiveEffects.set(false);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);s.topBar.set(false);s.cinematic.set(false);s.titleCard.set(false);s.nextLine.set(false);s.lyricConfidence.set(false);s.vocalCountdown.set(false);s.debug.set(false);s.performanceReadout.set(false);s.lingeringLimit.set(0.0);s.lyricOutline.set(false);s.lyricBackplate.set(false);s.battle.set(false);s.orbit.set(false);s.quality.set(1);s.audioReactive.set(false);s.beatPulse.set(false);s.shakeEffects.set(false);s.flashEffects.set(false);s.chroma.set(false);s.size.set(100.0);s.lyricFont.set(0);s.maxWords.set(12.0);s.particleLimit.set(48.0);s.glowPassLimit.set(32.0);s.cloudLayerLimit.set(16.0);boolean effects=scenario.equals("decorated-v2");s.animatedText.set(effects);s.particleEffects.set(effects);s.sparkles.set(effects);s.glow.set(effects);LyricsService.INSTANCE.startDemo();LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(), Lyrics.parse("[00:00.00]<00:00.00>Late <00:30.00>night <01:00.00>the <01:30.00>city <02:00.00>is <02:30.00>glowing<05:00.00>\n[05:00.00]"));});
+            for(String scenario:java.util.List.of("steady-v2","decorated-v2","crowded-v1","soak-v1")) {
+                if(scenario.equals("crowded-v1")) {
+                    for(int entity=0;entity<48;entity++) {
+                        int dx=entity%8-4,dz=entity/8+2;
+                        world.getServer().runCommand("execute at @p run summon minecraft:armor_stand ~"+dx+" ~ ~"+dz+" {NoGravity:1b}");
+                    }
+                }
+                context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.photosensitiveMode.set(false);s.reducedMotion.set(false);s.adaptiveEffects.set(false);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);s.topBar.set(false);s.cinematic.set(false);s.titleCard.set(false);s.nextLine.set(false);s.lyricConfidence.set(false);s.vocalCountdown.set(false);s.debug.set(false);s.performanceReadout.set(false);s.lingeringLimit.set(0.0);s.lyricOutline.set(false);s.lyricBackplate.set(false);s.battle.set(false);s.orbit.set(false);s.quality.set(1);s.audioReactive.set(false);s.beatPulse.set(false);s.shakeEffects.set(false);s.flashEffects.set(false);s.chroma.set(false);s.size.set(100.0);s.lyricFont.set(0);s.maxWords.set(12.0);s.particleLimit.set(48.0);s.glowPassLimit.set(32.0);s.cloudLayerLimit.set(16.0);boolean effects=!scenario.equals("steady-v2");s.animatedText.set(effects);s.particleEffects.set(effects);s.sparkles.set(effects);s.glow.set(effects);LyricsService.INSTANCE.startDemo();LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(), Lyrics.parse("[00:00.00]<00:00.00>Late <00:30.00>night <01:00.00>the <01:30.00>city <02:00.00>is <02:30.00>glowing<05:00.00>\n[05:00.00]"));});
                 context.waitTicks(15);var probe=new dev.truwty.nocturne.performance.RegressionBudget();
-                for(int i=0;i<60;i++){context.waitTicks(1);probe.add(context.computeOnClient(mc->dev.truwty.nocturne.performance.RenderPerformance.snapshot()));}
+                for(int i=0;i<(scenario.equals("soak-v1")?500:60);i++){context.waitTicks(1);probe.add(context.computeOnClient(mc->dev.truwty.nocturne.performance.RenderPerformance.snapshot()));}
                 results.add(probe.report(scenario,budgets.getAsJsonObject(scenario)));
             }
             context.runOnClient(mc->{for(var setting:NocturneClient.SETTINGS.settings)setting.load(saved.get(setting.name));});
@@ -373,7 +432,7 @@ public final class PortClientTest implements FabricClientGameTest {
     private static void accessibilityChecks(ClientGameTestContext context){
         var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
         // Earlier editor scenarios save placement profiles; adopt this controlled pose before the next tick can load one.
-        context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.hideChat.set(true);s.hideInventory.set(true);s.hideDebug.set(true);s.edgeFallback.set(true);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);s.editorYaw.set(0.0);s.editorPitch.set(0.0);s.editorRoll.set(0.0);s.smartPlace.set(false);s.orbit.set(false);s.cameraMovement.set(false);Studio.adoptPlacement();LyricsService.INSTANCE.startDemo();LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(),Lyrics.parse("[00:00.00]<00:00.00>Late <00:30.00>night <01:00.00>the <01:30.00>city <02:00.00>is <02:30.00>glowing<05:00.00>\n[05:00.00]"));});
+        context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.hideChat.set(true);s.hideInventory.set(true);s.hideDebug.set(true);s.edgeFallback.set(true);s.terrainFallback.set(false);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);s.editorYaw.set(0.0);s.editorPitch.set(0.0);s.editorRoll.set(0.0);s.smartPlace.set(false);s.orbit.set(false);s.cameraMovement.set(false);Studio.adoptPlacement();LyricsService.INSTANCE.startDemo();LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(),Lyrics.parse("[00:00.00]<00:00.00>Late <00:30.00>night <01:00.00>the <01:30.00>city <02:00.00>is <02:30.00>glowing<05:00.00>\n[05:00.00]"));});
         context.setScreen(()->null);context.waitTicks(40);
         context.setScreen(()->new net.minecraft.client.gui.screens.ChatScreen("",false));context.waitTicks(5);
         context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active()||LyricsDebug.hudRecorded!=0)throw new AssertionError("Chat did not hide lyric geometry");});

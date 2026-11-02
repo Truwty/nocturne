@@ -85,7 +85,7 @@ public final class LyricsService {
       cancelSearch();long request = ++searchRevision;
       searchTrack = track.key(); candidates = List.of(); searchStatus = "Searching LRCLIB...";
       searchRequest=exec.submit(() -> {
-         try { var result = LyricSearch.search(query); synchronized(this){if (request == searchRevision) { candidates = result; searchStatus = candidates.isEmpty() ? "No synchronized matches" : "Choose a match to save for this song"; }} }
+         try { var result = LyricSearch.rank(LyricSearch.search(query), track); synchronized(this){if (request == searchRevision) { candidates = result; searchStatus = candidates.isEmpty() ? "No synchronized matches" : "Preview a match before saving it for this song"; }} }
          catch (InterruptedException ex) { Thread.currentThread().interrupt(); if(request==searchRevision)searchStatus = "Search cancelled"; }
          catch (Exception ex) { if(request==searchRevision)searchStatus = "Search failed: " + ex.getMessage(); NocturneClient.LOG.debug("Manual lyric search failed", ex); }
       });
@@ -128,6 +128,7 @@ public final class LyricsService {
       }
    }
    private ScheduledFuture<?> task;
+   private volatile long pollGeneration;
    private volatile NowPlaying now;
    private volatile Lyrics lyrics;
    private volatile String lyricsStatus = "";
@@ -195,11 +196,13 @@ public final class LyricsService {
 
    public synchronized void start() {
       if (this.task == null) {
-         this.task = this.polling.scheduleWithFixedDelay(this::poll, 0L, 500L, TimeUnit.MILLISECONDS);
+         long generation=++pollGeneration;
+         this.task = this.polling.scheduleWithFixedDelay(()->poll(generation), 0L, 500L, TimeUnit.MILLISECONDS);
       }
    }
 
    public synchronized void stop() {
+      pollGeneration++;
       if (this.task != null) {
          this.task.cancel(false);
       }
@@ -212,18 +215,23 @@ public final class LyricsService {
       this.retryLyricsAt = 0;
    }
 
-   private void poll() {
-      long nowMs=System.currentTimeMillis();if(nowMs<nextPoll)return;
-      NowPlaying previous=this.now;
-      long interval=background?3000:previous==null?2000:lowActivity||!previous.playing()?1500:500;
-      nextPoll=nowMs+interval;system.activity((int)interval);
+   void poll(long generation) {
+      long nowMs=System.currentTimeMillis();
       try {
          NowPlaying sample = null;
-         if (SystemMediaSource.supported()) this.system.start();
+         synchronized(this) {
+            if(generation!=pollGeneration || nowMs<nextPoll)return;
+            NowPlaying previous=this.now;
+            long interval=background?3000:previous==null?2000:lowActivity||!previous.playing()?1500:500;
+            nextPoll=nowMs+interval;system.activity((int)interval);
+            if (SystemMediaSource.supported()) this.system.start();
+         }
          sample = dev.truwty.nocturne.playback.Playback.sample(this.system.latest());
-
-         this.update(sample);
-         if(sample!=null&&!background&&artwork==null&&nowMs>=nextArtAttempt&&(artRequest==null||artRequest.isDone()))fetchArt(sample);
+         synchronized(this) {
+            if(generation!=pollGeneration)return;
+            this.update(sample);
+            if(sample!=null&&!background&&artwork==null&&nowMs>=nextArtAttempt&&(artRequest==null||artRequest.isDone()))fetchArt(sample);
+         }
       } catch (Exception e) {
          NocturneClient.LOG.debug("Lyrics poll failed", e);
       }
@@ -231,6 +239,8 @@ public final class LyricsService {
 
    synchronized void update(NowPlaying sample) {
       NowPlaying old = this.now;
+      if(sample!=null && old!=null && old.key().equals(sample.key())
+         && old.sessionId().equals(sample.sessionId()) && sample.sampledAtNanos()<old.sampledAtNanos()) return;
       if(sample!=null && advertisement(sample)) {
          cancelLookup();cancelSearch();cancelArt();
          this.now=sample; this.lyrics=null; this.loadingKey=""; lookupGeneration++; this.retryLyricsAt=0;
@@ -250,9 +260,9 @@ public final class LyricsService {
          || old.playing() != sample.playing()
          || !old.sessionId().equals(sample.sessionId())
          || old.durationMs() != sample.durationMs()
-         || Math.abs(old.positionMs() - sample.progressMs()) >= 350L) {
+         || old.sampledAtNanos() != sample.sampledAtNanos()) {
          this.now = sample;
-         if (old == null || !old.key().equals(sample.key()) || (old.durationMs() <= 0 && sample.durationMs() > 0)) {
+         if (old == null || !old.key().equals(sample.key()) || (sample.durationMs() > 0 && (old.durationMs() <= 0 || Math.abs(old.durationMs()-sample.durationMs()) > 2000))) {
             this.fetchLyrics(sample);
             if (old == null || !old.key().equals(sample.key())) this.fetchArt(sample);
          }
@@ -268,7 +278,7 @@ public final class LyricsService {
       this.exec.execute(() -> {
          NowPlaying n = this.now;
          if (n != null) {
-            String key=n.key() + (NocturneClient.SETTINGS.plainLyrics.on() ? "|plain" : "") + "|" + n.durationMs();
+            String key=n.key() + (NocturneClient.SETTINGS.plainLyrics.on() ? "|plain" : "") + "|" + n.durationMs() + "|match2";
             this.cache.remove(key);
             try { diskCache().remove(key); } catch(IOException ex) { NocturneClient.LOG.warn("Could not refresh disk lyric cache",ex); }
             this.fetchLyrics(n);
@@ -277,14 +287,14 @@ public final class LyricsService {
    }
 
    private synchronized void fetchLyrics(NowPlaying np) {
-      cancelLookup();
       if (now == null || !now.key().equals(np.key()) || now.durationMs()!=np.durationMs()) return;
+      cancelLookup();
       try {
          Lyrics local = Studio.library().local(np.key());
          if (local != null && !local.lines.isEmpty()) { applyLocal(np, local); return; }
       } catch (IOException ex) { NocturneClient.LOG.warn("Local lyrics could not be read", ex); }
       boolean plain = NocturneClient.SETTINGS == null || NocturneClient.SETTINGS.plainLyrics.on();
-      String key = np.key() + (plain ? "|plain" : "") + "|" + np.durationMs();
+      String key = np.key() + (plain ? "|plain" : "") + "|" + np.durationMs() + "|match2";
       this.loadingKey = key;
       long generation=++lookupGeneration;
       this.retryLyricsAt = 0;
@@ -321,7 +331,7 @@ public final class LyricsService {
             lyricsStatus="Can't reach the lyrics sites, trying again...";
             lyricRequest=exec.schedule(()->lookup(np,key,plain,attempt+1,generation),10,TimeUnit.SECONDS);return;
          }
-         if(found==null || (found.lyrics()!=null && found.lyrics().lines.isEmpty()))found=new LyricsFinder.Result(null,"No lyrics found for this song");
+         if(found==null || (found.lyrics()!=null && found.lyrics().lines.isEmpty()))found=new LyricsFinder.Result(null,finder.reached?"No confident lyric match; search alternatives":"Network unavailable: lyric providers could not be reached");
          if(found.lyrics()!=null || "Instrumental".equals(found.status())) {
             cache.put(key,new CachedLyrics(found,System.currentTimeMillis()));
             try {diskCache().write(key,found);}catch(IOException ex){NocturneClient.LOG.warn("Could not persist lyrics",ex);}

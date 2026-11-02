@@ -26,14 +26,14 @@ import java.util.regex.Pattern;
 
 final class LyricsFinder {
    private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6L)).followRedirects(Redirect.NORMAL).build();
-   private static final String UA = "Nocturne Lyrics (Minecraft client mod)";
+   private static final String UA = "Nocturne/1.0.1 (https://github.com/Truwty/nocturne)";
    private static final Pattern BRACKETS = Pattern.compile("\\s*[(\\[{【（][^)\\]}】）]*[)\\]}】）]");
    private static final Pattern FEAT = Pattern.compile("(?i)\\s+(feat\\.?|ft\\.?|featuring)\\s+.*$");
    private static final Pattern DASH_TAIL = Pattern.compile(
       "(?i)\\s+[-–—]\\s+.*\\b(remaster(ed)?|version|edit|mix|mono|stereo|live|deluxe|bonus|single|demo|acoustic|instrumental|sped up|slowed|from|soundtrack|anniversary)\\b.*$"
    );
    private static final Pattern NOISE = Pattern.compile(
-      "(?i)\\b(official\\s+(music\\s+)?(video|audio|lyric video|visualizer)|lyrics?\\s+video|lyrics?|audio|hd|hq|4k|mv|m/v|explicit|clean)\\b"
+      "(?i)\\s+(official\\s+(music\\s+)?(video|audio|lyric video|visualizer)|lyrics?\\s+video)\\s*$"
    );
    static final Pattern CREDIT = Pattern.compile(
       "^\\s*(作词|作曲|编曲|制作人|制作|混音|母带|和声|吉他|贝斯|鼓|录音|监制|出品|发行|统筹|词|曲|lyrics by|composed by|produced by|written by|arranged by|mixed by|mastered by|composer|lyricist|producer)\\s*[:：].*",
@@ -64,17 +64,19 @@ final class LyricsFinder {
       );
       if (got != null && got.isJsonObject()) {
          JsonObject o = got.getAsJsonObject();
-         Lyrics l = version(str(o,"trackName",q0.title())).equals(version(q0.title()))?synced(o):null;
+         JsonArray exact = new JsonArray(); exact.add(o);
+         Pick checked = pickLrclib(exact, q0, durMs);
+         Lyrics l = checked.synced;
          if (l != null) {
             return new LyricsFinder.Result(l, "Synced lyrics");
          }
 
-         if (bool(o, "instrumental")) {
+         if (checked.instrumental) {
             instrumental = true;
          }
 
          if (plain == null) {
-            plain = str(o, "plainLyrics");
+            plain = checked.plain;
          }
       }
 
@@ -163,8 +165,8 @@ final class LyricsFinder {
       return new ArrayList<>(out);
    }
 
-   private static String version(String title) {
-      var match=Pattern.compile("(?i)\\b(live|acoustic|instrumental|remix|demo|sped up|slowed)\\b").matcher(title);
+   static String version(String title) {
+      var match=Pattern.compile("(?i)(?:[(\\[{]|\\s[-–—]\\s)\\s*(?:[^)\\]}]*?\\b)?(live|acoustic|instrumental|remix|demo|sped up|slowed)\\b").matcher(title);
       return match.find()?match.group(1).toLowerCase(Locale.ROOT):"studio";
    }
 
@@ -172,7 +174,8 @@ final class LyricsFinder {
       String s = t.replaceFirst("(?i)\\s+[-|]\\s+(youtube( music)?|spotify|apple music|tidal)(\\s.*)?$", "");
       s = FEAT.matcher(s).replaceAll("");
       s = DASH_TAIL.matcher(s).replaceAll("");
-      s = BRACKETS.matcher(s).replaceAll("");
+      s = BRACKETS.matcher(s).replaceAll(match ->
+         Pattern.compile("(?i)\\b(remaster(?:ed)?|feat|ft|featuring|official|video|audio|lyrics?|live|acoustic|instrumental|remix|demo|sped up|slowed|mono|stereo|version|edit|deluxe|anniversary)\\b").matcher(match.group()).find() ? "" : match.group());
       s = NOISE.matcher(s).replaceAll("");
       s = s.replaceAll("\\s{2,}", " ").replaceAll("[\\s\\-–—|]+$", "").trim();
       return s.isEmpty() ? t.trim() : s;
@@ -180,7 +183,7 @@ final class LyricsFinder {
 
    private static String mainArtist(String a) {
       String s = a == null ? "" : a;
-      s = s.split("(?i)\\s*(,|;|&|/|\\s+x\\s+|\\s+feat\\.?\\s+|\\s+ft\\.?\\s+|\\s+and\\s+)\\s*", 2)[0];
+      s = s.split("(?i)\\s*(,|;|\\s+&\\s+|\\s+/\\s+|\\s+x\\s+|\\s+feat\\.?\\s+|\\s+featuring\\s+|\\s+ft\\.?\\s+|\\s+and\\s+)\\s*", 2)[0];
       s = s.replaceAll("(?i)\\s*-\\s*topic$", "").replaceAll("(?i)vevo$", "").replaceAll("(?i)\\s+official$", "");
       return s.trim();
    }
@@ -190,7 +193,7 @@ final class LyricsFinder {
       return n.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").trim();
    }
 
-   private static boolean titleMatches(String found, String wanted) {
+   static boolean titleMatches(String found, String wanted) {
       String a = norm(found);
       String b = norm(wanted);
       if (a.isEmpty() || b.isEmpty()) {
@@ -201,15 +204,16 @@ final class LyricsFinder {
          return true;
       }
 
-      String shorter = a.length() < b.length() ? a : b;
-      String longer = shorter == a ? b : a;
-      return shorter.length() >= 4 && longer.contains(shorter) && shorter.length() >= longer.length() * 0.55;
+      return false;
    }
 
-   private static boolean artistMatches(String found,String wanted) {
-      String artist=norm(mainArtist(wanted)).replace(" ","");
+   private static String artistNorm(String artist) {
+      return Normalizer.normalize(mainArtist(artist),Form.NFKD).replaceAll("\\p{M}","").toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]","");
+   }
+   static boolean artistMatches(String found,String wanted) {
+      String artist=artistNorm(wanted);
       if(artist.isEmpty())return true;
-      return norm(mainArtist(found)).replace(" ","").equals(artist);
+      return artistNorm(found).equals(artist);
    }
 
    private static LyricsFinder.Pick pickLrclib(JsonElement res, LyricsFinder.Query q, long durMs) {
@@ -218,17 +222,15 @@ final class LyricsFinder {
          JsonArray arr = res.getAsJsonArray();
          double bestSynced = Double.MAX_VALUE;
          double bestPlain = Double.MAX_VALUE;
-         Set<String> artists=new java.util.HashSet<>();
 
          for (JsonElement e : arr) {
             if (e.isJsonObject()) {
                JsonObject o = e.getAsJsonObject();
                if (version(str(o,"trackName","")).equals(version(q.title())) && titleMatches(str(o, "trackName", ""), q.title()) && artistMatches(str(o, "artistName", ""), q.artist())) {
-                  double diff = durMs > 0L && o.has("duration") && !o.get("duration").isJsonNull()
-                     ? Math.abs(o.get("duration").getAsDouble() - durMs / 1000.0)
-                     : 0.0;
+                  double duration = duration(o);
+                  if (!Double.isFinite(duration)) continue;
+                  double diff = durMs > 0L && duration > 0 ? Math.abs(duration - durMs / 1000.0) : 0.0;
                   if (!(diff > 5.0)) {
-                     artists.add(norm(str(o,"artistName","")));
                      if (bool(o, "instrumental") && diff < 2.0) {
                         p.instrumental = true;
                      }
@@ -251,14 +253,24 @@ final class LyricsFinder {
             }
          }
 
-         if(q.artist().isBlank() && artists.size()>1) { p.synced=null;p.plain=null;p.instrumental=false; }
+         if(q.artist().isBlank()) { p.synced=null;p.plain=null;p.instrumental=false; }
          return p;
       } else {
          return p;
       }
    }
 
-   private static Lyrics synced(JsonObject o) {return LyricsFormats.fromRecord(o);}
+   static double duration(JsonObject o) {
+      if (!o.has("duration") || o.get("duration").isJsonNull()) return 0;
+      try { double seconds=o.get("duration").getAsDouble(); return seconds>=0?seconds:Double.NaN; }
+      catch (NumberFormatException | UnsupportedOperationException | IllegalStateException ex) { return Double.NaN; }
+   }
+   private static Lyrics synced(JsonObject o) {
+      try { return LyricsFormats.fromRecord(o); }
+      catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException ex) {
+         NocturneClient.LOG.debug("Invalid provider lyric record skipped", ex); return null;
+      }
+   }
 
    private Lyrics netease(LyricsFinder.Query q, long durMs) {
       JsonElement res = this.get("https://music.163.com/api/search/get/web?type=1&offset=0&limit=10&s=" + enc((q.title() + " " + q.artist()).trim()), true);
@@ -275,7 +287,7 @@ final class LyricsFinder {
                         if (song.has("artists") && song.get("artists").isJsonArray()) {
                            for (JsonElement a : song.getAsJsonArray("artists")) {
                               if (a.isJsonObject()) {
-                                 artists.append(str(a.getAsJsonObject(), "name", "")).append(' ');
+                                 artists.append(str(a.getAsJsonObject(), "name", "")).append(", ");
                               }
                            }
                         }
@@ -329,17 +341,19 @@ final class LyricsFinder {
       long remaining = deadline - System.nanoTime();
       if (remaining <= 0 || Thread.currentThread().isInterrupted()) return null;
       try {
+         ProviderBackoff.check(URI.create(url));
          Builder b = HttpRequest.newBuilder(URI.create(url)).timeout(Duration.ofNanos(Math.min(remaining, Duration.ofSeconds(4).toNanos()))).GET();
          if (browserish) {
             b.header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Nocturne Lyrics (Minecraft client mod)")
                .header("Referer", "https://music.163.com/");
          } else {
-            b.header("User-Agent", "Nocturne Lyrics (Minecraft client mod)");
+            b.header("User-Agent", UA);
          }
 
-         HttpResponse<String> res = HTTP.send(b.build(), BodyHandlers.ofString());
+         var res = HTTP.send(b.build(), dev.truwty.nocturne.playback.BoundedBody.handler(2_097_152));
+         ProviderBackoff.response(URI.create(url),res.statusCode(),res.headers());
          this.reached |= res.statusCode() == 200 || res.statusCode() == 404;
-         return res.statusCode() != 200 ? null : JsonParser.parseString(res.body());
+         return res.statusCode() != 200 ? null : JsonParser.parseString(new String(res.body(), StandardCharsets.UTF_8));
       } catch (InterruptedException e) {
          Thread.currentThread().interrupt();
          return null;

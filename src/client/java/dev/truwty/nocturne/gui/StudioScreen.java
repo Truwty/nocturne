@@ -88,8 +88,19 @@ public final class StudioScreen extends Screen {
         addRenderableWidget(new StudioSlider(x + 16, row, w - 32, 20, Component.empty(), setting.fraction()) {
             { updateMessage(); }
             @Override protected void updateMessage() { setMessage(Component.literal(setting.name + ": " + setting.display())); }
-            @Override protected void applyValue() { setting.setFraction(value); updateMessage(); }
-            @Override public void onRelease(MouseButtonEvent event) { super.onRelease(event); s().save(); }
+            private com.google.gson.JsonObject before;
+            @Override protected void applyValue() {
+                if(page==4 && before==null)before=Studio.snapshot("placement");
+                setting.setFraction(value);updateMessage();
+            }
+            private void commit() {
+                if(before!=null) {StudioEdits.record("placement",before,Studio.snapshot("placement"));before=null;}
+                s().save();
+            }
+            @Override public void onRelease(MouseButtonEvent event) {super.onRelease(event);commit();}
+            @Override public boolean keyPressed(KeyEvent event) {
+                boolean handled=super.keyPressed(event);if(handled && before!=null)commit();return handled;
+            }
         }); row += 24;
     }
 
@@ -110,6 +121,7 @@ public final class StudioScreen extends Screen {
         row += 26;button(x+16,row,w-32,"Playback & integrations",()->ClientAccess.setScreen(minecraft, new PlaybackScreen(this)));
         row += 26;button(x+16,row,w-32,"Browse music library",()->ClientAccess.setScreen(minecraft, new MusicLibraryScreen(this)));
         row += 26;button(x+16,row,w-32,"Music spectrum & beat effects",()->ClientAccess.setScreen(minecraft, new AudioScreen(this)));
+        row += 26;button(x+16,row,w-32,"Restore visible lyrics",this::restoreVisible);
     }
     private void repair() {
         var diagnosis=recoveryDiagnosis==null?dev.truwty.nocturne.lyrics.LyricsRecovery.current():recoveryDiagnosis;
@@ -118,7 +130,10 @@ public final class StudioScreen extends Screen {
             case RETRY -> service().refetch();
             case RESYNC -> service().resynchronize();
             case RECONNECT -> {if(dev.truwty.nocturne.playback.PlaybackPreferences.cloud())ClientAccess.setScreen(minecraft, new PlaybackScreen(this,2));else{service().system.stop();service().system.start();}}
-            default -> restoreVisible();
+            case SEARCH -> {page=1;scroll=0;rebuildWidgets();if(queryValue!=null&&!queryValue.isBlank())service().search(queryValue);}
+            case TIMING -> ClientAccess.setScreen(minecraft,new LyricWorkspaceScreen(this,1));
+            case SHOW -> restoreVisible();
+            case NONE -> {}
         }
         notice=diagnosis.detail();
     }
@@ -138,7 +153,7 @@ public final class StudioScreen extends Screen {
         var candidates = service().candidates(); shownCandidates = candidates;
         for (int i = resultPage * 3; i < Math.min(candidates.size(), resultPage * 3 + 3); i++) {
             var candidate = candidates.get(i);
-            button(x + 16, row, w - 32, font.plainSubstrByWidth(candidate.label(), w - 50), () -> io(() -> service().choose(candidate))); row += 23;
+            button(x + 16, row, w - 32, font.plainSubstrByWidth(candidate.label(), w - 50), () -> ClientAccess.setScreen(minecraft, new LyricPreviewScreen(this,candidate))); row += 23;
         }
         row = body + 101;
         button(x + 16, row, 60, "Back", () -> { resultPage = Math.max(0, resultPage - 1); rebuildWidgets(); });
@@ -204,7 +219,7 @@ public final class StudioScreen extends Screen {
     }
 
     @Override public void tick() {
-        if(recovery!=null) {recoveryDiagnosis=dev.truwty.nocturne.lyrics.LyricsRecovery.current();recovery.setMessage(Draw.comp(recoveryDiagnosis.button()));}
+        if(recovery!=null) {recoveryDiagnosis=dev.truwty.nocturne.lyrics.LyricsRecovery.current();recovery.setMessage(Draw.comp(recoveryDiagnosis.button()));recovery.active=recoveryDiagnosis.action()!=dev.truwty.nocturne.lyrics.LyricsRecovery.Action.NONE;}
         if (page == 1 && shownCandidates != service().candidates()) rebuildWidgets();
         if (page == 2 && !shownPlayers.equals(service().system.players())) rebuildWidgets();
         if (transport.size() == 5) {
@@ -249,7 +264,7 @@ public final class StudioScreen extends Screen {
         if ((page == 3 || page == 4) && name != null) text(g, "Saved: " + String.join(", ", Studio.library().presets(page == 3 ? "themes" : "placement:" + s().follow.get())), body + 211);
         g.disableScissor();
         if (!notice.isBlank()) text(g, notice, y + h - 44);
-        else if (page == 0) text(g,dev.truwty.nocturne.lyrics.LyricsRecovery.current().summary()+" · "+service().lyricsStatus(),y+h-44);
+        else if (page == 0) text(g,(recoveryDiagnosis==null?"Checking playback":recoveryDiagnosis.summary())+" · "+service().lyricsStatus(),y+h-44);
     }
     private void text(GuiGraphicsExtractor g, String value, int by) { Draw.text(g, font, font.plainSubstrByWidth(value, w - 32), x + 16, by, s().uiText.argb(), false); }
     @Override public boolean keyPressed(KeyEvent event) {
@@ -267,7 +282,7 @@ public final class StudioScreen extends Screen {
         rebuildWidgets(); return true;
     }
     private int maxScroll() {
-        int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 186 : page == 1 ? 244 : page == 4 ? 270 : page == 3 ? 230 : page == 6 ? 275 : 204;
+        int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 212 : page == 1 ? 244 : page == 4 ? 270 : page == 3 ? 230 : page == 6 ? 275 : 204;
         return Math.max(0, contentHeight - (h - 116));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); ClientAccess.setScreen(minecraft, parent); }

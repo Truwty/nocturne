@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1 - Reliability and polish
+
+- Validate automatic lyric matches, preserve meaningful metadata, rank manual alternatives and preview before saving a persistent song selection.
+- Route recovery to search, retry, timing, resynchronization or placement repair; respect intentional screen hiding.
+- Compare playback samples at a shared instant, accept small corrections and reject stale session samples.
+- Preserve slow editor movement and gesture undo/redo/save; use calmer defaults for new installations.
+- Bound lyric responses, honor provider cooldowns, clip long previews and add native crowded/soak performance gates.
+- Target: Windows, Minecraft 26.1.2, Fabric, Java 25, client only. [Release notes](docs/releases/1.0.1.md).
+
+
 ## 1.0.0 — Official Release Version 1
 
 Windows / Minecraft 26.1.2 / Fabric / client only. This is a Release build, not a beta.

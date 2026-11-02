@@ -26,6 +26,7 @@ public final class LyricWorkspaceScreen extends Screen {
         document=new TimingDocument(lyrics==null?Lyrics.parse(""):lyrics);
         line=Math.max(0,document.lyrics().indexAt(LyricsRenderer.clockMs()));
     }
+    public LyricWorkspaceScreen(Screen parent,int page) { this(parent); this.page=page; }
     private LyricsSettings s(){return NocturneClient.SETTINGS;}
     private boolean hasLine(){return !document.lyrics().lines.isEmpty();}
     private Lyrics.Line selected(){return document.lyrics().lines.get(line);}

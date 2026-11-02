@@ -1,4 +1,42 @@
 {
-  "steady-v2": {"cpuP95Ms": 50, "minText": 1, "text": 16, "vertices": 512, "particles": 0, "glow": 0, "cloud": 0, "trails": 0},
-  "decorated-v2": {"cpuP95Ms": 50, "minText": 1, "text": 128, "vertices": 65536, "particles": 48, "glow": 32, "cloud": 16, "trails": 0}
+  "steady-v2": {
+    "cpuP95Ms": 50,
+    "minText": 1,
+    "text": 16,
+    "vertices": 512,
+    "particles": 0,
+    "glow": 0,
+    "cloud": 0,
+    "trails": 0
+  },
+  "decorated-v2": {
+    "cpuP95Ms": 50,
+    "minText": 1,
+    "text": 128,
+    "vertices": 65536,
+    "particles": 48,
+    "glow": 32,
+    "cloud": 16,
+    "trails": 0
+  },
+  "crowded-v1": {
+    "cpuP95Ms": 50,
+    "minText": 1,
+    "text": 128,
+    "vertices": 65536,
+    "particles": 48,
+    "glow": 32,
+    "cloud": 16,
+    "trails": 0
+  },
+  "soak-v1": {
+    "cpuP95Ms": 50,
+    "minText": 1,
+    "text": 128,
+    "vertices": 65536,
+    "particles": 48,
+    "glow": 32,
+    "cloud": 16,
+    "trails": 0
+  }
 }

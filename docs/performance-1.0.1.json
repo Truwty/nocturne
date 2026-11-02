@@ -1,0 +1,86 @@
+{
+  "baseline": {
+    "schema": 1,
+    "renderer": "standard",
+    "scenarios": [
+      {
+        "scenario": "steady-v2",
+        "samples": 60,
+        "cpuP50Ms": 0.1177,
+        "cpuP95Ms": 0.1654,
+        "textMax": 12,
+        "verticesMax": 0,
+        "particlesMax": 0,
+        "glowMax": 0,
+        "cloudMax": 0,
+        "trailsMax": 0
+      },
+      {
+        "scenario": "decorated-v2",
+        "samples": 60,
+        "cpuP50Ms": 0.0865,
+        "cpuP95Ms": 0.1217,
+        "textMax": 7,
+        "verticesMax": 0,
+        "particlesMax": 4,
+        "glowMax": 1,
+        "cloudMax": 0,
+        "trailsMax": 0
+      }
+    ]
+  },
+  "release": {
+    "schema": 1,
+    "renderer": "standard",
+    "scenarios": [
+      {
+        "scenario": "steady-v2",
+        "samples": 60,
+        "cpuP50Ms": 0.1442,
+        "cpuP95Ms": 0.1981,
+        "textMax": 12,
+        "verticesMax": 0,
+        "particlesMax": 0,
+        "glowMax": 0,
+        "cloudMax": 0,
+        "trailsMax": 0
+      },
+      {
+        "scenario": "decorated-v2",
+        "samples": 60,
+        "cpuP50Ms": 0.1016,
+        "cpuP95Ms": 0.1468,
+        "textMax": 14,
+        "verticesMax": 0,
+        "particlesMax": 1,
+        "glowMax": 1,
+        "cloudMax": 0,
+        "trailsMax": 0
+      },
+      {
+        "scenario": "crowded-v1",
+        "samples": 60,
+        "cpuP50Ms": 0.1059,
+        "cpuP95Ms": 0.1801,
+        "textMax": 13,
+        "verticesMax": 0,
+        "particlesMax": 0,
+        "glowMax": 1,
+        "cloudMax": 0,
+        "trailsMax": 0
+      },
+      {
+        "scenario": "soak-v1",
+        "samples": 500,
+        "cpuP50Ms": 0.0859,
+        "cpuP95Ms": 0.152,
+        "textMax": 14,
+        "verticesMax": 0,
+        "particlesMax": 1,
+        "glowMax": 1,
+        "cloudMax": 0,
+        "trailsMax": 0
+      }
+    ]
+  }
+}

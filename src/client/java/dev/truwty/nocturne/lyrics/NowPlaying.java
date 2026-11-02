@@ -11,12 +11,14 @@ public record NowPlaying(
    }
 
    public long positionMs() {
-      if (!this.playing) {
-         return this.progressMs;
-      }
+      return positionAt(System.nanoTime());
+   }
 
-      long elapsed = (System.nanoTime() - this.sampledAtNanos) / 1000000L;
-      return Math.min(this.durationMs > 0L ? this.durationMs : Long.MAX_VALUE, this.progressMs + elapsed);
+   public long positionAt(long nanos) {
+      long elapsed = playing ? Math.max(0, (nanos - sampledAtNanos) / 1_000_000L) : 0;
+      long progress = Math.max(0, progressMs);
+      long position = progress > Long.MAX_VALUE - elapsed ? Long.MAX_VALUE : progress + elapsed;
+      return Math.min(durationMs > 0 ? durationMs : Long.MAX_VALUE, position);
    }
 
    public String key() {

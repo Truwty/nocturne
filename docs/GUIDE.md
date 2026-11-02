@@ -6,25 +6,25 @@
 
 </div>
 
-Cinematic world lyrics and desktop music controls for **Minecraft Java + Fabric** (separate builds for 26.1, 26.1.1, 26.1.2, 26.2 and 26.3). Entirely client-side, with automatic desktop music detection. **Desktop detection needs no Spotify login or developer application.** An optional Spotify account connection adds device volume and queue controls.
+Cinematic world lyrics and desktop music controls. **Stable 1.0.1 targets Windows / Minecraft Java 26.1.2 / Fabric.** Historical beta targets remain in the download selector. Entirely client-side, with automatic desktop music detection. **Desktop detection needs no Spotify login or developer application.** An optional Spotify account connection adds device volume and queue controls.
 
 ![Nocturne Studio](studio.png)
 
 ## Install
 
 1. Select your **exact Minecraft version** on the [download page](https://truwty.github.io/nocturne/downloads.html). Use **Java 25**, **Fabric Loader 0.20.1+**, and the matching Fabric API listed in [support](../SUPPORT.md).
-2. Replace older Nocturne JARs with `nocturne-0.13.0-beta.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
+2. Replace older Nocturne JARs with `nocturne-1.0.1.jar` from [Releases](https://github.com/Truwty/nocturne/releases). Keep one version in the instance's `mods` folder.
 3. Play music in your desktop app. Press **N**, or click **Nocturne** on the title screen, to open Studio.
 
 No server installation is needed. Hypixel itself has not been directly tested; follow the server's own mod rules.
 
 ## Recovery, caching and playback
 
-Player diagnoses lookup failure, playback-clock drift and hidden placement separately. The recovery button changes to Retry lyric lookup, Resync playback, Enable lyrics or Reconnect player as appropriate; healthy playback keeps Restore visible lyrics available. Intros and advertisements are not treated as placement failures. Provider timing can still need manual calibration in Lyrics.
+Player diagnoses lookup failure, playback-clock drift and hidden placement separately. The recovery button offers search alternatives for an unavailable match, retry for a provider/network failure, timing editing for estimated lyrics, resynchronization for clock drift, or visibility repair for hidden placement. Intentional screen hiding is reported without resetting placement. Player also keeps an explicit Restore visible lyrics action available. Intros and advertisements are not treated as placement failures. Provider timing can still need manual calibration in Lyrics.
 
 Downloaded lyrics and their word timings persist in `config/nocturne/cache/lyrics` across launches. Expiry defaults to 30 days and is adjustable from 1–90 days in Health/advanced settings. The disk cache is bounded to 256 entries / 64 MiB; corrupt entries are preserved separately and fetched again. Retry lyrics bypasses both memory and disk for the current automatic match. Manual corrections remain separate and take priority; Use automatic lyrics again clears that override.
 
-Matching removes remaster/feature/browser noise, extracts artist/title pairs from browser titles when artist metadata is absent, preserves live/acoustic/remix intent and rejects ambiguous artists. If metadata is insufficient, use the alternative-match picker rather than expecting an exact automatic match.
+Matching removes remaster/feature/browser noise, extracts artist/title pairs from browser titles when artist metadata is absent, preserves live/acoustic/remix intent and rejects ambiguous artists. If metadata is insufficient, use the alternative-match picker rather than expecting an exact automatic match. Open **Lyrics**, search the title and artist, then select a result to preview its timestamps and match confidence. **Use for current song** saves it across launches; **Cancel** changes nothing. Use **Use automatic lyrics again** to remove the saved choice.
 
 Seeking, pause/resume, track changes, recognized advertisements, session loss and Windows output-device changes reset the lyric clock and stale effects. Health has an explicit resynchronization action. Windows Apps diagnostics show each detected app's advertised play/pause, seek and next/previous support. macOS/Linux display detected apps but explicitly mark per-action capability details unavailable.
 

@@ -95,7 +95,7 @@ public class LyricsSettings {
    public final BoolSetting hideOtherScreens=add(new BoolSetting("Hide lyrics in other screens",false));
    public final BoolSetting hideWithGui=add(new BoolSetting("Hide lyrics with F1",false));
    public final BoolSetting edgeFallback=add(new BoolSetting("Screen edge lyric fallback",true));
-   public final BoolSetting lyricBackplate=add(new BoolSetting("Lyric backplate",false));
+   public final BoolSetting lyricBackplate=add(new BoolSetting("Lyric backplate",true));
    public final BoolSetting lyricOutline=add(new BoolSetting("Lyric outline",false));
    public final NumberSetting backplateOpacity=add(new NumberSetting("Backplate opacity",85,30,100,1,"%"));
    public final ModeSetting contrastPreset=add(new ModeSetting("Lyric contrast",0,"Custom","White on charcoal","Ink on parchment"));
@@ -246,24 +246,24 @@ public class LyricsSettings {
          String r = LyricsDebug.report();
          Minecraft.getInstance().keyboardHandler.setClipboard(r);
       }));
-      this.style = this.add(new ModeSetting("Animation", 0, "Edit", "Karaoke", "Typewriter", "Wave", "Drop", "Glitch", "Rise", "Zoom"));
-      this.intensity = this.add(new ModeSetting("Intensity", 1, "Chill", "Normal", "Hype"));
+      this.style = this.add(new ModeSetting("Animation", 1, "Edit", "Karaoke", "Typewriter", "Wave", "Drop", "Glitch", "Rise", "Zoom"));
+      this.intensity = this.add(new ModeSetting("Intensity", 0, "Chill", "Normal", "Hype"));
       this.lyricFont = this.add(new ModeSetting("Lyrics font", 0, Draw.LYRIC_FONTS));
       this.follow = this.add(
          new ModeSetting(
             "Placement", 2, "Scattered around you", "Straight ahead", "Follow view", "In the sky", "In the clouds", "Auto", "Around you, moving along"
          )
       );
-      this.battle = this.add(new BoolSetting("Battle words when fighting", true));
+      this.battle = this.add(new BoolSetting("Battle words when fighting", false));
       this.cloudStyle = this.add(new ModeSetting("Cloud style", 0, "Puffs", "Skywriting", "Carved"));
       this.cloudDrift = this.add(new BoolSetting("Drift with the clouds", true));
       this.cloudTint = this.add(new BoolSetting("Clouds follow time of day", true));
       this.smartPlace = this.add(new BoolSetting("Smart placement", true));
       this.keepUp = this.add(new BoolSetting("Keep up when running", true));
-      this.orbit = this.add(new BoolSetting("Orbit you in F5 front view", true));
+      this.orbit = this.add(new BoolSetting("Orbit you in F5 front view", false));
       this.orbitSpeed = this.add(new NumberSetting("Orbit speed", 100.0, 25.0, 250.0, 25.0, "%"));
       this.maxWords = this.add(new NumberSetting("Words per line", 5.0, 2.0, 10.0, 1.0, ""));
-      this.floor = this.add(new BoolSetting("Words on the floor", true));
+      this.floor = this.add(new BoolSetting("Words on the floor", false));
       this.linger = this.add(new NumberSetting("Lines stay for", 4.0, 0.0, 10.0, 0.5, "s"));
       this.faceYou = this.add(new BoolSetting("Turn to face you", true));
       this.distance = this.add(new NumberSetting("Distance", 3.5, 2.0, 7.0, 0.5, " blocks"));
@@ -272,16 +272,16 @@ public class LyricsSettings {
       this.color = this.add(new ColorSetting("Colour", -9444394));
       this.color2 = this.add(new ColorSetting("Second colour", -3561729));
       this.glow = this.add(new BoolSetting("Glow", true));
-      this.chroma = this.add(new BoolSetting("Chromatic split", true));
-      this.sparkles = this.add(new BoolSetting("Sparkles", true));
-      this.impact = this.add(new BoolSetting("Impact shake + flash", true));
-      this.beatZoom = this.add(new BoolSetting("Beat zoom", true));
-      this.beatPulse = this.add(new BoolSetting("Beat pulse", true));
+      this.chroma = this.add(new BoolSetting("Chromatic split", false));
+      this.sparkles = this.add(new BoolSetting("Sparkles", false));
+      this.impact = this.add(new BoolSetting("Impact shake + flash", false));
+      this.beatZoom = this.add(new BoolSetting("Beat zoom", false));
+      this.beatPulse = this.add(new BoolSetting("Beat pulse", false));
       this.readable = this.add(new BoolSetting("Auto readability", true));
-      this.albumRain = this.add(new BoolSetting("Album colour rain", true));
+      this.albumRain = this.add(new BoolSetting("Album colour rain", false));
       this.shaderMode = this.add(new ModeSetting("Shader support", 0, "Auto", "Always", "Off"));
       this.topBar = this.add(new BoolSetting("Karaoke bar", true));
-      this.cinematic = this.add(new BoolSetting("Cinematic bars", true));
+      this.cinematic = this.add(new BoolSetting("Cinematic bars", false));
       this.nextLine = this.add(new BoolSetting("Show next line", true));
       this.titleCard = this.add(new BoolSetting("Song title intro", true));
       this.seeThrough = this.add(new BoolSetting("Show through walls", false));

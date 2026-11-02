@@ -8,7 +8,7 @@ final class PlaybackSync {
         if(!before.sessionId().equals(after.sessionId()))return "Player/device changed";
         if(!before.key().equals(after.key()))return "Track changed";
         if(before.playing()!=after.playing())return after.playing()?"Playback resumed":"Playback paused";
-        if(Math.abs(before.positionMs()-after.progressMs())>900)return "Seek synchronized";
+        if(Math.abs(before.positionAt(after.sampledAtNanos())-after.positionAt(after.sampledAtNanos()))>900)return "Seek synchronized";
         return "";
     }
 }

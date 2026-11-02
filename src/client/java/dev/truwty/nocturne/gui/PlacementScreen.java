@@ -13,6 +13,7 @@ public final class PlacementScreen extends Screen {
     private final Screen parent;
     private int mode;
     private boolean dragging;
+    private final PreciseDrag dragValues = new PreciseDrag();
     private com.google.gson.JsonObject beforeDrag;
 
     public PlacementScreen(Screen parent) {
@@ -151,8 +152,11 @@ public final class PlacementScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean twice) {
         if (super.mouseClicked(event, twice)) return true;
-        dragging = event.y() > 64 && event.y() < height - 60;
-        if (dragging) beforeDrag = dev.truwty.nocturne.Studio.snapshot("placement");
+        dragging = (event.button()==0 || event.button()==1) && event.y() > 64 && event.y() < height - 60;
+        if (dragging) {
+            beforeDrag = dev.truwty.nocturne.Studio.snapshot("placement");
+            dragValues.clear();
+        }
         return dragging;
     }
 
@@ -160,14 +164,14 @@ public final class PlacementScreen extends Screen {
     public boolean mouseDragged(MouseButtonEvent event, double dx, double dy) {
         if (!dragging) return super.mouseDragged(event, dx, dy);
         var s = NocturneClient.SETTINGS;
-        if (event.button() == 1) adjust(s.editorRoll, dx);
+        if (event.button() == 1) dragValues.adjust(s.editorRoll, dx);
         else if (mode == 0) {
-            adjust(s.editorX, dx * 0.02);
-            adjust(s.editorY, -dy * 0.02);
+            dragValues.adjust(s.editorX, dx * 0.02);
+            dragValues.adjust(s.editorY, -dy * 0.02);
         } else if (mode == 1) {
-            adjust(s.editorYaw, dx);
-            adjust(s.editorPitch, dy);
-        } else adjust(s.size, dx * 0.5 - dy * 0.5);
+            dragValues.adjust(s.editorYaw, dx);
+            dragValues.adjust(s.editorPitch, dy);
+        } else dragValues.adjust(s.size, dx * 0.5 - dy * 0.5);
         return true;
     }
 
@@ -181,6 +185,8 @@ public final class PlacementScreen extends Screen {
             StudioEdits.record(
                     "placement", beforeDrag, dev.truwty.nocturne.Studio.snapshot("placement"));
         dragging = false;
+        beforeDrag = null;
+        dragValues.clear();
         return super.mouseReleased(event);
     }
 
@@ -196,12 +202,12 @@ public final class PlacementScreen extends Screen {
         var before = dev.truwty.nocturne.Studio.snapshot("placement");
         var s = NocturneClient.SETTINGS;
         if (mode == 0) {
-            adjust(s.editorX, dx * .02);
-            adjust(s.editorY, -dy * .02);
+            adjust(s.editorX, dx * s.editorX.step);
+            adjust(s.editorY, -dy * s.editorY.step);
         } else if (mode == 1) {
-            adjust(s.editorYaw, dx);
-            adjust(s.editorPitch, dy);
-        } else adjust(s.size, dx * .5 - dy * .5);
+            adjust(s.editorYaw, dx * s.editorYaw.step);
+            adjust(s.editorPitch, dy * s.editorPitch.step);
+        } else adjust(s.size, (dx - dy) * s.size.step);
         StudioEdits.record("placement", before, dev.truwty.nocturne.Studio.snapshot("placement"));
     }
 
@@ -236,6 +242,10 @@ public final class PlacementScreen extends Screen {
 
     @Override
     public void onClose() {
+        if (dragging && beforeDrag != null) {
+            StudioEdits.record("placement", beforeDrag, dev.truwty.nocturne.Studio.snapshot("placement"));
+            dragging = false; beforeDrag = null; dragValues.clear();
+        }
         NocturneClient.SETTINGS.save();
         try {
             dev.truwty.nocturne.Studio.savePlacement();

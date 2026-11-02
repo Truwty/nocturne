@@ -3,9 +3,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class LyricsRecoveryTest {
  @Test void offersDifferentFixesForLookupTimingAndPlacement() {
-  assertEquals(LyricsRecovery.Action.RETRY,LyricsRecovery.classify(true,true,false,"No lyrics found",false,false,0,true).action());
+  assertEquals(LyricsRecovery.Action.SEARCH,LyricsRecovery.classify(true,true,false,"No lyrics found",false,false,0,true).action());
   assertEquals(LyricsRecovery.Action.RESYNC,LyricsRecovery.classify(true,true,true,"Synced",true,false,5000,true).action());
   assertEquals(LyricsRecovery.Action.SHOW,LyricsRecovery.classify(true,true,true,"Synced",true,true,0,true).action());
+ }
+ @Test void networkFailuresAndEstimatedTimingHaveDistinctRepairs() {
+  assertEquals(LyricsRecovery.Action.RETRY,LyricsRecovery.classify(true,true,false,"Network unavailable: providers unreachable",false,false,0,true).action());
+  assertEquals(LyricsRecovery.Action.TIMING,LyricsRecovery.classify(true,true,true,"Lyrics (timing estimated)",true,false,0,true).action());
  }
  @Test void introsAdvertisementsAndLoadingDoNotTriggerFalsePlacementRepairs() {
   assertEquals(LyricsRecovery.Action.NONE,LyricsRecovery.classify(true,true,true,"Synced",false,true,0,true).action());
