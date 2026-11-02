@@ -18,9 +18,79 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class SpotifyPlayback implements AutoCloseable {
     public static final String REDIRECT = "http://127.0.0.1:43869/callback";
     private static final String SCOPES =
-            "user-read-playback-state user-modify-playback-state user-read-currently-playing";
+            "user-read-playback-state user-modify-playback-state user-read-currently-playing playlist-read-private playlist-read-collaborative";
 
     public record Track(String title, String artist, String uri) {}
+    public record LibraryItem(String title, String artist, String uri, boolean playlist) {}
+    public record LibraryPage(List<LibraryItem> items, boolean more, String message, long generation) {
+        public LibraryPage { items = List.copyOf(items); }
+    }
+    private volatile long libraryGeneration;
+    private volatile LibraryPage library = new LibraryPage(List.of(), false, "Search Spotify or browse your playlists", 0);
+    public LibraryPage library() { return library; }
+
+    public synchronized void browseLibrary(String query, String playlist, int offset) {
+        if (query == null || query.length() > 200 || playlist == null || (!playlist.isEmpty() && !playlist.matches("[A-Za-z0-9]{22}")))
+            throw new IllegalArgumentException("Invalid library query");
+        if (offset < 0 || offset > 1000) throw new IllegalArgumentException("Library page out of range");
+        long generation = ++libraryGeneration;
+        library = new LibraryPage(List.of(), false, "Loading Spotify…", generation);
+        boolean accepted = offer(() -> {
+            if (generation != libraryGeneration) return;
+            try {
+                if (!connected()) throw new IOException("Connect Spotify in Playback & integrations first");
+                boolean playlists = playlist.isEmpty() && query.isBlank();
+                String path = !playlist.isEmpty() ? "playlists/" + playlist + "/items?limit=5&offset=" + offset
+                        : playlists ? "me/playlists?limit=5&offset=" + offset
+                        : "search?type=track&limit=5&offset=" + offset + "&q=" + enc(query.trim());
+                JsonObject response = request("GET", path, null);
+                LibraryPage page = decodeLibrary(response, playlists, !playlist.isEmpty(), generation);
+                if (generation == libraryGeneration) library = page;
+            } catch (Exception ex) {
+                if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+                if (generation == libraryGeneration) library = new LibraryPage(List.of(), false,
+                        !connected() ? "Connect Spotify to browse. Desktop detection still works without login."
+                                : "Library unavailable · " + status + ". Reconnect for playlist permissions.", generation);
+            }
+        });
+        if (!accepted) library = new LibraryPage(List.of(), false, "Spotify is busy; try again in a moment", generation);
+    }
+
+    static LibraryPage decodeLibrary(JsonObject response, boolean playlists, boolean playlistItems, long generation) {
+        var result = new ArrayList<LibraryItem>();
+        if (response == null) return new LibraryPage(result, false, "No results", generation);
+        JsonObject page = response.has("tracks") && response.get("tracks").isJsonObject() ? response.getAsJsonObject("tracks") : response;
+        if (page.has("items") && page.get("items").isJsonArray()) for (var element : page.getAsJsonArray("items")) {
+            if (!element.isJsonObject() || result.size() >= 5) continue;
+            var item = element.getAsJsonObject();
+            if (playlistItems) {
+                var wrapped = item.has("item") ? item.get("item") : item.get("track");
+                if (wrapped == null || !wrapped.isJsonObject()) continue;
+                item = wrapped.getAsJsonObject();
+            }
+            if (playlists) {
+                String uri = str(item, "uri", "");
+                if (uri.matches("spotify:playlist:[A-Za-z0-9]{22}")) result.add(new LibraryItem(str(item, "name", "Playlist"), "Playlist", uri, true));
+            } else {
+                var track = track(item);
+                if (validTrackUri(track.uri()) && !bool(item, "is_local")) result.add(new LibraryItem(track.title(), track.artist(), track.uri(), false));
+            }
+        }
+        return new LibraryPage(result, page.has("next") && !page.get("next").isJsonNull(), result.isEmpty() ? "No accessible items on this page" : "Spotify · " + result.size() + " items", generation);
+    }
+
+    public void playTrack(String uri) {
+        if (!validTrackUri(uri)) throw new IllegalArgumentException("Invalid Spotify track URI");
+        offer(() -> {
+            try {
+                var body = new JsonObject(); var uris = new JsonArray(); uris.add(uri); body.add("uris", uris);
+                request("PUT", "me/player/play", body.toString()); nextPoll = 0; status = "Spotify playback requested";
+            } catch (Exception ex) {
+                if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
+                status = "Spotify could not play track; check active device and Premium access";
+            }
+        });
+    }
 
     public record State(
             NowPlaying track,
@@ -124,9 +194,13 @@ public final class SpotifyPlayback implements AutoCloseable {
         if (!value) state = null;
     }
 
-    private void offer(Runnable action) {
-        if (!closed && !commands.offer(action))
+    private boolean offer(Runnable action) {
+        if (closed) return false;
+        if (!commands.offer(action)) {
             status = "Spotify command queue full; wait a moment";
+            return false;
+        }
+        return true;
     }
 
     private void tick() {
@@ -404,6 +478,8 @@ public final class SpotifyPlayback implements AutoCloseable {
     }
 
     public void disconnect() {
+        libraryGeneration++;
+        library = new LibraryPage(List.of(), false, "Disconnected", libraryGeneration);
         cancelLogin();
         enabled = false;
         state = null;
@@ -616,6 +692,8 @@ public final class SpotifyPlayback implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
+        libraryGeneration++;
+        library = new LibraryPage(List.of(), false, "Closed", libraryGeneration);
         cancelLogin();
         commands.clear();
         worker.shutdownNow();

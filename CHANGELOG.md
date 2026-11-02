@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.0.0 — Official Release Version 1
+
+Windows / Minecraft 26.1.2 / Fabric / client only. This is a Release build, not a beta.
+
+- Add a first-run setup wizard with live desktop-player, lyric and visibility checks; reopen it from Help & setup.
+- Add an optional Spotify music-library browser: track search, playlist paging, track playback, queue insertion and Spotify links. Existing connections may need reconnection for playlist permissions. Spotify access, Premium and active-device restrictions still apply.
+- Add a lyrics-free visualizer with spectrum, signed waveform and bass/mid/treble views. It can appear between lyric lines or stay enabled throughout playback.
+- Replace the all-desktop peak meter with Windows process-tree PCM capture for the selected supported player. Minecraft and unrelated applications do not drive effects. Browser capture includes that browser's audio tabs; cloud playback must be local. Unsupported or ambiguous processes report an unavailable state instead of capturing all output.
+- Analyze real PCM with a Hann-windowed 2048-point FFT, independent frequency-band response controls and optional detected-beat pulses. Tempo appears only after sufficiently consistent onsets; uncertain tempo remains unlabelled.
+- Add terrain raycasts at a bounded rate and readable screen-edge captions when a lyric anchor is behind scenery.
+- Move HUD elements away from the hotbar, subtitle area and scoreboard. Add eight user-defined overlay exclusion zones and a bounded registration API for other mods.
+- Add a controller on-screen keyboard for Studio text fields, with letters, numbers, symbols, case, spaces, backspace and cancel/apply.
+- Persist compressed album thumbnails across game launches with a seven-day expiry and limits of 64 entries / 8 MiB. Keep bounded memory caching and cancel obsolete artwork requests.
+- Add a cache manager with song labels, sizes, dates, paging, selection and confirmed removal. Local lyric edits, profiles and account files are preserved.
+- Add in-game step-by-step guides linked to the timing, theme and world-placement editors.
+- Suspend capture and spectrum work while paused, minimized, unfocused or without matching local music; honor reduced-motion and photosensitivity settings.
+
+The new application capture requires a Windows build supporting process loopback (20348 or later; Windows 11 supported). General player detection does not require Spotify login. Existing historical beta downloads for other Minecraft targets remain available; this release artifact targets 26.1.2 exactly.
+
 ## 0.14.0-beta.1
 
 - Add exact-target Fabric builds for Minecraft 26.1, 26.1.1, 26.2 and 26.3 alongside 26.1.2, with compile-time client/rendering adapters.

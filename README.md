@@ -20,6 +20,8 @@
 
 Nocturne brings your desktop soundtrack into Minecraft: lyrics in the world, a compact playback HUD, and a Studio for getting every detail right. It detects supported desktop players automatically. **No Spotify login is needed for desktop detection**; an optional account connection enables supported extras.
 
+**Official Release Version 1 · Windows · Minecraft 26.1.2 · Fabric.** New in 1.0: isolated music audio, real spectrum and tempo analysis, a lyrics-free visualizer, library browsing, first-run checks, controller text entry, persistent artwork, download management and guided editors. [Read the release notes](docs/releases/1.0.0.md).
+
 [Get started](#three-steps-to-your-first-session) · [Inside the Studio](#inside-the-studio) · [Compatibility](#choose-the-build-for-your-world) · [Development & support](#behind-the-session)
 
 ## Inside the Studio

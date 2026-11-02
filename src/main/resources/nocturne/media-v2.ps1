@@ -2,6 +2,9 @@ $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
 Add-Type -AssemblyName System.Runtime.WindowsRuntime
 Add-Type -TypeDefinition @'
+#NOCTURNE_CAPTURE_SOURCE#
+'@
+Add-Type -TypeDefinition @'
 using System;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
@@ -22,9 +25,6 @@ public static class NocturneInput {
     [PreserveSig] int OpenPropertyStore(uint access, out IntPtr properties);
     [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
 }
-[ComImport, Guid("C02216F6-8C67-4B5B-9D00-D008E73E0064"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)] interface IMeter {
-    [PreserveSig] int GetPeakValue(out float peak);
-}
 public static class NocturneMeter {
     public static string DeviceId() {
         object enumerator = null; IDevice device = null;
@@ -33,21 +33,6 @@ public static class NocturneMeter {
             Marshal.ThrowExceptionForHR(((IDevices)enumerator).GetDefaultAudioEndpoint(0, 1, out device));
             string id; Marshal.ThrowExceptionForHR(device.GetId(out id)); return id;
         } finally {
-            if (device != null) Marshal.ReleaseComObject(device);
-            if (enumerator != null) Marshal.ReleaseComObject(enumerator);
-        }
-    }
-    public static float Peak() {
-        object enumerator = null; IDevice device = null; object instance = null;
-        try {
-            enumerator = new DeviceEnumerator();
-            Marshal.ThrowExceptionForHR(((IDevices)enumerator).GetDefaultAudioEndpoint(0, 1, out device));
-            Guid iid = typeof(IMeter).GUID;
-            Marshal.ThrowExceptionForHR(device.Activate(ref iid, 23, IntPtr.Zero, out instance));
-            float peak; Marshal.ThrowExceptionForHR(((IMeter)instance).GetPeakValue(out peak));
-            return Math.Max(0, Math.Min(1, peak));
-        } finally {
-            if (instance != null) Marshal.ReleaseComObject(instance);
             if (device != null) Marshal.ReleaseComObject(device);
             if (enumerator != null) Marshal.ReleaseComObject(enumerator);
         }
@@ -65,12 +50,13 @@ function Await($op, [Type]$type) {
 $mgr = Await ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager])
 [NocturneInput]::Start()
 $priorities = @('Spotify','Cider','YouTube Music','TIDAL','foobar'); $active = ''; $interval = 500; $pinned = ''; $audio = $false; $refresh = 0; $commandStatus = ''; $audioError = ''; $o = @{}
+$capture = $null; $captureApp = ''; $captureRetry = 0
 while ($true) {
-    if ([NocturneInput]::Closed) { exit }
+    if ([NocturneInput]::Closed) { if ($capture) { $capture.Dispose() }; exit }
     try {
         while ($line = [NocturneInput]::Poll()) {
             $cmd = $line | ConvertFrom-Json
-            if ($cmd.action -eq 'quit') { exit }
+            if ($cmd.action -eq 'quit') { if ($capture) { $capture.Dispose() }; exit }
             if ($cmd.action -eq 'select') { $pinned = [string]$cmd.app; $refresh = 0; continue }
             if ($cmd.action -eq 'priorities') { $priorities = @($cmd.values); $refresh = 0; continue }
             if ($cmd.action -eq 'activity') { $interval = [Math]::Max(500,[Math]::Min(3000,[int]$cmd.interval)); continue }
@@ -142,9 +128,21 @@ while ($true) {
         $o.pollInterval = $interval
         $o.now = $now
         $o.peak = 0.0; $o.audioAvailable = $false
+        $o.pcm = ''; $o.sampleRate = 44100; $o.audioPid = 0
+        if ($capture -and ((-not $audio) -or $captureApp -ne $active)) { $capture.Dispose(); $capture = $null; $captureRetry = 0 }
+        if ($capture -and (-not $capture.Running) -and $now -ge $captureRetry) { $capture.Dispose(); $capture = $null }
         if ($audio) {
-            try { $o.peak = [NocturneMeter]::Peak(); $o.audioAvailable = $true; $audioError = '' }
-            catch { $audioError = 'Desktop output meter unavailable' }
+            if (-not $capture -and $now -ge $captureRetry) {
+                $captureRetry = $now + 10000
+                $targetPid = [NocturneAudio.PlayerProcess]::Resolve($active)
+                if ($targetPid -gt 0) { $capture = New-Object NocturneAudio.Capture($targetPid); $captureApp = $active }
+                else { $audioError = 'Cannot identify a unique supported process for the selected player' }
+            }
+            if ($capture) {
+                $o.pcm = $capture.Snapshot(); $o.audioPid = $capture.ProcessId
+                $o.audioAvailable = $o.pcm.Length -gt 0
+                $audioError = if ($o.audioAvailable) { '' } else { $capture.Status }
+            }
         }
         $o.audioError = $audioError
         $json = $o | ConvertTo-Json -Compress -Depth 4

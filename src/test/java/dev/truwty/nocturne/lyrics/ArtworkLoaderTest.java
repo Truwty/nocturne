@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.*;
 import javax.imageio.ImageIO;
 
 class ArtworkLoaderTest {
+    @org.junit.jupiter.api.io.TempDir java.nio.file.Path cacheDirectory;
     private HttpServer server;
     private ExecutorService workers;
     private HttpClient http;
@@ -168,5 +169,19 @@ class ArtworkLoaderTest {
                         "{\"results\":[{\"trackName\":\"Old\",\"artistName\":\"Someone"
                                 + " else\",\"artworkUrl100\":\"https://example.invalid/a.png\"}]}");
         assertNull(ArtworkLoader.match(json, song("Old")));
+    }
+
+    @Test
+    void restartReusesPersistentThumbnailWithoutCatalogOrImageRequest() throws Exception {
+        var disk = new dev.truwty.nocturne.performance.PersistentArtworkCache(cacheDirectory);
+        var catalog = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/search");
+        loader = new ArtworkLoader(http, workers, catalog, java.time.Duration.ofSeconds(8), disk);
+        var first = loader.load(song("New")).get(5, TimeUnit.SECONDS);
+        int downloaded = requests.get();
+        loader.cancel();
+        loader = new ArtworkLoader(http, workers, catalog, java.time.Duration.ofSeconds(8), disk);
+        var reopened = loader.load(song("New")).get(5, TimeUnit.SECONDS);
+        assertEquals(downloaded, requests.get());
+        assertArrayEquals(first.png(), reopened.png());
     }
 }

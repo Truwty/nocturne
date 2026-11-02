@@ -58,6 +58,8 @@ public final class ArtworkCache {
         return entries.size();
     }
 
+    public synchronized void clear() { entries.clear(); bytes = 0; }
+
     public synchronized int bytes() {
         return bytes;
     }

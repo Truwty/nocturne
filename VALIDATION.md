@@ -1,4 +1,18 @@
-# Validation — Nocturne 0.9.0-beta.1
+# Validation — Nocturne 1.0.0
+
+## Official Release Version 1 · Windows / Minecraft 26.1.2 / Fabric
+
+Validated locally on November 2, 2026 with Java 25, Fabric Loader 0.20.1 and Fabric API 0.155.3+26.1.2.
+
+- **195 JUnit cases:** 194 pass offline, with the existing opt-in live-provider case skipped. New coverage includes real frequency separation, silence, consistent onset/BPM recovery, frame expiration, a processing budget, Spotify library response shapes, cache restart/expiry/bounds/corruption, selective deletion and HUD exclusion geometry.
+- **Application audio isolation:** two owned quiet sine-wave processes verify capture of a selected 440 Hz signal while excluding a concurrent 3200 Hz application. Observed amplitudes were approximately 0.061 versus 0.00009; stopping selected playback cleared the samples. This exercises actual Windows process-loopback capture, without touching other players' controls or system volume.
+- **Windows SMTC:** isolated muted-session checks pass selection, pause/resume, seeking, previous/next, shuffle, repeat, priorities, idle polling, strict missing pins, reconnection, unsupported-process audio diagnostics and clean EOF shutdown.
+- **Native Minecraft:** the 26.1.2 client passes setup completion, controller keyboard apply, terrain obstruction detection, all new screen bounds at GUI scales 1–4, original rendering/editing flows, resource reload, world reconnect and the existing steady/decorated performance gates. Controller actions exercise the real dispatch path; physical gamepad hardware remains unverified.
+- **Scope:** Spotify API fixtures use dummy local credentials. Live account consent, Premium eligibility, every desktop player and every remote device remain unverified. Automatic process mapping supports known music apps and browsers; ambiguous/unknown identities disable capture. Browser isolation is per process tree, not per tab. Third-party HUDs use registered exclusions or user-reserved regions; arbitrary overlay drawing is not automatically inspectable.
+
+The records below describe historical beta validations. The all-desktop output meter and keyboard-only text-entry limitations mentioned in those records were replaced in 1.0.0. Shader/modpack records remain historical evidence rather than a new universal compatibility claim.
+
+## Historical baseline — 0.9.0-beta.1
 
 Validated locally on Windows with Java 25, Minecraft 26.1.2, Fabric Loader 0.20.1 and Fabric API 0.155.3+26.1.2.
 

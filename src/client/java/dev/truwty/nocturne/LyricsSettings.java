@@ -27,6 +27,14 @@ public class LyricsSettings {
    public final List<Setting<?>> settings = new ArrayList<>();
    private boolean enabled = true;
    public final BoolSetting controllerNavigation = add(new BoolSetting("Controller navigation",true));
+   public final BoolSetting hudAvoidance = add(new BoolSetting("Avoid HUD overlays",true));
+   public final BoolSetting terrainFallback = add(new BoolSetting("Terrain occlusion fallback",true));
+   public final ModeSetting visualizer = add(new ModeSetting("Music visualizer", 1, "Off", "Without lyrics", "Always"));
+   public final ModeSetting visualizerStyle = add(new ModeSetting("Visualizer style", 0, "Spectrum", "Waveform", "Frequency bands"));
+   public final NumberSetting bassResponse = add(new NumberSetting("Bass response", 1, 0, 3, .1, "x"));
+   public final NumberSetting midResponse = add(new NumberSetting("Mid response", 1, 0, 3, .1, "x"));
+   public final NumberSetting trebleResponse = add(new NumberSetting("Treble response", 1, 0, 3, .1, "x"));
+   public final BoolSetting detectedBeat = add(new BoolSetting("Detected music beat pulse", false));
    public final BoolSetting translation = add(new BoolSetting("Show translation", false));
    public final BoolSetting romanization = add(new BoolSetting("Show romanization", false));
    public final BoolSetting vocalCountdown = add(new BoolSetting("Vocal countdown", true));

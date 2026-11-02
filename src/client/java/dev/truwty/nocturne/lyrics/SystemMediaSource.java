@@ -49,17 +49,21 @@ public final class SystemMediaSource {
    private volatile boolean audioEnabled;
    private volatile String audioError = "";
    private volatile long audioSample;
+   private final dev.truwty.nocturne.playback.AudioAnalysis analysis = new dev.truwty.nocturne.playback.AudioAnalysis();
+   private volatile dev.truwty.nocturne.playback.AudioAnalysis.Frame audioFrame;
+   private volatile int audioPid;
+   public dev.truwty.nocturne.playback.AudioAnalysis.Frame audioFrame() { var frame = audioFrame; return audioEnabled && frame != null && frame.fresh(System.nanoTime()) ? frame : null; }
    private volatile ArrayBlockingQueue<JsonObject> commands;
 
    public List<Player> players() { return players; }
    public String selected() { return selectedId; }
    public String commandStatus() { return commandStatus; }
    public boolean can(String action) { return capabilities.contains(action); }
-   public float peak() { return System.nanoTime() - audioSample < 1_000_000_000L ? peak : 0; }
-   public boolean audioAvailable() { return audioAvailable && System.nanoTime() - audioSample < 1_000_000_000L; }
-   public String audioStatus() { return !WINDOWS ? "Audio meter requires Windows" : !audioEnabled ? "Audio meter off" : audioAvailable() ? "Desktop output (all sounds)" : audioError; }
+   public float peak() { var frame = audioFrame(); return frame == null ? 0 : frame.peak(); }
+   public boolean audioAvailable() { return audioFrame() != null; }
+   public String audioStatus() { return !WINDOWS ? "Application audio requires Windows" : !audioEnabled ? "Application audio off" : audioAvailable() ? "Selected player process " + audioPid + " · app-wide audio" : audioError; }
    public void select(String id) { selectedId = id; JsonObject cmd = new JsonObject(); cmd.addProperty("action", "select"); cmd.addProperty("app", id); send(cmd); }
-   public void audio(boolean enabled) { if (enabled == audioEnabled) return; audioEnabled = enabled; JsonObject cmd = new JsonObject(); cmd.addProperty("action", "audio"); cmd.addProperty("enabled", enabled); send(cmd); }
+   public void audio(boolean enabled) { if (enabled == audioEnabled) return; audioEnabled = enabled; audioFrame = null; analysis.reset(); JsonObject cmd = new JsonObject(); cmd.addProperty("action", "audio"); cmd.addProperty("enabled", enabled); send(cmd); }
    public void command(String action, long millis) {
       if (!Set.of("toggle", "next", "previous", "seek", "shuffle", "repeat").contains(action)) throw new IllegalArgumentException("Unknown transport command");
       if (!can(action)) { commandStatus = "This player does not support " + action; return; }
@@ -243,7 +247,14 @@ public final class SystemMediaSource {
                try (InputStream in = SystemMediaSource.class.getResourceAsStream("/nocturne/media-v2.ps1")) {
                   if (in != null) {
                      String script = new String(in.readAllBytes(), StandardCharsets.UTF_8).replace("\r\n", "\n").replace("\n}\n", "\n}\n\n");
-                     String encoded = Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_16LE));
+                     try (InputStream nativeSource = SystemMediaSource.class.getResourceAsStream("/nocturne/process-audio.cs")) {
+                        if (nativeSource == null) throw new IOException("Application audio source missing");
+                        script = script.replace("#NOCTURNE_CAPTURE_SOURCE#", new String(nativeSource.readAllBytes(), StandardCharsets.UTF_8));
+                     }
+                     // The complete helper travels over stdin, avoiding Windows' command-line length limit.
+                     String payload = Base64.getEncoder().encodeToString(script.getBytes(StandardCharsets.UTF_8));
+                     String bootstrap = "iex ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String([Console]::ReadLine())))";
+                     String encoded = Base64.getEncoder().encodeToString(bootstrap.getBytes(StandardCharsets.UTF_16LE));
                      Process p = new ProcessBuilder("powershell.exe", "-NoLogo", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-EncodedCommand", encoded)
                         .redirectErrorStream(true).start();
                      ArrayBlockingQueue<JsonObject> queue = new ArrayBlockingQueue<>(32);
@@ -253,6 +264,7 @@ public final class SystemMediaSource {
                      this.status = "Listening to system media";
                      Thread.ofPlatform().daemon().name("nocturne-command-writer").start(() -> {
                         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(p.getOutputStream(), StandardCharsets.UTF_8))) {
+                           writer.write(payload); writer.newLine(); writer.flush();
                            while (this.process == p && p.isAlive()) {
                               JsonObject cmd = queue.poll(200, TimeUnit.MILLISECONDS);
                               if (cmd != null) { writer.write(cmd.toString()); writer.newLine(); writer.flush(); }
@@ -300,6 +312,7 @@ public final class SystemMediaSource {
       this.commands = null;
       this.capabilities = Set.of();
       this.players = List.of();
+      this.audioFrame = null; this.audioPid = 0; this.analysis.reset();
    }
 
    private void readLoop(Process p) {
@@ -330,7 +343,14 @@ public final class SystemMediaSource {
                      audioAvailable = o.has("audioAvailable") && o.get("audioAvailable").getAsBoolean();
                      audioError = o.has("audioError") ? o.get("audioError").getAsString() : "";
                      audioSample = System.nanoTime();
+                     int pid = o.has("audioPid") ? o.get("audioPid").getAsInt() : 0;
+                     if (pid != audioPid) { analysis.reset(); audioFrame = null; audioPid = pid; }
+                     if (audioEnabled && audioAvailable && o.has("pcm") && o.get("pcm").getAsString().length() == 5464) {
+                        audioFrame = analysis.analyze(Base64.getDecoder().decode(o.get("pcm").getAsString()), 44100, audioSample);
+                        peak = audioFrame.peak();
+                     } else { audioFrame = null; peak = 0; }
                      NowPlaying detected = decodeSession(o);
+                     if (detected != null && latest != null && !detected.key().equals(latest.key())) { analysis.reset(); audioFrame = null; }
                      if (this.process == p) {
                         this.latest = detected;
                         this.status = detected == null ? "Nothing playing" : "Listening to " + detected.source();

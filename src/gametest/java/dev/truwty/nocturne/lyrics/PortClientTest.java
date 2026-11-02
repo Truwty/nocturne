@@ -250,6 +250,7 @@ public final class PortClientTest implements FabricClientGameTest {
             });
             context.clickScreenButton("Reset");
             takeShot(context, "nocturne-placement-editor");
+            officialReleaseChecks(context);
             context.getInput().resizeWindow(640,480);context.runOnClient(mc -> { mc.options.guiScale().set(2); dev.truwty.nocturne.compat.TestAccess.resizeGui(mc); });
             context.waitTicks(10);
             for (int tab = 0; tab < 7; tab++) {
@@ -272,7 +273,9 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
                     ()->new dev.truwty.nocturne.gui.ThemeEditorScreen(null),()->new dev.truwty.nocturne.gui.ColorPickerScreen(null,"Test",0x80336699,value->{}),
-                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null),()->new dev.truwty.nocturne.gui.MaintenanceScreen(null),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,0),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,1),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,2),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3),()->new dev.truwty.nocturne.gui.ContextProfileEditorScreen(null,dev.truwty.nocturne.accessibility.GameplayContext.COMBAT))) {
+                    ()->new dev.truwty.nocturne.gui.SettingsSearchScreen(null),()->new dev.truwty.nocturne.gui.PresetBrowserScreen(null,"themes"),()->new dev.truwty.nocturne.gui.HudEditorScreen(null),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,0),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,1),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,2),()->new dev.truwty.nocturne.gui.PlaybackScreen(null,3),()->new dev.truwty.nocturne.gui.PerformanceScreen(null),()->new dev.truwty.nocturne.gui.MaintenanceScreen(null),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,0),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,1),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,2),()->new dev.truwty.nocturne.gui.AccessibilityScreen(null,3),()->new dev.truwty.nocturne.gui.ContextProfileEditorScreen(null,dev.truwty.nocturne.accessibility.GameplayContext.COMBAT),
+                    ()->new dev.truwty.nocturne.gui.SetupScreen(null),()->new dev.truwty.nocturne.gui.TutorialScreen(null),()->new dev.truwty.nocturne.gui.CacheManagerScreen(null),()->new dev.truwty.nocturne.gui.MusicLibraryScreen(null),()->new dev.truwty.nocturne.gui.AudioScreen(null),()->new dev.truwty.nocturne.gui.OverlayZonesScreen(null),
+                    ()->new dev.truwty.nocturne.gui.OnScreenKeyboard(null,new net.minecraft.client.gui.components.EditBox(net.minecraft.client.Minecraft.getInstance().font,0,0,100,20,net.minecraft.network.chat.Component.literal("Test"))))) {
                     context.setScreen(factory);context.runOnClient(mc->{ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));ClientAccess.screen(mc).mouseScrolled(100,100,0,-12);ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc));});
                 }
                 for(String tab:java.util.List.of("History","Timing","Languages","Song style")) {
@@ -296,6 +299,43 @@ public final class PortClientTest implements FabricClientGameTest {
             context.waitTicks(25);
             context.runOnClient(mc -> { if (!LyricsRenderer.active()) throw new AssertionError("Lyrics did not recover after reconnect"); });
         }
+    }
+
+    private static void officialReleaseChecks(ClientGameTestContext context) {
+        context.setScreen(()->new dev.truwty.nocturne.gui.SetupScreen(null));
+        context.waitTicks(3); takeShot(context,"nocturne-setup");
+        context.clickScreenButton("Next check"); context.clickScreenButton("Next check"); context.clickScreenButton("Finish setup");
+        context.runOnClient(mc->{if(!dev.truwty.nocturne.gui.SetupScreen.completed())throw new AssertionError("Setup completion was not saved");});
+        context.setScreen(()->new StudioScreen(null,1));
+        context.runOnClient(mc->{
+            var screen=ClientAccess.screen(mc);
+            var field=(net.minecraft.client.gui.components.EditBox)screen.children().stream().filter(c->c instanceof net.minecraft.client.gui.components.EditBox).findFirst().orElseThrow();
+            field.setValue("");screen.setFocused(field);
+            dev.truwty.nocturne.gui.StudioController.dispatch(screen,dev.truwty.nocturne.gui.ControllerRepeater.Action.ACCEPT);
+            if(!(ClientAccess.screen(mc) instanceof dev.truwty.nocturne.gui.OnScreenKeyboard))throw new AssertionError("Controller did not open keyboard");
+        });
+        context.clickScreenButton("a"); context.clickScreenButton("Use text");
+        context.runOnClient(mc->{
+            var field=(net.minecraft.client.gui.components.EditBox)ClientAccess.screen(mc).children().stream().filter(c->c instanceof net.minecraft.client.gui.components.EditBox).findFirst().orElseThrow();
+            if(!field.getValue().equals("a"))throw new AssertionError("Controller text was not applied");
+        });
+        context.setScreen(()->new dev.truwty.nocturne.gui.CacheManagerScreen(null));context.waitTicks(8);takeShot(context,"nocturne-cache-manager");
+        context.setScreen(()->new dev.truwty.nocturne.gui.AudioScreen(null));context.waitTicks(3);takeShot(context,"nocturne-audio-analysis");
+        context.setScreen(()->new dev.truwty.nocturne.gui.MusicLibraryScreen(null));context.waitTicks(3);takeShot(context,"nocturne-music-library");
+        context.setScreen(()->null);
+        context.runOnClient(mc->{
+            LyricsService.INSTANCE.startDemo();
+            var camera=ClientAccess.camera(mc);var position=net.minecraft.core.BlockPos.containing(camera.position().add(0,0,2));
+            var previous=mc.level.getBlockState(position);
+            try {
+                NocturneClient.SETTINGS.edgeFallback.set(true);NocturneClient.SETTINGS.terrainFallback.set(true);
+                mc.level.setBlock(position,net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(),3);
+                dev.truwty.nocturne.accessibility.EdgeFallback.clear();
+                dev.truwty.nocturne.accessibility.EdgeFallback.update(camera.position().add(0,0,4));
+                if(!dev.truwty.nocturne.accessibility.EdgeFallback.occluded())throw new AssertionError("Terrain obstruction was not detected");
+            } finally {mc.level.setBlock(position,previous,3);dev.truwty.nocturne.accessibility.EdgeFallback.clear();}
+        });
+        NocturneClient.LOG.info("OFFICIAL RELEASE FEATURES PASSED: setup, controller text entry, new screen bounds and terrain obstruction");
     }
 
     private static void maintenanceChecks(ClientGameTestContext context) {
