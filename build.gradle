@@ -133,6 +133,9 @@ jar {
 tasks.named('runClientGameTest') {
     javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(javaTarget) }
     jvmArgs '-Dfabric.noGui=true'
+    if (providers.gradleProperty('disablePacketSync').getOrElse('false').toBoolean()) {
+        systemProperty 'fabric.client.gametest.disableNetworkSynchronizer', 'true'
+    }
     workingDir = file('build/run/clientGameTest')
     def memory = providers.gradleProperty('clientTestMemoryMiB').getOrElse('4096').toInteger()
     def processors = providers.gradleProperty('clientTestProcessors').getOrElse('0').toInteger()
