@@ -67,6 +67,8 @@ if (smokeEnabled) tasks.named('runClient') {
         def destination = file('build/run/neoforge-' + minecraftTarget + '/saves/NocturneSmoke')
         if (destination.exists()) throw new GradleException('Smoke world already exists; use a fresh run directory')
         copy { from fixture; into destination; exclude 'session.lock' }
+        def options = file('build/run/neoforge-' + minecraftTarget + '/options.txt')
+        options.setText('onboardAccessibility:false\ntutorialStep:none\nrenderDistance:5\nsimulationDistance:5\nmaxFps:60\nenableVsync:false\n', 'UTF-8')
     }
 }
 

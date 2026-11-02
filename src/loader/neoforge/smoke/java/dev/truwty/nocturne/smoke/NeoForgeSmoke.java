@@ -23,6 +23,7 @@ public final class NeoForgeSmoke {
     private int ticks;
     private int stage = -1;
     private boolean finished;
+    private int startupTicks;
 
     public NeoForgeSmoke() {
         LyricsService.INSTANCE.stop();
@@ -33,8 +34,16 @@ public final class NeoForgeSmoke {
         if (finished) return;
         Minecraft mc = Minecraft.getInstance();
         try {
-            if (System.nanoTime() > deadline) throw new AssertionError("Native client startup timed out");
-            if (mc.level == null || mc.player == null) return;
+            if (System.nanoTime() > deadline) throw new AssertionError("Native client startup timed out at "
+                + (mc.screen == null ? "no screen" : mc.screen.getClass().getName() + ": " + mc.screen.getTitle().getString()));
+            if (mc.level == null || mc.player == null) {
+                if (++startupTicks == 200) {
+                    NocturneClient.LOG.info("Smoke startup screen: {}", mc.screen == null ? "none" : mc.screen.getClass().getName());
+                    Screenshot.grab(mc.gameDirectory, "nocturne-neoforge-startup.png", mc.getMainRenderTarget(), 1,
+                        message -> NocturneClient.LOG.info("Smoke startup screenshot: {}", message.getString()));
+                }
+                return;
+            }
             if (stage == -1) {
                 if (NocturneClient.SETTINGS == null) throw new AssertionError("Nocturne bootstrap missing");
                 if (Arrays.stream(mc.options.keyMappings).noneMatch(key -> key == NocturneClient.OPEN_KEY))
