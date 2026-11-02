@@ -6,7 +6,6 @@ import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.compat.ClientAccess;
 import dev.truwty.nocturne.compat.GamepadInput;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 
@@ -27,8 +26,8 @@ public final class StudioController {
         Screen screen = ClientAccess.screen(minecraft);
         if (!NocturneClient.SETTINGS.controllerNavigation.on()
                 || !supported(screen)
-                || FabricLoader.getInstance().isModLoaded("controlify")
-                || FabricLoader.getInstance().isModLoaded("midnightcontrols")) {
+                || dev.truwty.nocturne.platform.ModPlatform.loaded("controlify")
+                || dev.truwty.nocturne.platform.ModPlatform.loaded("midnightcontrols")) {
             REPEATER.reset();
             previous = screen;
             return;

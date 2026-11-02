@@ -9,7 +9,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.*;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.toasts.SystemToast;
 import net.minecraft.network.chat.Component;
@@ -31,12 +30,7 @@ public final class UpdateChecker {
     private UpdateChecker() {}
 
     public static String version() {
-        return FabricLoader.getInstance()
-                .getModContainer("nocturne")
-                .orElseThrow()
-                .getMetadata()
-                .getVersion()
-                .getFriendlyString();
+        return dev.truwty.nocturne.platform.ModPlatform.version("nocturne");
     }
 
     public static String status() {
@@ -95,7 +89,8 @@ public final class UpdateChecker {
     }
 
     static void applyCatalog(String catalog, boolean previews) {
-        available = ReleaseCatalog.newest(catalog, version(), previews, NocturneClient.minecraftVersion()).orElse(null);
+        available = ReleaseCatalog.newest(catalog, version(), previews, NocturneClient.minecraftVersion(),
+                dev.truwty.nocturne.platform.ModPlatform.loader()).orElse(null);
         status =
                 available == null
                         ? "No newer compatible release in the latest 20 releases"

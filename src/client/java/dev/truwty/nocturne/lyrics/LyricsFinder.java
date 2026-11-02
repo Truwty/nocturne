@@ -23,10 +23,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-@Environment(EnvType.CLIENT)
 final class LyricsFinder {
    private static final HttpClient HTTP = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(6L)).followRedirects(Redirect.NORMAL).build();
    private static final String UA = "Nocturne Lyrics (Minecraft client mod)";
@@ -369,18 +366,15 @@ final class LyricsFinder {
       return URLEncoder.encode(s, StandardCharsets.UTF_8);
    }
 
-   @Environment(EnvType.CLIENT)
    private static final class Pick {
       Lyrics synced;
       String plain;
       boolean instrumental;
    }
 
-   @Environment(EnvType.CLIENT)
    record Query(String title, String artist) {
    }
 
-   @Environment(EnvType.CLIENT)
    record Result(Lyrics lyrics, String status) {
    }
 }

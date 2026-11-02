@@ -22,6 +22,8 @@ import net.minecraft.network.chat.Component;
 public final class StudioScreen extends Screen {
     private static final String[] TABS = {"Player", "Lyrics", "Apps", "Theme", "Place", "Motion", "Health"};
     private final Screen parent;
+    private final String platformDescription = "Minecraft " + NocturneClient.minecraftVersion() + " / "
+        + dev.truwty.nocturne.platform.ModPlatform.displayName() + " / client only";
     private int page, resultPage, x, y, w, h, body, row, scroll;
     private String queryValue, fileValue = "", presetValue = "";
     private String notice = "";
@@ -236,7 +238,7 @@ public final class StudioScreen extends Screen {
         } else if (page == 5) text(g, service().system.audioStatus() + " · Audio is local; no recording", body + 157);
         else if (page == 6) {
             int line = body;
-            for (String value : List.of("Minecraft 26.1.2 / Fabric / client only", service().system.status(), service().lyricsStatus(),
+            for (String value : List.of(platformDescription, service().system.status(), service().lyricsStatus(),
                 service().playbackStatus(), s().configNotice().isBlank()?"Config schema 1 / healthy":s().configNotice(), "Pinned app: " + (service().system.selected().isEmpty() ? "Auto" : service().system.selected()), "Shader packs: compatibility depends on the pack")) { text(g, value, line); line += 15; }
         }
         if ((page == 3 || page == 4) && name != null) text(g, "Saved: " + String.join(", ", Studio.library().presets(page == 3 ? "themes" : "placement:" + s().follow.get())), body + 211);

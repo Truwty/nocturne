@@ -17,9 +17,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import dev.truwty.nocturne.platform.LyricFrame;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -47,7 +45,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.joml.Quaternionfc;
 
-@Environment(EnvType.CLIENT)
 public final class LyricsRenderer {
    private static final int LIGHT = 15728880;
    private static final int MAX_ROW = 200;
@@ -226,7 +223,7 @@ public final class LyricsRenderer {
       if(mod==null)return 1;try(var scope=ContextProfiles.scope()){return mod.isEnabled()&&!Accessibility.hidden()&&Accessibility.camera()&&mod.beatZoom.on()?1-impact*.035F*mod.intensityFactor():1;}
    }
 
-   public static void render(LevelRenderContext ctx) {
+   public static void render(LyricFrame ctx) {
       long start=RenderPerformance.time();try(var scope=ContextProfiles.scope()){
          RenderPerformance.begin(Minecraft.getInstance());
          try {if(Accessibility.hidden()){suppress();return;}renderContents(ctx);}
@@ -235,7 +232,7 @@ public final class LyricsRenderer {
    }
    private static Vec3 edgeAnchor(){if(current==null||current.dismissed)return null;var place=at(current);double yaw=place.yaw+editorYaw;return place.pos().add(Math.cos(yaw)*editorX,editorY,-Math.sin(yaw)*editorX);}
    private static void suppress(){active=false;flash=impact=0;SPARKS.clear();MIST.clear();BATTLE.clear();TRAIL.clear();HudLyrics.suppress();EdgeFallback.clear();clock=-1;}
-   private static void renderContents(LevelRenderContext ctx) {
+   private static void renderContents(LyricFrame ctx) {
       long nowN = System.nanoTime();
       float dt = lastNanos == 0L ? 0.016F : Math.min(0.1F, (float)(nowN - lastNanos) / 1.0E9F);
       lastNanos = nowN;
@@ -275,14 +272,14 @@ public final class LyricsRenderer {
             if (ly == null || ly.lines.isEmpty()) { reset(); return; }
             if(contextRevision!=ContextProfiles.revision()){contextRevision=ContextProfiles.revision();reset();}
             Font font = mc.font;
-            Vec3 cam = ctx.levelState().cameraRenderState.pos;
+            Vec3 cam = ctx.camera();
             fontIdx = mod.lyricFont.get();
             frameDt = dt;
             environment(mc, cam);
             camNow = cam;
             frameNo++;
             seeThroughNow = mod.seeThrough.on();
-            hud = ShaderCompat.hudMode(mod) && HudLyrics.begin(cam, ctx.poseStack().last().pose());
+            hud = ShaderCompat.hudMode(mod) && HudLyrics.begin(cam, ctx.poses().last().pose());
             float readTarget = mod.readable.on() ? Anim.clamp01((brightScene - 0.35F) / 0.4F) : 0.0F;
             readK = readK + (readTarget - readK) * (1.0F - (float)Math.exp(-dt * 1.5F));
             readNow = mod.readable.on() ? readK : -1.0F;
@@ -455,8 +452,8 @@ public final class LyricsRenderer {
                titleOrbit.update(cam, dt, true);
             }
 
-            PoseStack ps = ctx.poseStack();
-            SubmitNodeCollector out = ctx.submitNodeCollector();
+            PoseStack ps = ctx.poses();
+            SubmitNodeCollector out = ctx.submits();
             float scale = 0.02F * mod.size.f() / 100.0F;
             DisplayMode mode = mod.seeThrough.on() ? DisplayMode.SEE_THROUGH : DisplayMode.NORMAL;
             active = np.playing() && ly != null;
@@ -1980,7 +1977,6 @@ public final class LyricsRenderer {
       ClientAccess.rotate(ps, q);
    }
 
-   @Environment(EnvType.CLIENT)
    private static final class BattleWord {
       LyricsRenderer.Place place;
       Component comp;
@@ -1992,7 +1988,6 @@ public final class LyricsRenderer {
       boolean big;
    }
 
-   @Environment(EnvType.CLIENT)
    private static final class Mist {
       LyricsRenderer.Place place;
       float x;
@@ -2007,7 +2002,6 @@ public final class LyricsRenderer {
       int color;
    }
 
-   @Environment(EnvType.CLIENT)
    private static final class Place {
       Vec3 at;
       Vec3 smoothed;
@@ -2066,11 +2060,9 @@ public final class LyricsRenderer {
       }
    }
 
-   @Environment(EnvType.CLIENT)
    private record Placed(Lyrics.Word word, Component comp, String text, float cx, float cy, int width, int index, boolean big, float sc) {
    }
 
-   @Environment(EnvType.CLIENT)
    private static final class Shown {
       final int index;
       final List<LyricsRenderer.Placed> words;
@@ -2101,7 +2093,6 @@ public final class LyricsRenderer {
       }
    }
 
-   @Environment(EnvType.CLIENT)
    private static final class Spark {
       LyricsRenderer.Place place;
       float x;

@@ -11,14 +11,11 @@ import dev.truwty.nocturne.gui.HudLayouts;
 import dev.truwty.nocturne.performance.RenderPerformance;
 import java.util.ArrayList;
 import java.util.List;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-@Environment(EnvType.CLIENT)
 public final class LyricsHud {
    private static float bars;
    private static float barIn;

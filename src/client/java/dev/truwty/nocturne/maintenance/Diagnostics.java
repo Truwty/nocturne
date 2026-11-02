@@ -22,6 +22,7 @@ public final class Diagnostics {
         String os = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
         facts.put("modVersion", UpdateChecker.version());
         facts.put("minecraft", NocturneClient.minecraftVersion());
+        facts.put("loader", dev.truwty.nocturne.platform.ModPlatform.loader());
         facts.put(
                 "os",
                 os.contains("win")

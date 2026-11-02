@@ -3,10 +3,7 @@ package dev.truwty.nocturne.lyrics;
 import dev.truwty.nocturne.NocturneClient;
 import dev.truwty.nocturne.LyricsSettings;
 import dev.truwty.nocturne.gui.Draw;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-@Environment(EnvType.CLIENT)
 public final class LyricsRain {
    private static Object rainList;
    private static boolean rain;

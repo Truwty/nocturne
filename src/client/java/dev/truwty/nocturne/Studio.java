@@ -7,7 +7,6 @@ import dev.truwty.nocturne.lyrics.NowPlaying;
 import dev.truwty.nocturne.setting.Setting;
 import java.io.IOException;
 import java.nio.file.Path;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 
 public final class Studio {
@@ -21,7 +20,7 @@ public final class Studio {
         }
         return library;
     }
-    public static Path directory() { return FabricLoader.getInstance().getConfigDir().resolve("nocturne"); }
+    public static Path directory() { return dev.truwty.nocturne.platform.ModPlatform.configDirectory().resolve("nocturne"); }
     public static void open() { Minecraft mc = Minecraft.getInstance(); ClientAccess.setScreen(mc, new StudioScreen(ClientAccess.screen(mc))); }
     public static double songOffset(NowPlaying track) { return track == null ? 0 : library().offset(track.key()); }
 

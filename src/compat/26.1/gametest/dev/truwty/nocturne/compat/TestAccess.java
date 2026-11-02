@@ -8,4 +8,6 @@ public final class TestAccess {
   public static void waitForChunks(TestSingleplayerContext world) {
     world.getClientLevel().waitForChunksRender();
   }
+  public static void resizeGui(net.minecraft.client.Minecraft mc) { mc.resizeGui(); }
+  public static void debugOverlay(net.minecraft.client.Minecraft mc, boolean visible) { mc.debugEntries.setOverlayVisible(visible); }
 }

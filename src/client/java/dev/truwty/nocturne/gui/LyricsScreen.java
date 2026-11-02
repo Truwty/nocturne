@@ -12,8 +12,6 @@ import dev.truwty.nocturne.setting.NumberSetting;
 import dev.truwty.nocturne.setting.Setting;
 import java.util.ArrayList;
 import java.util.List;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -22,7 +20,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 
-@Environment(EnvType.CLIENT)
 public class LyricsScreen extends Screen {
    private static final int BW = 150;
    private static final int BH = 20;
@@ -262,7 +259,6 @@ public class LyricsScreen extends Screen {
       ClientAccess.setScreen(this.minecraft, this.parent);
    }
 
-   @Environment(EnvType.CLIENT)
    public enum Page {
       MAIN("Nocturne"),
       ANIMATION("Animation"),

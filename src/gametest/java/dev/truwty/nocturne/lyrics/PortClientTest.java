@@ -15,7 +15,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContex
 public final class PortClientTest implements FabricClientGameTest {
     @Override
     public void runTest(ClientGameTestContext context) {
-        try (TestSingleplayerContext world = context.worldBuilder().create()) {
+        try (TestSingleplayerContext world = createWorld(context)) {
             dev.truwty.nocturne.compat.TestAccess.waitForChunks(world);
             if(System.getenv("NOCTURNE_TEST_SHADER")!=null) {
                 context.runOnClient(mc->{ if(!ShaderCompat.shaderPackOn())throw new AssertionError("Requested real shader pack did not activate"); });
@@ -139,7 +139,7 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.waitTicks(3);
                 takeShot(context, "nocturne-studio-" + page);
             }
-            context.getInput().resizeWindow(1280,960);context.runOnClient(mc -> {mc.options.guiScale().set(2);mc.resizeGui();});
+            context.getInput().resizeWindow(1280,960);context.runOnClient(mc -> {mc.options.guiScale().set(2);dev.truwty.nocturne.compat.TestAccess.resizeGui(mc);});
             context.runOnClient(mc -> {
                 var primary=Lyrics.parse("[00:01]<00:01>مرحبا <00:02>بالعالم<00:03>\n"
                         + "[00:04]\n"
@@ -250,7 +250,7 @@ public final class PortClientTest implements FabricClientGameTest {
             });
             context.clickScreenButton("Reset");
             takeShot(context, "nocturne-placement-editor");
-            context.getInput().resizeWindow(640,480);context.runOnClient(mc -> { mc.options.guiScale().set(2); mc.resizeGui(); });
+            context.getInput().resizeWindow(640,480);context.runOnClient(mc -> { mc.options.guiScale().set(2); dev.truwty.nocturne.compat.TestAccess.resizeGui(mc); });
             context.waitTicks(10);
             for (int tab = 0; tab < 7; tab++) {
                 int page = tab;
@@ -264,10 +264,10 @@ public final class PortClientTest implements FabricClientGameTest {
                 context.runOnClient(mc -> ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
             }
             takeShot(context, "nocturne-small-window");
-            context.getInput().resizeWindow(854,480);context.runOnClient(mc -> { mc.options.guiScale().set(1); mc.resizeGui(); });
+            context.getInput().resizeWindow(854,480);context.runOnClient(mc -> { mc.options.guiScale().set(1); dev.truwty.nocturne.compat.TestAccess.resizeGui(mc); });
             context.setScreen(() -> null);
             for(int guiScale:new int[]{1,2,3,4}) {
-                context.getInput().resizeWindow(1280,960);context.runOnClient(mc->{mc.options.guiScale().set(guiScale);mc.resizeGui();});
+                context.getInput().resizeWindow(1280,960);context.runOnClient(mc->{mc.options.guiScale().set(guiScale);dev.truwty.nocturne.compat.TestAccess.resizeGui(mc);});
                 context.setScreen(()->new StudioScreen(null,0));context.waitTicks(3);
                 context.runOnClient(mc->ScreenBounds.assertVisibleWidgetsFit(ClientAccess.screen(mc)));
                 for(java.util.function.Supplier<net.minecraft.client.gui.screens.Screen> factory:java.util.List.<java.util.function.Supplier<net.minecraft.client.gui.screens.Screen>>of(
@@ -332,14 +332,15 @@ public final class PortClientTest implements FabricClientGameTest {
 
     private static void accessibilityChecks(ClientGameTestContext context){
         var saved=context.computeOnClient(mc->{var values=new java.util.HashMap<String,com.google.gson.JsonElement>();for(var setting:NocturneClient.SETTINGS.settings)values.put(setting.name,setting.save().deepCopy());return values;});
-        context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.hideChat.set(true);s.hideInventory.set(true);s.hideDebug.set(true);s.edgeFallback.set(true);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);LyricsService.INSTANCE.startDemo();LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(),Lyrics.parse("[00:00.00]<00:00.00>Late <00:30.00>night <01:00.00>the <01:30.00>city <02:00.00>is <02:30.00>glowing<05:00.00>\n[05:00.00]"));});
+        // Earlier editor scenarios save placement profiles; adopt this controlled pose before the next tick can load one.
+        context.runOnClient(mc->{var s=NocturneClient.SETTINGS;s.contextProfiles.set(false);s.hideChat.set(true);s.hideInventory.set(true);s.hideDebug.set(true);s.edgeFallback.set(true);s.follow.set(2);s.editorX.set(0.0);s.editorY.set(0.0);s.editorYaw.set(0.0);s.editorPitch.set(0.0);s.editorRoll.set(0.0);s.smartPlace.set(false);s.orbit.set(false);s.cameraMovement.set(false);Studio.adoptPlacement();LyricsService.INSTANCE.startDemo();LyricsService.INSTANCE.applyLocal(LyricsService.INSTANCE.now(),Lyrics.parse("[00:00.00]<00:00.00>Late <00:30.00>night <01:00.00>the <01:30.00>city <02:00.00>is <02:30.00>glowing<05:00.00>\n[05:00.00]"));});
         context.setScreen(()->null);context.waitTicks(40);
         context.setScreen(()->new net.minecraft.client.gui.screens.ChatScreen("",false));context.waitTicks(5);
         context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active()||LyricsDebug.hudRecorded!=0)throw new AssertionError("Chat did not hide lyric geometry");});
         context.setScreen(()->new net.minecraft.client.gui.screens.inventory.InventoryScreen(net.minecraft.client.Minecraft.getInstance().player));context.waitTicks(5);
         context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Inventory did not hide lyrics");});
-        context.setScreen(()->null);context.runOnClient(mc->mc.debugEntries.setOverlayVisible(true));context.waitTicks(5);
-        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Debug overlay did not hide lyrics");mc.debugEntries.setOverlayVisible(false);NocturneClient.SETTINGS.editorX.set(8.0);});context.waitFor(mc->dev.truwty.nocturne.accessibility.EdgeFallback.showing(),200);
+        context.setScreen(()->null);context.runOnClient(mc->dev.truwty.nocturne.compat.TestAccess.debugOverlay(mc,true));context.waitTicks(5);
+        context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.Accessibility.hidden()||LyricsRenderer.active())throw new AssertionError("Debug overlay did not hide lyrics");dev.truwty.nocturne.compat.TestAccess.debugOverlay(mc,false);NocturneClient.SETTINGS.editorX.set(8.0);});context.waitFor(mc->dev.truwty.nocturne.accessibility.EdgeFallback.showing(),200);
         context.runOnClient(mc->{if(!dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Off-screen editor placement did not activate edge fallback");});takeShot(context,"nocturne-edge-fallback");
         context.runOnClient(mc->NocturneClient.SETTINGS.edgeFallback.set(false));context.waitTicks(2);
         context.runOnClient(mc->{if(dev.truwty.nocturne.accessibility.EdgeFallback.showing())throw new AssertionError("Disabled fallback retained its visible state");NocturneClient.SETTINGS.edgeFallback.set(true);});context.waitTicks(2);
@@ -419,6 +420,29 @@ public final class PortClientTest implements FabricClientGameTest {
         context.setScreen(()->null);context.waitTicks(5);takeShot(context,"nocturne-moved-hud");
         NocturneClient.LOG.info("INTERFACE TEST PASSED: theme preview/cancel/apply, picker hex/alpha, history, presets"
             + " import/export, search, controller focus, HUD drag/snap/layout isolation");
+    }
+
+    private static TestSingleplayerContext createWorld(ClientGameTestContext context) {
+        Thread watchdog = Thread.startVirtualThread(() -> {
+            try {
+                Thread.sleep(45_000);
+            } catch (InterruptedException cancelled) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+            Thread.getAllStackTraces().forEach((thread, stack) -> {
+                if (thread.getName().equals("Server thread") || thread.getName().equals("Render thread")
+                        || thread.getName().startsWith("Worker-Main")) {
+                    NocturneClient.LOG.warn("World startup stalled: {} {}", thread.getName(), thread.getState());
+                    for (var frame : stack) NocturneClient.LOG.warn("    {}", frame);
+                }
+            });
+        });
+        try {
+            return context.worldBuilder().create();
+        } finally {
+            watchdog.interrupt();
+        }
     }
 
     private static void takeShot(ClientGameTestContext context, String name) {

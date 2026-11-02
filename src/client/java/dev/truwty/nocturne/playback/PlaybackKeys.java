@@ -3,7 +3,6 @@ package dev.truwty.nocturne.playback;
 import dev.truwty.nocturne.compat.ClientAccess;
 import java.util.*;
 
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.*;
 import net.minecraft.network.chat.Component;
 
@@ -26,7 +25,7 @@ public final class PlaybackKeys {
                         "repeat"))
             KEYS.put(
                     action,
-                    KeyMappingHelper.registerKeyMapping(
+                    dev.truwty.nocturne.platform.ClientHooks.key(
                             new KeyMapping("key.nocturne." + action, ClientAccess.keyType(), -1, category)));
     }
 

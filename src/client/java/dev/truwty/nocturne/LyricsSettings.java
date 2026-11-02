@@ -19,15 +19,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 
-@Environment(EnvType.CLIENT)
 public class LyricsSettings {
    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-   private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("nocturne.json");
+   private static final Path FILE = dev.truwty.nocturne.platform.ModPlatform.configDirectory().resolve("nocturne.json");
    public final List<Setting<?>> settings = new ArrayList<>();
    private boolean enabled = true;
    public final BoolSetting controllerNavigation = add(new BoolSetting("Controller navigation",true));

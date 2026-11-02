@@ -1,39 +1,17 @@
+import { releaseUrl, cleanCatalog, matchingAsset, dependencyText } from './catalog.mjs';
+
 'use strict';
 
 (() => {
   const minecraft = document.querySelector('#minecraft');
   const release = document.querySelector('#release');
+  const loader = document.querySelector('#loader');
   const previews = document.querySelector('#previews');
   const status = document.querySelector('#download-status');
   const detail = document.querySelector('#download-detail');
   const params = new URLSearchParams(location.search);
   let releases = [];
   let initial = true;
-
-  function releaseUrl(value, asset = false) {
-    try {
-      const url = new URL(value);
-      const prefix = asset ? '/Truwty/nocturne/releases/download/' : '/Truwty/nocturne/releases/tag/';
-      return url.protocol === 'https:' && url.hostname === 'github.com' && !url.port &&
-        !url.username && !url.password && url.pathname.startsWith(prefix) &&
-        url.pathname.length > prefix.length && !url.search && !url.hash ? url.href : null;
-    } catch {
-      return null;
-    }
-  }
-
-  function cleanCatalog(data) {
-    if (data?.schema !== 1 || !Array.isArray(data.releases)) throw new Error('Invalid release catalog');
-    return data.releases.filter(item => typeof item.version === 'string' && item.version.length < 100 &&
-      typeof item.tag === 'string' && typeof item.prerelease === 'boolean' &&
-      Number.isFinite(Date.parse(item.publishedAt)) && releaseUrl(item.notesUrl) && Array.isArray(item.assets))
-      .map(item => ({ ...item, assets: item.assets.filter(asset =>
-        Array.isArray(asset.minecraft) && asset.minecraft.length > 0 && asset.minecraft.every(value => typeof value === 'string' && /^[0-9][0-9A-Za-z.+_-]{0,39}$/.test(value)) &&
-        typeof asset.loader === 'string' && asset.loader.length < 50 && Number.isInteger(asset.java) && asset.java >= 8 && asset.java <= 100 &&
-        typeof asset.name === 'string' && asset.name.endsWith('.jar') && !/(?:sources|javadoc)/i.test(asset.name) &&
-        releaseUrl(asset.url, true) && (asset.sha256 == null || /^[a-f0-9]{64}$/i.test(asset.sha256))) }))
-      .filter(item => item.assets.length > 0).sort((a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt));
-  }
 
   function option(value, label) {
     const element = document.createElement('option');
@@ -59,12 +37,22 @@
     minecraft.replaceChildren(...values.map(value => option(value, value)));
     minecraft.disabled = values.length === 0;
     if (values.includes(previous)) minecraft.value = previous;
+    populateLoaders();
+  }
+
+  function populateLoaders() {
+    const previous = initial ? params.get('loader')?.toLowerCase() : loader.value;
+    const values = [...new Set(visibleReleases().flatMap(item => item.assets.filter(asset => asset.minecraft.includes(minecraft.value)).map(asset => asset.loader)))];
+    values.sort((a, b) => a.localeCompare(b));
+    loader.replaceChildren(...values.map(value => option(value.toLowerCase(), value)));
+    loader.disabled = values.length === 0;
+    if (values.some(value => value.toLowerCase() === previous)) loader.value = previous;
     populateReleases();
   }
 
   function populateReleases() {
     const previous = initial ? params.get('release') : release.value;
-    const matches = visibleReleases().filter(item => item.assets.some(asset => asset.minecraft.includes(minecraft.value)));
+    const matches = visibleReleases().filter(item => matchingAsset(item, minecraft.value, loader.value));
     release.replaceChildren(...matches.map(item => option(item.tag, `${item.version}${item.prerelease ? ' — Preview / beta' : ' — Stable'}`)));
     release.disabled = matches.length === 0;
     if (matches.some(item => item.tag === previous)) release.value = previous;
@@ -77,7 +65,7 @@
 
   function render() {
     const item = visibleReleases().find(value => value.tag === release.value);
-    const asset = item?.assets.find(value => value.minecraft.includes(minecraft.value));
+    const asset = matchingAsset(item, minecraft.value, loader.value);
     if (!item || !asset) return message('No downloadable build matches this selection. Choose another Minecraft version or release.');
     status.hidden = true;
     detail.hidden = false;
@@ -86,18 +74,20 @@
     text('#release-channel', item.prerelease ? 'PREVIEW / BETA' : 'STABLE');
     text('#release-date', `Published ${new Date(item.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}`);
     text('#selected-minecraft', minecraft.value);
-    text('#selected-loader', asset.loader);
+    text('#selected-loader', asset.loader + (typeof asset.dependencies?.loader === 'string' && /^[0-9][0-9A-Za-z.+_-]{0,79}$/.test(asset.dependencies.loader) ? ` ${asset.dependencies.loader}+` : ''));
+    text('#dependency-note', dependencyText(asset));
     text('#selected-java', `${asset.java}+`);
     text('#asset-name', asset.name);
     text('#asset-checksum', asset.sha256 || 'No checksum published for this asset.');
     document.querySelector('#download-file').href = releaseUrl(asset.url, true);
     document.querySelector('#release-notes').href = releaseUrl(item.notesUrl);
-    const query = new URLSearchParams({ minecraft: minecraft.value, release: item.tag });
+    const query = new URLSearchParams({ minecraft: minecraft.value, loader: loader.value, release: item.tag });
     if (previews.checked) query.set('previews', '1');
     history.replaceState(null, '', `${location.pathname}?${query}`);
   }
 
-  minecraft.addEventListener('change', populateReleases);
+  minecraft.addEventListener('change', populateLoaders);
+  loader.addEventListener('change', populateReleases);
   release.addEventListener('change', render);
   previews.addEventListener('change', populateMinecraft);
 
@@ -107,6 +97,7 @@
       releases = cleanCatalog(data);
       if (!releases.length) {
         minecraft.replaceChildren(option('', 'No published builds'));
+        loader.replaceChildren(option('', 'No published builds'));
         release.replaceChildren(option('', 'No published builds'));
         return message('No compatible builds are listed yet. You can check published releases on GitHub below.');
       }
@@ -118,6 +109,7 @@
     })
     .catch(() => {
       minecraft.replaceChildren(option('', 'Catalog unavailable'));
+      loader.replaceChildren(option('', 'Catalog unavailable'));
       release.replaceChildren(option('', 'Catalog unavailable'));
       message('The release catalog could not be loaded. Download directly from GitHub Releases below, or reload to try again.');
     });

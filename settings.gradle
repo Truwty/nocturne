@@ -1,8 +1,12 @@
 pluginManagement {
     repositories {
         maven { url = 'https://maven.fabricmc.net/' }
+        maven { url = 'https://maven.neoforged.net/releases' }
         mavenCentral()
         gradlePluginPortal()
     }
 }
 rootProject.name = 'nocturne'
+def loader = providers.gradleProperty('loader').getOrElse('fabric')
+if (loader == 'neoforge') rootProject.buildFileName = 'build-neoforge.gradle'
+else if (loader != 'fabric') throw new GradleException('Unsupported loader build: ' + loader)

@@ -14,7 +14,7 @@
 
 Download a build for the **exact** Minecraft version from the [download selector](https://truwty.github.io/nocturne/downloads.html). The unclassified JAR targets 26.1.2; other targets have `-mc<version>` in the filename. Loader metadata deliberately rejects different versions. Keep only one Nocturne JAR installed. Server-specific rules still apply; no Hypixel certification is claimed.
 
-Minecraft 1.8.9–1.21.11, snapshots, Forge and NeoForge remain unported. The requested wider compatibility is a staged roadmap: modern Fabric first, older Fabric generations next, then a separate legacy Forge implementation. It is not achieved by relaxing metadata. Published downloads only include completed targets with native client validation.
+The development branch adds Fabric adapters for Minecraft 1.21.10/1.21.11 and a NeoForge adapter for 1.21.11. Native checks and release reproducibility are tracked in [compatibility/README.md](compatibility/README.md). They are not published downloads yet. Earlier versions, snapshots and Forge remain unported. Wider compatibility requires separate adapters, rather than relaxed metadata.
 
 Renderer CI covers vanilla, Sodium 0.9.2, Iris 1.11.4 and Sodium/Lithium 0.24.7/FerriteCore 9.0.0. Vanilla CI also installs Mod Menu and exercises the real registered config factory; other matrix jobs verify it remains optional. Shader/modpack limits and hardware checks are recorded in [VALIDATION.md](VALIDATION.md).
 
@@ -41,6 +41,8 @@ python3 scripts/verify_release.py --minecraft 26.1.2
 ```
 
 Select `--minecraft 26.1`, `26.1.1`, `26.1.2`, `26.2` or `26.3`. Non-default output is isolated under `build/minecraft/<version>/`; the default remains `build/`. Each JAR is compiled against that target’s actual Minecraft and Fabric APIs. The 26.3 adapter uses SDL gamepad input and its current weather/rendering hooks; earlier targets use GLFW. Controller hardware still needs manual testing.
+
+For development 1.21.11 ports, install Temurin 21.0.13+9 alongside the Java 25 build launcher and set `NOCTURNE_JAVA21` to its JDK directory. Run `python scripts/verify_release.py --minecraft 1.21.11` for Fabric or append `--loader neoforge` for NeoForge. NeoForge output is isolated under `build/neoforge/1.21.11`. Its development-only smoke mod is enabled with `-Psmoke=true` and requires `NOCTURNE_SMOKE_WORLD` pointing to a disposable vanilla 1.21.11 world; it is excluded from release JARs.
 
 The script performs **two clean builds** with task/build-cache reuse disabled, runs the offline tests twice, and fails unless the mod JAR, sources JAR and support manifest are byte-identical. `build/release/SHA256SUMS` and `reproducibility.json` record digests, source commit, worktree status and the comparison count. A dirty checkout can be checked during development; publish only evidence with `dirty: false` from the release commit. This proves repeatability for the recorded inputs, not independence from unavailable or changed upstream repositories.
 

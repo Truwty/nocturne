@@ -2,10 +2,7 @@ package dev.truwty.nocturne.setting;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonPrimitive;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
 
-@Environment(EnvType.CLIENT)
 public class ColorSetting extends Setting<Integer> {
    public static final int[] PRESETS = new int[]{-4883457, -3561729, -7359233, -34150, -42396, -19620, -12470, -9444394, -9120662, -921608};
 
