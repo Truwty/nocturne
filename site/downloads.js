@@ -30,6 +30,13 @@ import { releaseUrl, cleanCatalog, matchingAsset, dependencyText } from './catal
     return releases.filter(item => previews.checked || !item.prerelease);
   }
 
+  function channel(item) {
+    if (!item.prerelease) return 'Stable';
+    if (/-alpha(?:[.+-]|$)/i.test(item.version)) return 'Preview / alpha';
+    if (/-beta(?:[.+-]|$)/i.test(item.version)) return 'Preview / beta';
+    return 'Preview';
+  }
+
   function populateMinecraft() {
     const previous = initial ? params.get('minecraft') : minecraft.value;
     const values = [...new Set(visibleReleases().flatMap(item => item.assets.flatMap(asset => asset.minecraft)))];
@@ -53,7 +60,7 @@ import { releaseUrl, cleanCatalog, matchingAsset, dependencyText } from './catal
   function populateReleases() {
     const previous = initial ? params.get('release') : release.value;
     const matches = visibleReleases().filter(item => matchingAsset(item, minecraft.value, loader.value));
-    release.replaceChildren(...matches.map(item => option(item.tag, `${item.version}${item.prerelease ? ' — Preview / beta' : ' — Stable'}`)));
+    release.replaceChildren(...matches.map(item => option(item.tag, `${item.version} — ${channel(item)}`)));
     release.disabled = matches.length === 0;
     if (matches.some(item => item.tag === previous)) release.value = previous;
     if (!matches.length) {
@@ -71,7 +78,7 @@ import { releaseUrl, cleanCatalog, matchingAsset, dependencyText } from './catal
     detail.hidden = false;
     const text = (selector, value) => { document.querySelector(selector).textContent = value; };
     text('#selected-version', item.version);
-    text('#release-channel', item.prerelease ? 'PREVIEW / BETA' : 'STABLE');
+    text('#release-channel', channel(item).toUpperCase());
     text('#release-date', `Published ${new Date(item.publishedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}`);
     text('#selected-minecraft', minecraft.value);
     text('#selected-loader', asset.loader + (typeof asset.dependencies?.loader === 'string' && /^[0-9][0-9A-Za-z.+_-]{0,79}$/.test(asset.dependencies.loader) ? ` ${asset.dependencies.loader}+` : ''));
