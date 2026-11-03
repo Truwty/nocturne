@@ -21,6 +21,31 @@ class ExperienceSettingsTest {
     }
 
     @Test
+    void discordUsesNocturneByDefaultAndPreservesOptionalOverrides() throws Exception {
+        var file = directory.resolve("discord.json");
+        var settings = new ExperienceSettings(file);
+        assertEquals(ExperienceSettings.DEFAULT_DISCORD_APPLICATION_ID, settings.discordAppId());
+        assertFalse(settings.on(RPC));
+        settings.discordAppId("123456789012345678");
+        settings.save();
+        var reloaded = new ExperienceSettings(file);
+        reloaded.load();
+        assertEquals("123456789012345678", reloaded.discordAppId());
+        reloaded.discordAppId("");
+        reloaded.save();
+        settings.load();
+        assertEquals(ExperienceSettings.DEFAULT_DISCORD_APPLICATION_ID, settings.discordAppId());
+        var legacy = settings.snapshot();
+        legacy.remove("discordAppId");
+        settings.restore(legacy);
+        assertEquals(ExperienceSettings.DEFAULT_DISCORD_APPLICATION_ID, settings.discordAppId());
+        settings.discordAppId("123456789012345678");
+        settings.reset();
+        assertEquals(ExperienceSettings.DEFAULT_DISCORD_APPLICATION_ID, settings.discordAppId());
+        assertThrows(IllegalArgumentException.class, () -> settings.discordAppId("not-a-token"));
+    }
+
+    @Test
     void choicesPetNameAndBudgetSurviveRestart() throws Exception {
         var file = directory.resolve("settings.json");
         var settings = new ExperienceSettings(file);

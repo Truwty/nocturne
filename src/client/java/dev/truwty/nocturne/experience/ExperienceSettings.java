@@ -10,6 +10,8 @@ import java.util.*;
  * Optional presentation modules. These settings never change a server's world or player abilities.
  */
 public final class ExperienceSettings {
+    public static final String DEFAULT_DISCORD_APPLICATION_ID = "1567160067910799512";
+
     public enum Group {
         WORLD,
         COMBAT,
@@ -165,7 +167,7 @@ public final class ExperienceSettings {
     }
 
     public String discordAppId() {
-        return discordAppId;
+        return discordAppId.isEmpty() ? DEFAULT_DISCORD_APPLICATION_ID : discordAppId;
     }
 
     public void discordAppId(String id) {

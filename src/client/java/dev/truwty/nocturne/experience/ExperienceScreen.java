@@ -108,7 +108,7 @@ public final class ExperienceScreen extends StudioPanel {
                     w - 32,
                     "Watch recent replay",
                     "Requires capture enabled. Local footage plays at 0.4×; the server continues"
-                        + " live.",
+                            + " live.",
                     () -> {
                         ClientAccess.setScreen(minecraft, null);
                         KillReplay.preview();
@@ -185,7 +185,7 @@ public final class ExperienceScreen extends StudioPanel {
                             x + 16,
                             body + options.size() * 26 + 146,
                             w - 138,
-                            "Discord application ID / not a token",
+                            "Discord app ID / blank uses Nocturne",
                             Experience.SETTINGS.discordAppId());
             app.setMaxLength(20);
             button(
@@ -193,7 +193,7 @@ public final class ExperienceScreen extends StudioPanel {
                     body + options.size() * 26 + 146,
                     100,
                     "Save app ID",
-                    "Public ID from your Discord developer application",
+                    "No setup needed. Leave blank to use Nocturne; optional public ID override.",
                     () -> {
                         Experience.SETTINGS.discordAppId(app.getValue().strip());
                         Experience.save();
@@ -241,7 +241,7 @@ public final class ExperienceScreen extends StudioPanel {
                                 net.minecraft.client.gui.components.Tooltip.create(
                                         net.minecraft.network.chat.Component.literal(
                                                 "Select Custom in the corresponding mode above."
-                                                    + " Saved when you leave this screen.")));
+                                                        + " Saved when you leave this screen.")));
                     }
 
                     @Override
@@ -297,7 +297,7 @@ public final class ExperienceScreen extends StudioPanel {
                             "C: hold zoom. Item timers are estimates from client-observed age.";
                     case FUN ->
                             "Visual toys only. Server blocks, abilities and inventories stay"
-                                + " intact.";
+                                    + " intact.";
                 };
         if (group == ExperienceSettings.Group.FUN)
             text(

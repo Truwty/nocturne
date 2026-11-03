@@ -65,9 +65,9 @@ Floor trails, projectile trails, jump rings and landing shockwaves are independe
 
 ## Discord Rich Presence
 
-Optional Windows desktop Discord IPC integration. Set your own **public Discord application ID** in Textures & fun, then enable Rich Presence. This is an application ID, **not a bot token or account token**. The connection status appears in that screen. Nocturne publishes only a generic Minecraft/Nocturne activity: no server address, username, song title or party/join secrets. It reconnects in the background, bounds IPC frames and closes on shutdown.
+Optional Windows desktop Discord IPC integration. Enable Rich Presence in Textures & fun; Nocturne’s own public application ID is built in. No login, bot token or developer setup is needed. Advanced users can override the public ID; leaving that field blank restores Nocturne. The connection status appears in that screen. Nocturne publishes only a generic Minecraft/Nocturne activity: no server address, username, song title or party/join secrets. It reconnects in the background, bounds IPC frames and closes on shutdown.
 
-A live Discord presence check still requires a valid developer application ID and desktop Discord; protocol framing and payload filtering have offline tests. No application ID is invented or borrowed from an unrelated project.
+Desktop Discord must be running on Windows. Protocol framing, payload filtering and default/override migration have offline tests; a live desktop connection is not covered by the offline suite.
 
 ## Validation
 
