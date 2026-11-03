@@ -10,6 +10,6 @@ import org.spongepowered.asm.mixin.injection.At;
 public abstract class AbstractClientPlayerMixin {
    @ModifyReturnValue(method = "getFieldOfViewModifier", at = @At("RETURN"), require = 1)
    private float nocturne$beatZoom(float original) {
-      return original * LyricsRenderer.fovKick();
+      return original * LyricsRenderer.fovKick() * (float)dev.truwty.nocturne.experience.Experience.zoom();
    }
 }

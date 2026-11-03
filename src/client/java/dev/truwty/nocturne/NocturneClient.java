@@ -31,6 +31,7 @@ public class NocturneClient {
       OPEN_KEY = dev.truwty.nocturne.platform.ClientHooks.key(new KeyMapping("key.nocturne.open", ClientAccess.keyType(), com.mojang.blaze3d.platform.InputConstants.KEY_N, category));
       SCREENSHOT_CONTEXT_KEY=dev.truwty.nocturne.platform.ClientHooks.key(new KeyMapping("key.nocturne.screenshot_context",ClientAccess.keyType(),-1,category));
       dev.truwty.nocturne.playback.PlaybackKeys.register(category);
+      dev.truwty.nocturne.experience.Experience.initialize(category);
       dev.truwty.nocturne.platform.ClientHooks.tick(NocturneClient::tick);
       dev.truwty.nocturne.platform.ClientHooks.hud("cinema", LyricsHud::render);
       dev.truwty.nocturne.platform.ClientHooks.hud("world_lyrics", HudLyrics::render);
@@ -40,6 +41,7 @@ public class NocturneClient {
 
       dev.truwty.nocturne.platform.ClientHooks.stop(client -> {
          dev.truwty.nocturne.compat.GamepadInput.close();
+         dev.truwty.nocturne.experience.DiscordPresence.close();
               dev.truwty.nocturne.maintenance.UpdateChecker.close();
          dev.truwty.nocturne.playback.Playback.close();
          dev.truwty.nocturne.gui.AlbumArtwork.close();
@@ -62,6 +64,7 @@ public class NocturneClient {
 
    private static void tick(Minecraft mc) {
       dev.truwty.nocturne.maintenance.UpdateChecker.tick();
+      dev.truwty.nocturne.experience.Experience.tick(mc);
       if (!SETTINGS.isEnabled() && ++playbackTicks % 10 == 0) LyricsService.INSTANCE.system.start();
       while(SCREENSHOT_CONTEXT_KEY.consumeClick())if(ClientAccess.screen(mc) ==null&&mc.level!=null)dev.truwty.nocturne.accessibility.ContextProfiles.screenshot(!dev.truwty.nocturne.accessibility.ContextProfiles.screenshot());
       dev.truwty.nocturne.accessibility.Accessibility.tick(mc);

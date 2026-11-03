@@ -19,6 +19,7 @@ public abstract class LevelRenderingMixin {
             SubmitNodeCollector submits, CallbackInfo callback) {
         if(NocturneClient.SETTINGS!=null) {
             LyricsRenderer.render(new LyricFrame(state.cameraRenderState.pos, poses, submits));
+            dev.truwty.nocturne.experience.Experience.render(new LyricFrame(state.cameraRenderState.pos, poses, submits));
         }
     }
 }

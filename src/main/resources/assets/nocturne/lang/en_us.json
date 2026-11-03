@@ -10,5 +10,9 @@
   "key.nocturne.volume_up": "Player volume up 5%",
   "key.nocturne.shuffle": "Toggle shuffle",
   "key.nocturne.repeat": "Cycle repeat",
-  "key.nocturne.screenshot_context": "Toggle screenshot context"
+  "key.nocturne.screenshot_context": "Toggle screenshot context",
+  "key.nocturne.orbit": "Open Orbit menu",
+  "key.nocturne.emotes": "Open emote wheel",
+  "key.nocturne.block_palette": "Open visual block palette",
+  "key.nocturne.zoom": "Hold to zoom"
 }

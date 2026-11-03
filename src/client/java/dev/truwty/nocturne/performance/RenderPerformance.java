@@ -9,7 +9,7 @@ import java.util.Locale;
 public final class RenderPerformance {
     private static final AdaptiveBudget ADAPTIVE = new AdaptiveBudget();
     private static long lastFrame, cpuNanos;
-    private static int text, meshes, vertices, projected, particles, trails, glow, cloud;
+    private static int text, meshes, vertices, projected, particles, trails, glow, cloud,clientParticles;
     private static int glowCap, cloudCap;
     private static double scale = 1, distance = 1;
     private static boolean idle, pendingWorld;
@@ -49,7 +49,7 @@ public final class RenderPerformance {
                         meshes,
                         vertices,
                         projected,
-                        particles,
+                        particles+clientParticles,
                         trails,
                         glow,
                         cloud,
@@ -132,6 +132,8 @@ public final class RenderPerformance {
         cloud++;
         return true;
     }
+
+    public static void clientParticles(int count){clientParticles=Math.max(0,count);}
 
     public static void counts(int count, int lines) {
         particles = count;

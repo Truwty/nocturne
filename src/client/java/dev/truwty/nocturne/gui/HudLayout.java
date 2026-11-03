@@ -6,7 +6,7 @@ import java.util.*;
 
 public final class HudLayout {
     public static final List<String> WIDGETS =
-            List.of("Karaoke", "Secondary", "Countdown", "Confidence", "Diagnostics");
+            List.of("Karaoke", "Secondary", "Countdown", "Confidence", "Diagnostics", "Session", "Container");
     public static final int MARGIN = 8;
 
     public record Box(double x, double y, double width, double height) {
@@ -79,6 +79,8 @@ public final class HudLayout {
         n.put("Countdown", new Node(.5, .72, 1, !menu));
         n.put("Confidence", new Node(.5, .22, 1, !menu));
         n.put("Diagnostics", new Node(.27, .3, 1, !menu));
+        n.put("Session",new Node(.14,.09,1,!menu));
+        n.put("Container",new Node(.85,.23,1,!menu));
         return new HudLayout(n);
     }
 
@@ -108,6 +110,7 @@ public final class HudLayout {
         var rows = json.getAsJsonObject("widgets");
         Map<String, Node> nodes = new LinkedHashMap<>();
         for (String id : WIDGETS) {
+            if(!rows.has(id)&&(id.equals("Session")||id.equals("Container"))){nodes.put(id,defaults(false).node(id));continue;}
             if (!rows.has(id) || !rows.get(id).isJsonObject())
                 throw new IllegalArgumentException("Missing HUD widget: " + id);
             var row = rows.getAsJsonObject(id);

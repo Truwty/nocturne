@@ -6,7 +6,17 @@
     "AbstractClientPlayerMixin",
     "LevelRenderingMixin",
     "WeatherRenderingMixin",
-    "TitleScreenMixin"
+    "TitleScreenMixin",
+    "ExperienceEnvironmentMixin",
+    "ExperienceClockMixin",
+    "ExperienceWeatherMixin",
+    "ExperienceAttackMixin",
+    "ExperienceEmoteMixin",
+    "ExperienceDeathMixin",
+    "ExperiencePostEffectMixin",
+    "ExperienceHotbarMixin",
+    "ExperienceSkinMixin",
+    "ExperienceSeasonMixin"
   ],
   "injectors": {
     "defaultRequire": 1

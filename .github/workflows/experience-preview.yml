@@ -1,0 +1,54 @@
+name: Experience preview
+on:
+  push:
+    branches: ['feature/nocturne-experience-suite']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25.0.5+8'
+      - uses: gradle/actions/setup-gradle@v6.4.1
+      - name: Build and test Minecraft 26.1.2 preview
+        run: ./gradlew.bat build --console=plain
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: nocturne-experience-fabric-26.1.2-preview
+          path: |
+            build/libs/*.jar
+            build/release/nocturne-*.json
+          if-no-files-found: error
+  client:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NOCTURNE_TEST_EXPERIENCE: 'true'
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+      MESA_GL_VERSION_OVERRIDE: '4.5'
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25.0.5+8'
+      - uses: gradle/actions/setup-gradle@v6.4.1
+      - name: Install virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0
+      - name: Run experience client checks
+        run: xvfb-run -a ./gradlew runClientGameTest --console=plain
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: nocturne-experience-client-proof
+          path: |
+            build/run/clientGameTest/screenshots/**
+            build/run/clientGameTest/logs/**
+            build/run/clientGameTest/crash-reports/**
+          if-no-files-found: ignore

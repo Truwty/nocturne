@@ -4,5 +4,6 @@ import dev.truwty.nocturne.NocturneClient;
 import net.fabricmc.api.ClientModInitializer;
 
 public final class FabricEntrypoint implements ClientModInitializer {
-    @Override public void onInitializeClient() { new NocturneClient().onInitializeClient(); }
+    @Override public void onInitializeClient() { ExperiencePacks.register();
+        new NocturneClient().onInitializeClient(); }
 }

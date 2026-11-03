@@ -218,6 +218,7 @@ public final class StudioScreen extends Screen {
         x = left; w = widthBefore;
     }
     private void health() {
+        button(x+16,body+273,w-32,"Orbit / visual modules",()->ClientAccess.setScreen(minecraft,new dev.truwty.nocturne.experience.OrbitScreen(this)));
         button(x + 16, row + 115, w - 32, "Copy diagnostics", () -> { minecraft.keyboardHandler.setClipboard(dev.truwty.nocturne.lyrics.LyricsDebug.report()); notice = "Diagnostics copied"; });
         row=body+141; number(s().cacheDays);
         button(x+16,body+169,w-32,"Resynchronize playback",()->service().resynchronize());
@@ -294,7 +295,7 @@ public final class StudioScreen extends Screen {
         rebuildWidgets(); return true;
     }
     private int maxScroll() {
-        int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 212 : page == 1 ? 244 : page == 4 ? 270 : page == 3 ? 230 : page == 6 ? 275 : 204;
+        int contentHeight = page == 2 ? service().system.players().size() * 42 + 90 : page == 0 ? 212 : page == 1 ? 244 : page == 4 ? 270 : page == 3 ? 230 : page == 6 ? 309 : 204;
         return Math.max(0, contentHeight - (h - 140));
     }
     @Override public void onClose() { s().save(); io(Studio::savePlacement); ClientAccess.setScreen(minecraft, parent); }

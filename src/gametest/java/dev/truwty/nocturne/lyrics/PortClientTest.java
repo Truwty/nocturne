@@ -17,6 +17,7 @@ public final class PortClientTest implements FabricClientGameTest {
     public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext world = createWorld(context)) {
             dev.truwty.nocturne.compat.TestAccess.waitForChunks(world);
+            if(System.getenv("NOCTURNE_TEST_EXPERIENCE")!=null){dev.truwty.nocturne.experience.ExperienceClientChecks.run(context,world);return;}
             if(System.getenv("NOCTURNE_TEST_SHADER")!=null) {
                 context.runOnClient(mc->{ if(!ShaderCompat.shaderPackOn())throw new AssertionError("Requested real shader pack did not activate"); });
                 NocturneClient.LOG.info("REAL SHADER PACK ACTIVE");

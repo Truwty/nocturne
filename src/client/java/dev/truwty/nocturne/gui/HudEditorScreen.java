@@ -269,6 +269,7 @@ public final class HudEditorScreen extends Screen {
             case "Karaoke" -> Math.min(width - 16, 370);
             case "Secondary", "Confidence" -> Math.min(width - 16, 300);
             case "Diagnostics" -> Math.min(width - 16, 280);
+            case "Session" -> 184; case "Container" -> 176;
             default -> 120;
         };
     }
@@ -278,6 +279,7 @@ public final class HudEditorScreen extends Screen {
             case "Karaoke" -> 30;
             case "Secondary" -> 26;
             case "Diagnostics" -> 100;
+            case "Session" -> 38; case "Container" -> 132;
             default -> 14;
         };
     }

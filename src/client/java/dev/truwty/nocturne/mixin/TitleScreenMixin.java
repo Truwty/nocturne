@@ -15,6 +15,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class TitleScreenMixin extends Screen {
     protected TitleScreenMixin(Component title) { super(title); }
 
+    @org.spongepowered.asm.mixin.Unique private static boolean nocturne$introPlayed;
+    @Inject(method="tick",at=@At("TAIL"))
+    private void nocturne$intro(CallbackInfo callback) {
+        if(!nocturne$introPlayed&&NocturneClient.SETTINGS!=null&&dev.truwty.nocturne.experience.Experience.SETTINGS.on(dev.truwty.nocturne.experience.ExperienceSettings.Option.INTRO)&&dev.truwty.nocturne.accessibility.Accessibility.textMotion()) {nocturne$introPlayed=true;ClientAccess.setScreen(minecraft,new dev.truwty.nocturne.experience.IntroScreen(this));}
+    }
+
     @Inject(method = "init", at = @At("TAIL"))
     private void nocturne$addButton(CallbackInfo ci) {
         addRenderableWidget(Button.builder(Component.literal("Nocturne"),
