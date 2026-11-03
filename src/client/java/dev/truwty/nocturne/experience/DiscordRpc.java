@@ -49,6 +49,14 @@ public final class DiscordRpc {
         return new Frame(opcode, bytes);
     }
 
+    public static boolean event(JsonObject response, String name) {
+        var value = response.get("evt");
+        return value != null
+                && value.isJsonPrimitive()
+                && value.getAsJsonPrimitive().isString()
+                && name.equals(value.getAsString());
+    }
+
     public static JsonObject handshake(String id) {
         if (!id.matches("[0-9]{17,20}"))
             throw new IllegalArgumentException("Use a Discord application ID, not a token");

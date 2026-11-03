@@ -71,9 +71,7 @@ public final class DiscordPresence {
                 try {
                     DiscordRpc.write(connection, DiscordRpc.json(0, DiscordRpc.handshake(id)));
                     var ready = DiscordRpc.read(connection);
-                    if (ready.opcode() != 1
-                            || !ready.json().has("evt")
-                            || !"READY".equals(ready.json().get("evt").getAsString()))
+                    if (ready.opcode() != 1 || !DiscordRpc.event(ready.json(), "READY"))
                         throw new IOException("Discord did not accept the application ID");
                 } finally {
                     timeout.cancel(false);
@@ -89,8 +87,7 @@ public final class DiscordPresence {
                         DiscordRpc.write(connection, new DiscordRpc.Frame(4, frame.payload()));
                     if (frame.opcode() == 1) {
                         var response = frame.json();
-                        if (response.has("evt")
-                                && "ERROR".equals(response.get("evt").getAsString()))
+                        if (DiscordRpc.event(response, "ERROR"))
                             throw new IOException(
                                     "Discord rejected the presence; check the application ID");
                     }

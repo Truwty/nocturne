@@ -8,6 +8,23 @@ import java.io.*;
 
 class DiscordRpcTest {
     @Test
+    void nullableActivityAcknowledgementsAreNotErrors() {
+        var response =
+                com.google.gson.JsonParser.parseString(
+                                "{\"cmd\":\"SET_ACTIVITY\",\"evt\":null,\"nonce\":\"test\"}")
+                        .getAsJsonObject();
+        assertFalse(DiscordRpc.event(response, "ERROR"));
+        response.remove("evt");
+        assertFalse(DiscordRpc.event(response, "ERROR"));
+        response.addProperty("evt", 42);
+        assertFalse(DiscordRpc.event(response, "ERROR"));
+        response.addProperty("evt", "ERROR");
+        assertTrue(DiscordRpc.event(response, "ERROR"));
+        response.addProperty("evt", "READY");
+        assertTrue(DiscordRpc.event(response, "READY"));
+    }
+
+    @Test
     void framesUseLittleEndianAndRoundTripUnicode() throws Exception {
         var json = new com.google.gson.JsonObject();
         json.addProperty("value", "Nocturne 星");
