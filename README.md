@@ -1,4 +1,4 @@
-> **Development preview:** this branch bundles the opt-in 1.1.0-alpha.1 Experience suite for Minecraft 26.1.2. [Features, controls and limitations](docs/experience-suite.md). The published stable music release remains 1.0.2.
+> **Development preview:** this branch bundles the opt-in 1.1.0-alpha.2 Experience suite for Minecraft 26.1.2. [Features, controls and limitations](docs/experience-suite.md). The published stable music release remains 1.0.2.
 
 <div align="center">
 
