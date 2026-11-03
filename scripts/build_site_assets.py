@@ -12,6 +12,7 @@ def main() -> None:
         **{name: f"docs/{name}" for name in (
             "world.png", "compatibility-shaders.png", "lyric-workspace.png",
             "interface-picker.png", "placement-editor.png", "playback.png", "studio.png",
+            "experience-orbit.png", "experience-replay.png",
         )},
         "icon.png": "src/main/resources/assets/nocturne/icon.png",
         "smooth.ttf": "src/main/resources/assets/nocturne/font/smooth.ttf",

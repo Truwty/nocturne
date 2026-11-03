@@ -24,6 +24,14 @@ Nocturne brings your desktop soundtrack into Minecraft: lyrics in the world, a c
 
 [Get started](#three-steps-to-your-first-session) · [Inside the Studio](#inside-the-studio) · [Compatibility](#choose-the-build-for-your-world) · [Development & support](#behind-the-session)
 
+## Experience preview · 1.1.0-alpha.1
+
+The optional Experience suite adds Orbit, local world looks, combat and movement effects, cosmetics, companions, replay and Discord Rich Presence to the existing music mod. These modules start disabled. **Fabric · Minecraft 26.1.2 · Java 25 only for this preview.** Stable 1.0.2 remains available.
+
+[Download the alpha](https://truwty.github.io/nocturne/downloads.html?minecraft=26.1.2&loader=fabric&release=v1.1.0-alpha.1&previews=1) · [Feature guide and limitations](docs/experience-suite.md) · [Release notes](docs/releases/1.1.0-alpha.1.md)
+
+![The Orbit menu in the Minecraft client](docs/experience-orbit.png)
+
 ## Inside the Studio
 
 <table>
